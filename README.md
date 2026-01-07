@@ -1,8 +1,10 @@
-# 🕹️ Maze Battlegrounds: Tabletop Arcade (v2.0)
+# 🕹️ Maze Battlegrounds: Tabletop Arcade (v2.5 - AI Update)
 
 A DIY head-to-head tabletop arcade console powered by a **Raspberry Pi Zero 2 W** and a **P2.5 128x64 RGB LED Matrix**.
 
 This repository contains the source code for the game *Maze Battleground*—a fast-paced tactical shooter designed specifically for low-resolution LED displays—along with the hardware specifications to build the physical machine.
+
+**New in v2.5:** Now features a smart CPU opponent for single-player practice!
 
 ---
 
@@ -13,7 +15,7 @@ This repository contains the source code for the game *Maze Battleground*—a fa
 
 ## 📖 About The Game
 
-**Maze Battleground v2.0** is a 1v1 top-down shooter where two players face each other on a digital table. The goal is to be the first to reach **5 Points**.
+**Maze Battleground** is a top-down shooter designed for a digital tabletop experience. The goal is to be the first to reach **5 Points**.
 
 Points are awarded for:
 1.  **Reaching the Goal:** Navigating to the opponent's spawn zone.
@@ -22,16 +24,26 @@ Points are awarded for:
 The battlefield is dynamic. Players can destroy walls, set traps, teleport, and utilize a new charging mechanic to break through defenses.
 
 ### Key Features
-* **Tabletop Mode:** The HUD is split and oriented for players sitting opposite each other.
+* **Two Game Modes:** Choose between **Single Player (vs CPU)** or **Multiplayer (PvP)** via the new start menu.
+* **Smart AI:** The CPU opponent uses advanced pathfinding to dodge shots, avoid mines, use shields strategically, and aggressively hunt the player.
 * **Destructible Environment:** Use mines or the **Charged Beam** to blast through walls and create shortcuts.
 * **Tactical Physics:** Movement is momentum-based. Managing your **Boost Energy** is key to survival.
-* **Unstable Portals:** Teleporters allow instant travel, but have a chance to **Glitch**, inverting your controls for a short duration.
+* **Tabletop HUD:** The interface is split and oriented for players sitting opposite each other.
 
-## 🎮 Controls (v2.0 Update)
+## 🎮 Controls & Menu
 
-The controls have been refactored for better ergonomics.
+The game now starts with a mode selection menu.
 
-| Action | **Player 1 (Left/Blue)** | **Player 2 (Right/Pink)** | Description |
+### Menu Navigation
+| Key | Action |
+| :---: | :--- |
+| `1` | Start **Single Player** (vs CPU Hard) |
+| `2` | Start **Multiplayer** (1v1) |
+| `ESC` | Return to Main Menu at any time |
+
+### Gameplay Controls
+
+| Action | **Player 1 (Left/Blue)** | **Player 2 / CPU (Right/Pink)** | Description |
 | :--- | :---: | :---: | :--- |
 | **Move** | `W` `A` `S` `D` | `Arrow Keys` | Navigate the maze. |
 | **Beam (Tap)** | `F` | `K` | Fires a quick beam. **Stuns** enemies (Slows them). Costs Energy. |
@@ -40,7 +52,15 @@ The controls have been refactored for better ergonomics.
 | **Shield** | `R` | `I` | Blocks Stuns and Lethal damage. Drains Energy rapidly. |
 | **Drop Mine** | `E` | `O` | Place a lethal mine. Max 4 mines. |
 | **Detonate** | `SPACE` | `ENTER` | Explode all your active mines remotely. Costs Energy. |
-| **Reset** | `R` (On Game Over) | `R` (On Game Over) | Reset the round/game. |
+| **Reset** | `R` | `R` | **Round Over:** Starts next round.<br>**Game Over:** Resets entire match. |
+
+## 🧠 The "Aggressive" AI
+
+The Single Player mode features a fully autonomous bot designed to mimic human play:
+* **Pathfinding:** It calculates the shortest path to your base but will dynamically reroute if it detects mines in its way.
+* **Battering Ram:** If the path is blocked by too many mines, it may activate its shield and intentionally detonate them to clear a path.
+* **Self-Preservation:** It scans for incoming projectiles and will attempt to dodge sideways or pop its shield at the last second.
+* **Stuck Detection:** If the AI gets stuck on geometry, it performs a "wiggle" maneuver to free itself.
 
 ## 🛠️ Hardware Bill of Materials (BOM)
 
@@ -68,8 +88,9 @@ Your lifeblood. You have a single energy bar that recharges slowly. You must man
 * **Charged Beam (Lethal):** Hold the beam button for 3 seconds. Your player slows down, flashes white, and releases a high-velocity projectile that destroys walls and instantly kills the opponent.
 * **Mines:** You start with **4 Mines**. Stealing or stepping on a mine causes a massive explosion. This destroys nearby walls and kills anyone caught in the blast radius.
 
-### 3. Pickups
+### 3. Pickups & Environment
 * **Ammo Crates:** Green boxes spawn randomly on the map. Collecting one refills your mine inventory to max (4).
+* **Portals:** Two teleporters spawn on the map (Orange/Blue). Entering one instantly moves you to the other, but be careful—entering a portal has a 30% chance to **Glitch** your controls (invert them) for a few seconds.
 
 ---
 
@@ -78,6 +99,9 @@ Your lifeblood. You have a single energy bar that recharges slowly. You must man
 To run the game locally on your computer:
 1.  Clone this repository.
 2.  Open `index.html` in any modern web browser.
+
+## 📟 Installation (Hardware Version)
+*(Coming Soon: Instructions for setting up the Raspberry Pi environment using rpi-rgb-led-matrix library)*2.  Open `index.html` in any modern web browser.
 
 ## 📟 Installation (Hardware Version)
 *(Coming Soon: Instructions for setting up the Raspberry Pi environment using rpi-rgb-led-matrix library)*
