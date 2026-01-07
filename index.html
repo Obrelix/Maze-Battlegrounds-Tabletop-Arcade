@@ -160,9 +160,17 @@
             letter-spacing: 0.5px;
         }
 
-        .act-atk { color: #ff5555; }
-        .act-def { color: #55ffff; }
-        .act-mov { color: #55ff55; }
+        .act-atk {
+            color: #ff5555;
+        }
+
+        .act-def {
+            color: #55ffff;
+        }
+
+        .act-mov {
+            color: #55ff55;
+        }
 
         /* --- LEGEND --- */
         .legend-grid {
@@ -205,10 +213,21 @@
             opacity: 0.7;
         }
 
-        .hl-red { color: #ff5555; }
-        .hl-blue { color: #55ffff; }
-        .hl-gold { color: #ffd700; }
-        .hl-purple { color: #ff55ff; }
+        .hl-red {
+            color: #ff5555;
+        }
+
+        .hl-blue {
+            color: #55ffff;
+        }
+
+        .hl-gold {
+            color: #ffd700;
+        }
+
+        .hl-purple {
+            color: #ff55ff;
+        }
 
         /* --- CANVAS --- */
         .console-case {
@@ -264,7 +283,8 @@
 
     <div class="arcade-header">
         <div class="header-bar">
-            <div class="game-title">MAZE BATTLEGROUND <span style="font-size:0.5em; opacity:0.5; vertical-align: middle;">CLEAN</span></div>
+            <div class="game-title">MAZE BATTLEGROUND <span
+                    style="font-size:0.5em; opacity:0.5; vertical-align: middle;">CLEAN</span></div>
             <div class="round-info" id="statusText">SELECT MODE</div>
         </div>
 
@@ -274,7 +294,8 @@
                 <div class="control-group">
                     <div class="c-row">
                         <span class="action-name act-mov">MOVE</span>
-                        <div><span class="key-cap">W</span><span class="key-cap">A</span><span class="key-cap">S</span><span class="key-cap">D</span></div>
+                        <div><span class="key-cap">W</span><span class="key-cap">A</span><span
+                                class="key-cap">S</span><span class="key-cap">D</span></div>
                     </div>
                     <div class="c-row">
                         <span class="action-name act-atk">MINE/BOOM</span>
@@ -293,31 +314,38 @@
             </div>
 
             <div class="panel rules-panel">
-                <div class="panel-header" style="color: #aaa; font-size: 0.75em; letter-spacing: 4px;">SYSTEM MECHANICS</div>
+                <div class="panel-header" style="color: #aaa; font-size: 0.75em; letter-spacing: 4px;">SYSTEM MECHANICS
+                </div>
                 <div class="legend-grid">
                     <div class="legend-item">
                         <span class="l-icon">☠</span>
-                        <div class="l-text"><span class="l-title hl-red">MINES</span><span class="l-desc">Lethal. 1 Pt.</span></div>
+                        <div class="l-text"><span class="l-title hl-red">MINES</span><span class="l-desc">Lethal. 1
+                                Pt.</span></div>
                     </div>
                     <div class="legend-item">
                         <span class="l-icon">🛡</span>
-                        <div class="l-text"><span class="l-title hl-blue">SHIELD</span><span class="l-desc">Blocks All.</span></div>
+                        <div class="l-text"><span class="l-title hl-blue">SHIELD</span><span class="l-desc">Blocks
+                                All.</span></div>
                     </div>
                     <div class="legend-item">
                         <span class="l-icon">⚡</span>
-                        <div class="l-text"><span class="l-title hl-gold">TAP BEAM</span><span class="l-desc">Stuns Enemy.</span></div>
+                        <div class="l-text"><span class="l-title hl-gold">TAP BEAM</span><span class="l-desc">Stuns
+                                Enemy.</span></div>
                     </div>
                     <div class="legend-item">
                         <span class="l-icon">💥</span>
-                        <div class="l-text"><span class="l-title hl-gold">HOLD BEAM</span><span class="l-desc">Break Wall/Kill.</span></div>
+                        <div class="l-text"><span class="l-title hl-gold">HOLD BEAM</span><span class="l-desc">Break
+                                Wall/Kill.</span></div>
                     </div>
                     <div class="legend-item">
                         <span class="l-icon">🌀</span>
-                        <div class="l-text"><span class="l-title hl-purple">PORTAL</span><span class="l-desc">Teleport.</span></div>
+                        <div class="l-text"><span class="l-title hl-purple">PORTAL</span><span
+                                class="l-desc">Teleport.</span></div>
                     </div>
                     <div class="legend-item">
                         <span class="l-icon">⚠</span>
-                        <div class="l-text"><span class="l-title hl-red">GLITCH</span><span class="l-desc">Invert Ctrl.</span></div>
+                        <div class="l-text"><span class="l-title hl-red">GLITCH</span><span class="l-desc">Invert
+                                Ctrl.</span></div>
                     </div>
                 </div>
             </div>
@@ -326,10 +354,13 @@
                 <div class="panel-header" style="color: #ff00ff;">PLAYER 2 / CPU</div>
                 <div class="control-group">
                     <div class="c-row">
-                        <div><span class="key-cap">^</span><span class="key-cap">&lt;</span><span class="key-cap">v</span><span class="key-cap">&gt;</span></div><span class="action-name act-mov">MOVE</span>
+                        <div><span class="key-cap">^</span><span class="key-cap">&lt;</span><span
+                                class="key-cap">v</span><span class="key-cap">&gt;</span></div><span
+                            class="action-name act-mov">MOVE</span>
                     </div>
                     <div class="c-row">
-                        <div><span class="key-cap">O</span>+<span class="key-cap">ENT</span></div><span class="action-name act-atk">MINE/BOOM</span>
+                        <div><span class="key-cap">O</span>+<span class="key-cap">ENT</span></div><span
+                            class="action-name act-atk">MINE/BOOM</span>
                     </div>
                     <div class="c-row">
                         <span class="key-cap">I</span><span class="action-name act-def">SHIELD</span>
@@ -349,7 +380,7 @@
         <div class="screen-bezel">
             <canvas id="ledMatrix" width="1280" height="640"></canvas>
         </div>
-        <div class="panel-id">P2.5-320x160-1/32S</div>
+        <div class="panel-id">SYS.V2-REF.CLEAN</div>
     </div>
     <div class="info">MENU: '1'/'2' | GAME: 'R' NEXT ROUND/RESET | 'ESC' MENU</div>
 
@@ -400,7 +431,7 @@
             up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD',
             shield: 'KeyR', beam: 'KeyF', mine: 'KeyE', boost: 'KeyG', boom: 'Space'
         };
-        
+
         const CONTROLS_P2 = {
             up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight',
             shield: 'KeyI', beam: 'KeyK', mine: 'KeyO', boost: 'KeyL', boom: 'Enter'
@@ -414,13 +445,95 @@
         ];
 
         // Compact font arrays to save space
-        const BITMAP_FONT = {'A':[0,1,0,1,0,1,1,1,1,1,0,1,1,0,1],'B':[1,1,0,1,0,1,1,1,0,1,0,1,1,1,0],'C':[0,1,1,1,0,0,1,0,0,1,0,0,0,1,1],'D':[1,1,0,1,0,1,1,0,1,1,0,1,1,1,0],'E':[1,1,1,1,0,0,1,1,0,1,0,0,1,1,1],'F':[1,1,1,1,0,0,1,1,0,1,0,0,1,0,0],'G':[0,1,1,1,0,0,1,0,1,1,0,1,0,1,1],'H':[1,0,1,1,0,1,1,1,1,1,0,1,1,0,1],'I':[1,1,1,0,1,0,0,1,0,0,1,0,1,1,1],'J':[0,0,1,0,0,1,0,0,1,1,0,1,0,1,0],'K':[1,0,1,1,0,1,1,1,0,1,0,1,1,0,1],'L':[1,0,0,1,0,0,1,0,0,1,0,0,1,1,1],'M':[1,0,1,1,1,1,1,0,1,1,0,1,1,0,1],'N':[1,1,0,1,0,1,1,0,1,1,0,1,1,0,1],'O':[0,1,0,1,0,1,1,0,1,1,0,1,0,1,0],'P':[1,1,0,1,0,1,1,1,0,1,0,0,1,0,0],'Q':[0,1,0,1,0,1,1,0,1,0,1,0,0,0,1],'R':[1,1,0,1,0,1,1,1,0,1,0,1,1,0,1],'S':[0,1,1,1,0,0,0,1,0,0,0,1,1,1,0],'T':[1,1,1,0,1,0,0,1,0,0,1,0,0,1,0],'U':[1,0,1,1,0,1,1,0,1,1,0,1,0,1,0],'V':[1,0,1,1,0,1,1,0,1,1,0,1,0,1,0],'W':[1,0,1,1,0,1,1,0,1,1,1,1,1,0,1],'X':[1,0,1,1,0,1,0,1,0,1,0,1,1,0,1],'Y':[1,0,1,1,0,1,0,1,0,0,1,0,0,1,0],'Z':[1,1,1,0,0,1,0,1,0,1,0,0,1,1,1],'0':[0,1,0,1,0,1,1,0,1,1,0,1,0,1,0],'1':[0,1,0,1,1,0,0,1,0,0,1,0,1,1,1],'2':[1,1,0,0,0,1,0,1,0,1,0,0,1,1,1],'3':[1,1,0,0,0,1,0,1,0,1,0,0,0,1,1,1,0],'4':[1,0,1,1,0,1,1,1,1,0,0,1,0,0,1],'5':[1,1,1,1,0,0,1,1,0,0,0,1,1,1,0],'6':[0,1,1,1,0,0,1,1,0,1,0,1,0,1,0],'7':[1,1,1,0,0,1,0,0,1,0,0,1,0,0,1],'8':[0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],'9':[0,1,0,1,0,1,0,1,1,0,0,1,0,1,0],'!':[0,1,0,0,1,0,0,1,0,0,0,0,0,1,0],' ':[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],'-':[0,0,0,0,0,0,1,1,1,0,0,0,0,0,0],'.':[0,0,0,0,0,0,0,0,0,0,0,0,0,1,0]};
-        const DIGIT_MAP = {0:[1,1,1,1,0,1,1,0,1,1,0,1,1,1,1],1:[0,1,0,0,1,0,0,1,0,0,1,0,0,1,0],2:[1,1,1,0,0,1,1,1,1,1,0,0,1,1,1],3:[1,1,1,0,0,1,0,1,1,0,0,1,1,1,1],4:[1,0,1,1,0,1,1,1,1,0,0,1,0,0,1],5:[1,1,1,1,0,0,1,1,1,0,0,1,1,1,1],6:[1,1,1,1,0,0,1,1,1,1,0,1,1,1,1],7:[1,1,1,0,0,1,0,0,1,0,0,1,0,0,1],8:[1,1,1,1,0,1,1,1,1,1,0,1,1,1,1],9:[1,1,1,1,0,1,1,1,1,0,0,1,0,0,1]};
+        const BITMAP_FONT = { 'A': [0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1], 'B': [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0], 'C': [0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1], 'D': [1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0], 'E': [1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1], 'F': [1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0], 'G': [0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1], 'H': [1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1], 'I': [1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1], 'J': [0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0], 'K': [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1], 'L': [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1], 'M': [1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1], 'N': [1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1], 'O': [0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0], 'P': [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0], 'Q': [0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1], 'R': [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1], 'S': [0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0], 'T': [1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 'U': [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0], 'V': [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0], 'W': [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1], 'X': [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1], 'Y': [1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0], 'Z': [1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1], '0': [0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0], '1': [0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1], '2': [1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1], '3': [1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0], '4': [1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1], '5': [1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0], '6': [0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0], '7': [1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], '8': [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], '9': [0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0], '!': [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0], ' ': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], '-': [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0], '.': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0] };
+        const DIGIT_MAP = { 0: [1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1], 1: [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 2: [1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1], 3: [1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1], 4: [1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1], 5: [1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1], 6: [1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1], 7: [1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1], 8: [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1], 9: [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1] };
 
         /** * ==========================================
          * 2. CLASSES
          * ==========================================
          */
+        class SoundFX {
+            constructor() {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.3; 
+                this.masterGain.connect(this.ctx.destination);
+                this.initialized = false;
+            }
+
+            init() {
+                if (!this.initialized) {
+                    this.ctx.resume().then(() => {
+                        this.initialized = true;
+                    });
+                }
+            }
+
+            playTone(freq, type, duration, slideTo = null) {
+                if (this.ctx.state === 'suspended') this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+                if (slideTo) {
+                    osc.frequency.exponentialRampToValueAtTime(slideTo, this.ctx.currentTime + duration);
+                }
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playNoise(duration) {
+                if (this.ctx.state === 'suspended') this.init();
+                const bufferSize = this.ctx.sampleRate * duration;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = this.ctx.createGain();
+
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 1000;
+
+                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.masterGain);
+                noise.start();
+            }
+
+            // --- PRESETS ---
+            shoot() { this.playTone(800, 'square', 0.1, 100); } // "Pew"
+            chargedShoot() { this.playTone(400, 'sawtooth', 0.4, 50); } // deep "Zap"
+            charge() { this.playTone(200, 'sine', 0.1, 600); } // pitch up
+            mineDrop() { this.playTone(600, 'sine', 0.1, 300); }
+            explosion() { this.playNoise(0.4); } // "Kshhh"
+            shield() { this.playTone(150, 'square', 0.1); } // Hum
+            powerup() {
+                this.playTone(400, 'sine', 0.1);
+                setTimeout(() => this.playTone(600, 'sine', 0.1), 100);
+            }
+            win() {
+                [440, 554, 659, 880].forEach((f, i) => setTimeout(() => this.playTone(f, 'square', 0.2), i * 150));
+            }
+            start() { this.playTone(440, 'triangle', 0.5, 880); }
+        }
+
         class Cell {
             constructor(c, r) {
                 this.c = c;
@@ -442,7 +555,7 @@
                 this.goalC = 0;
                 this.goalR = 0;
                 this.lastDir = { x: id === 0 ? 1 : -1, y: 0 };
-                
+
                 // AI Memory
                 this.lastPos = { x: 0, y: 0 };
                 this.stuckCounter = 0;
@@ -505,7 +618,8 @@
                 winColor: "#fff",
                 roundColor: "#fff"
             },
-            scrollX: 0
+            scrollX: 0,
+            sfx: new SoundFX()
         };
 
         /** * ==========================================
@@ -529,15 +643,15 @@
         function isWall(pixelX, pixelY) {
             if (pixelX < CONFIG.MAZE_OFFSET_X || pixelX >= CONFIG.LOGICAL_W - CONFIG.HUD_WIDTH) return true;
             if (pixelY < 0 || pixelY >= CONFIG.LOGICAL_H) return true;
-            
+
             let mx = pixelX - CONFIG.MAZE_OFFSET_X;
             let cell = gridIndex(Math.floor(mx / CONFIG.CELL_SIZE), Math.floor(pixelY / CONFIG.CELL_SIZE));
-            
+
             if (!cell) return true;
-            
+
             let lx = Math.floor(mx) % CONFIG.CELL_SIZE;
             let ly = Math.floor(pixelY) % CONFIG.CELL_SIZE;
-            
+
             if (lx === 0 && ly === 0) return true;
             if (ly === 0 && cell.walls[0]) return true;
             if (lx === 0 && cell.walls[3]) return true;
@@ -550,9 +664,9 @@
             let hitbox = 0.8;
             let pad = 0.6;
             return (
-                isWall(nx + pad, ny + pad) || 
-                isWall(nx + pad + hitbox, ny + pad) || 
-                isWall(nx + pad, ny + pad + hitbox) || 
+                isWall(nx + pad, ny + pad) ||
+                isWall(nx + pad + hitbox, ny + pad) ||
+                isWall(nx + pad, ny + pad + hitbox) ||
                 isWall(nx + pad + hitbox, ny + pad + hitbox)
             );
         }
@@ -580,7 +694,7 @@
                     STATE.maze.push(new Cell(c, r));
                 }
             }
-            
+
             let stack = [];
             let current = STATE.maze[0];
             current.visited = true;
@@ -630,24 +744,24 @@
             STATE.mines = [];
             STATE.particles = [];
             STATE.projectiles = [];
-            
+
             STATE.portals = [];
             let attempts = 0;
-            while(STATE.portals.length < 2 && attempts < 100) {
+            while (STATE.portals.length < 2 && attempts < 100) {
                 attempts++;
                 let c = Math.floor(Math.random() * (CONFIG.COLS - 2)) + 1;
                 let r = Math.floor(Math.random() * (CONFIG.ROWS - 2)) + 1;
                 if ((c < 5 && r < 5) || (c > CONFIG.COLS - 5 && r > CONFIG.ROWS - 5)) continue;
                 let tooClose = false;
-                for(let p of STATE.portals) { if (Math.abs(p.c - c) + Math.abs(p.r - r) < 10) tooClose = true; }
+                for (let p of STATE.portals) { if (Math.abs(p.c - c) + Math.abs(p.r - r) < 10) tooClose = true; }
                 if (tooClose) continue;
-                STATE.portals.push({ c: c, r: r, x: CONFIG.MAZE_OFFSET_X + c * CONFIG.CELL_SIZE + 1.5, y: r * CONFIG.CELL_SIZE + 1.5, color: STATE.portals.length===0?'#ffaa00':'#00aaff' });
+                STATE.portals.push({ c: c, r: r, x: CONFIG.MAZE_OFFSET_X + c * CONFIG.CELL_SIZE + 1.5, y: r * CONFIG.CELL_SIZE + 1.5, color: STATE.portals.length === 0 ? '#ffaa00' : '#00aaff' });
             }
             if (STATE.portals.length < 2) {
-                 STATE.portals = [
+                STATE.portals = [
                     { c: 10, r: 10, x: CONFIG.MAZE_OFFSET_X + 10 * CONFIG.CELL_SIZE + 1.5, y: 10 * CONFIG.CELL_SIZE + 1.5, color: '#ffaa00' },
                     { c: 20, r: 10, x: CONFIG.MAZE_OFFSET_X + 20 * CONFIG.CELL_SIZE + 1.5, y: 10 * CONFIG.CELL_SIZE + 1.5, color: '#00aaff' }
-                 ];
+                ];
             }
 
             STATE.ammoCrate = null;
@@ -666,18 +780,18 @@
             let start = gridIndex(0, 0);
             let end = gridIndex(CONFIG.COLS - 1, CONFIG.ROWS - 1);
             STATE.maze.forEach(c => { c.bfsVisited = false; c.parent = null; });
-            
+
             let q = [start];
             start.bfsVisited = true;
             let len = 0;
-            
-            while(q.length > 0) {
+
+            while (q.length > 0) {
                 let curr = q.shift();
-                if(curr === end) {
-                    while(curr.parent) { len++; curr = curr.parent; }
+                if (curr === end) {
+                    while (curr.parent) { len++; curr = curr.parent; }
                     break;
                 }
-                [[0,-1,0],[1,0,1],[0,1,2],[-1,0,3]].forEach(d => {
+                [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]].forEach(d => {
                     let n = gridIndex(curr.c + d[0], curr.r + d[1]);
                     if (n && !n.bfsVisited && !curr.walls[d[2]]) {
                         n.bfsVisited = true;
@@ -686,7 +800,7 @@
                     }
                 });
             }
-            STATE.gameTime = Math.floor((len * CONFIG.CELL_SIZE / ((CONFIG.BASE_SPEED+CONFIG.MAX_SPEED)/2)) * 6);
+            STATE.gameTime = Math.floor((len * CONFIG.CELL_SIZE / ((CONFIG.BASE_SPEED + CONFIG.MAX_SPEED) / 2)) * 6);
             STATE.maxGameTime = STATE.gameTime;
         }
 
@@ -694,7 +808,7 @@
          * 6. INPUT & AI LOGIC
          * ==========================================
          */
-        
+
         function getHumanInput(controls) {
             return {
                 up: STATE.keys[controls.up],
@@ -710,7 +824,7 @@
         }
 
         function findPath(cpu, targetC, targetR, ignoreMines) {
-            let start = gridIndex(Math.floor((cpu.x - CONFIG.MAZE_OFFSET_X)/CONFIG.CELL_SIZE), Math.floor(cpu.y/CONFIG.CELL_SIZE));
+            let start = gridIndex(Math.floor((cpu.x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE), Math.floor(cpu.y / CONFIG.CELL_SIZE));
             let end = gridIndex(targetC, targetR);
             if (!start || !end) return null;
 
@@ -719,21 +833,21 @@
             start.bfsVisited = true;
             let found = false;
 
-            while(q.length > 0) {
+            while (q.length > 0) {
                 let curr = q.shift();
-                if(curr === end) { found = true; break; }
-                
-                [[0,-1,0],[1,0,1],[0,1,2],[-1,0,3]].forEach(d => {
+                if (curr === end) { found = true; break; }
+
+                [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]].forEach(d => {
                     let n = gridIndex(curr.c + d[0], curr.r + d[1]);
                     let isSafe = true;
-                    if(n && !ignoreMines) {
-                        let mx = CONFIG.MAZE_OFFSET_X + n.c*CONFIG.CELL_SIZE + 1.5;
-                        let my = n.r*CONFIG.CELL_SIZE + 1.5;
+                    if (n && !ignoreMines) {
+                        let mx = CONFIG.MAZE_OFFSET_X + n.c * CONFIG.CELL_SIZE + 1.5;
+                        let my = n.r * CONFIG.CELL_SIZE + 1.5;
                         if (STATE.mines.some(m => m.active && Math.abs(m.x - mx) < 3 && Math.abs(m.y - my) < 3)) {
                             isSafe = false;
                         }
                     }
-                    if(n && !n.bfsVisited && !curr.walls[d[2]] && isSafe) {
+                    if (n && !n.bfsVisited && !curr.walls[d[2]] && isSafe) {
                         n.bfsVisited = true;
                         n.parent = curr;
                         q.push(n);
@@ -744,7 +858,7 @@
             if (found) {
                 let path = [];
                 let t = end;
-                while(t) { path.push(t); t = t.parent; }
+                while (t) { path.push(t); t = t.parent; }
                 path.reverse();
                 return path;
             }
@@ -753,11 +867,11 @@
 
         function getCpuInput(cpu, opponent) {
             let cmd = { up: false, down: false, left: false, right: false, shield: false, beam: false, mine: false, boost: false, boom: false };
-            
+
             // 1. DANGER SENSE
             let threat = null;
             let minDist = 999;
-            STATE.projectiles.forEach(proj => { 
+            STATE.projectiles.forEach(proj => {
                 if (proj.owner !== cpu.id) {
                     let d = Math.hypot(proj.x - cpu.x, proj.y - cpu.y);
                     if (d < 30 && d < minDist) { threat = proj; minDist = d; }
@@ -773,10 +887,10 @@
             let dx = opponent.x - cpu.x;
             let dy = opponent.y - cpu.y;
             let distOpp = Math.hypot(dx, dy);
-            
+
             if (!cmd.shield && cpu.boostEnergy > 30) {
-                 if (Math.abs(dx) < 30 && Math.abs(dy) < 4) cmd.beam = true;
-                 else if (Math.abs(dy) < 30 && Math.abs(dx) < 4) cmd.beam = true;
+                if (Math.abs(dx) < 30 && Math.abs(dy) < 4) cmd.beam = true;
+                else if (Math.abs(dy) < 30 && Math.abs(dx) < 4) cmd.beam = true;
             }
 
             // 4. STUCK DETECTION
@@ -787,18 +901,18 @@
             if (cpu.stuckCounter > 20) {
                 cpu.forceUnstuckTimer = 15;
                 cpu.stuckCounter = 0;
-                let dirs = [{x:0, y:-1},{x:0, y:1},{x:-1, y:0},{x:1, y:0}];
-                let validDirs = dirs.filter(d => !isWall(cpu.x + d.x*2, cpu.y + d.y*2));
-                cpu.unstuckDir = validDirs.length > 0 ? validDirs[Math.floor(Math.random()*validDirs.length)] : dirs[0];
+                let dirs = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
+                let validDirs = dirs.filter(d => !isWall(cpu.x + d.x * 2, cpu.y + d.y * 2));
+                cpu.unstuckDir = validDirs.length > 0 ? validDirs[Math.floor(Math.random() * validDirs.length)] : dirs[0];
             }
 
             if (cpu.forceUnstuckTimer > 0) {
                 cpu.forceUnstuckTimer--;
-                if(cpu.unstuckDir.y < 0) cmd.up = true;
-                if(cpu.unstuckDir.y > 0) cmd.down = true;
-                if(cpu.unstuckDir.x < 0) cmd.left = true;
-                if(cpu.unstuckDir.x > 0) cmd.right = true;
-                return cmd; 
+                if (cpu.unstuckDir.y < 0) cmd.up = true;
+                if (cpu.unstuckDir.y > 0) cmd.down = true;
+                if (cpu.unstuckDir.x < 0) cmd.left = true;
+                if (cpu.unstuckDir.x > 0) cmd.right = true;
+                return cmd;
             }
 
             // 5. NAVIGATION
@@ -817,7 +931,7 @@
             if (cpu.botNextCell) {
                 let tx = CONFIG.MAZE_OFFSET_X + cpu.botNextCell.c * CONFIG.CELL_SIZE + 0.5;
                 let ty = cpu.botNextCell.r * CONFIG.CELL_SIZE + 0.5;
-                
+
                 let steppingOnMine = STATE.mines.some(m => m.active && Math.abs(m.x - tx) < 3 && Math.abs(m.y - ty) < 3);
                 if (steppingOnMine && cpu.boostEnergy > 20) cmd.shield = true;
 
@@ -830,11 +944,11 @@
             // 6. UTILITY
             if (distOpp < 8 && cpu.minesLeft > 0 && Math.random() < 0.05) cmd.mine = true;
             if (cpu.botNextCell && !threat && cpu.boostEnergy > 80 && Math.random() < 0.05) cmd.boost = true;
-            
-            STATE.mines.forEach(m => { 
-                if (m.owner === cpu.id && Math.hypot(m.x - opponent.x, m.y - opponent.y) < 5) cmd.boom = true; 
+
+            STATE.mines.forEach(m => {
+                if (m.owner === cpu.id && Math.hypot(m.x - opponent.x, m.y - opponent.y) < 5) cmd.boom = true;
             });
-            
+
             return cmd;
         }
 
@@ -842,20 +956,20 @@
          * 7. CORE GAME LOOP & PHYSICS
          * ==========================================
          */
-        
+
         function applyPlayerActions(p, input) {
             let now = Date.now();
-            
+
             // Detonate
             if (input.boom && !p.prevDetonateKey) {
                 if (p.boostEnergy >= CONFIG.DETONATE_COST) {
                     let minesFound = false;
-                    for (let i = STATE.mines.length - 1; i >= 0; i--) { 
-                        if (STATE.mines[i].owner === p.id) { 
-                            triggerExplosion(STATE.mines[i].x, STATE.mines[i].y); 
-                            STATE.mines.splice(i, 1); 
-                            minesFound = true; 
-                        } 
+                    for (let i = STATE.mines.length - 1; i >= 0; i--) {
+                        if (STATE.mines[i].owner === p.id) {
+                            triggerExplosion(STATE.mines[i].x, STATE.mines[i].y);
+                            STATE.mines.splice(i, 1);
+                            minesFound = true;
+                        }
                     }
                     if (minesFound) p.boostEnergy -= CONFIG.DETONATE_COST;
                 }
@@ -863,47 +977,49 @@
             p.prevDetonateKey = input.boom;
 
             // Shield
-            if (input.shield && p.boostEnergy > 0) { 
-                p.shieldActive = true; 
-                p.boostEnergy -= CONFIG.SHIELD_DRAIN; 
-            } else { 
-                p.shieldActive = false; 
+            if (input.shield && p.boostEnergy > 0) {
+                p.shieldActive = true;
+                p.boostEnergy -= CONFIG.SHIELD_DRAIN;
+            } else {
+                p.shieldActive = false;
             }
 
             // Beam
             if (input.beam) {
                 if (!p.isCharging) { p.isCharging = true; p.chargeStartTime = now; }
-                if (now - p.chargeStartTime > CONFIG.CHARGE_TIME) { 
-                    fireChargedBeam(p); 
-                    p.isCharging = false; 
-                    p.chargeStartTime = 0; 
+                if (now - p.chargeStartTime > CONFIG.CHARGE_TIME) {
+                    fireChargedBeam(p);
+                    p.isCharging = false;
+                    p.chargeStartTime = 0;
+                } else if (p.isCharging && Math.floor(now / 100) % 5 === 0) {
+                    STATE.sfx.charge(); // <--- ΝΕΟ
                 }
             } else {
-                if (p.isCharging) { 
-                    if (now - p.chargeStartTime < CONFIG.CHARGE_TIME) fireBeam(p); 
-                    p.isCharging = false; 
+                if (p.isCharging) {
+                    if (now - p.chargeStartTime < CONFIG.CHARGE_TIME) fireBeam(p);
+                    p.isCharging = false;
                 }
             }
 
             // Movement
             let speed = CONFIG.BASE_SPEED;
-            if (p.stunTime > 0) { 
-                speed = CONFIG.BASE_SPEED * 0.8; 
-                if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN); 
-            } else if (p.isCharging) { 
-                speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_PENALTY; 
-                p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN); 
+            if (p.stunTime > 0) {
+                speed = CONFIG.BASE_SPEED * 0.8;
+                if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+            } else if (p.isCharging) {
+                speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_PENALTY;
+                p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
             } else {
-                if (p.boostCooldown > 0) { 
-                    p.boostCooldown--; 
-                    if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN); 
-                } else if (input.boost && p.boostEnergy > 0) { 
-                    p.boostEnergy -= CONFIG.BOOST_DRAIN; 
-                    speed = CONFIG.MAX_SPEED; 
-                    if (p.boostEnergy <= 0) p.boostEnergy = 0; 
-                } else { 
-                    if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES; 
-                    else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN); 
+                if (p.boostCooldown > 0) {
+                    p.boostCooldown--;
+                    if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+                } else if (input.boost && p.boostEnergy > 0) {
+                    p.boostEnergy -= CONFIG.BOOST_DRAIN;
+                    speed = CONFIG.MAX_SPEED;
+                    if (p.boostEnergy <= 0) p.boostEnergy = 0;
+                } else {
+                    if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
+                    else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
                 }
             }
             p.currentSpeed = speed;
@@ -913,19 +1029,19 @@
             if (input.down) dy = speed;
             if (input.left) dx = -speed;
             if (input.right) dx = speed;
-            
+
             if (p.glitchTime > 0) { dx = -dx; dy = -dy; }
 
-            if (Math.abs(dx) > 0 || Math.abs(dy) > 0) { 
-                if (Math.abs(dx) > Math.abs(dy)) p.lastDir = { x: dx > 0 ? 1 : -1, y: 0 }; 
-                else p.lastDir = { x: 0, y: dy > 0 ? 1 : -1 }; 
+            if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+                if (Math.abs(dx) > Math.abs(dy)) p.lastDir = { x: dx > 0 ? 1 : -1, y: 0 };
+                else p.lastDir = { x: 0, y: dy > 0 ? 1 : -1 };
             }
 
-            let dist = Math.hypot(dx, dy); 
-            let steps = Math.ceil(dist / 0.5); 
+            let dist = Math.hypot(dx, dy);
+            let steps = Math.ceil(dist / 0.5);
             let sx = dx / steps;
             let sy = dy / steps;
-            
+
             for (let i = 0; i < steps; i++) {
                 if (sx !== 0 && !checkPlayerCollision(p, sx, 0)) p.x += sx;
                 if (sy !== 0 && !checkPlayerCollision(p, 0, sy)) p.y += sy;
@@ -933,13 +1049,14 @@
 
             // Mine Drop
             if (input.mine && p.minesLeft > 0 && now - p.lastMineTime > CONFIG.MINE_COOLDOWN) {
+                STATE.sfx.mineDrop();
                 p.lastMineTime = now;
                 p.minesLeft--;
-                STATE.mines.push({ 
-                    x: Math.floor(p.x), y: Math.floor(p.y), 
-                    droppedAt: now, active: false, 
-                    visX: Math.floor(Math.random() * 2), visY: Math.floor(Math.random() * 2), 
-                    owner: p.id 
+                STATE.mines.push({
+                    x: Math.floor(p.x), y: Math.floor(p.y),
+                    droppedAt: now, active: false,
+                    visX: Math.floor(Math.random() * 2), visY: Math.floor(Math.random() * 2),
+                    owner: p.id
                 });
             }
 
@@ -948,36 +1065,37 @@
             let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
             if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
                 p.score++;
-                if (p.score >= CONFIG.MAX_SCORE) { 
-                    STATE.isGameOver = true; 
-                    STATE.messages.win = `PLAYER ${p.id+1} WINS!`; 
-                    STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)]; 
-                    STATE.messages.winColor = p.color; 
-                    STATE.scrollX = CONFIG.LOGICAL_W + 5; 
-                } else { 
-                    STATE.isRoundOver = true; 
-                    STATE.messages.round = `PLAYER ${p.id+1} SCORES!`; 
-                    STATE.messages.roundColor = p.color; 
-                    STATE.scrollX = CONFIG.LOGICAL_W + 5; 
+                if (p.score >= CONFIG.MAX_SCORE) {
+                    STATE.isGameOver = true;
+                    STATE.messages.win = `PLAYER ${p.id + 1} WINS!`;
+                    STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+                    STATE.messages.winColor = p.color;
+                    STATE.scrollX = CONFIG.LOGICAL_W + 5;
+                } else {
+                    STATE.isRoundOver = true;
+                    STATE.messages.round = `PLAYER ${p.id + 1} SCORES!`;
+                    STATE.messages.roundColor = p.color;
+                    STATE.scrollX = CONFIG.LOGICAL_W + 5;
                 }
             }
         }
 
         function triggerExplosion(x, y) {
+            STATE.sfx.explosion();
             let gc = Math.floor((x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
             let gr = Math.floor(y / CONFIG.CELL_SIZE);
             destroyWallAt(gc, gr);
-            
+
             for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
-                STATE.particles.push({ 
-                    x: x+1, y: y+1, 
-                    vx: (Math.random() - 0.5) * 2.5, 
-                    vy: (Math.random() - 0.5) * 2.5, 
-                    life: 1.0, 
-                    color: Math.random() > 0.5 ? '#ffff00' : '#ff4400' 
+                STATE.particles.push({
+                    x: x + 1, y: y + 1,
+                    vx: (Math.random() - 0.5) * 2.5,
+                    vy: (Math.random() - 0.5) * 2.5,
+                    life: 1.0,
+                    color: Math.random() > 0.5 ? '#ffff00' : '#ff4400'
                 });
             }
-            
+
             if (!STATE.isRoundOver && !STATE.isGameOver) {
                 STATE.players.forEach((p, idx) => {
                     if (Math.abs(p.x + 1 - (x + 1)) < 4.0 && Math.abs(p.y + 1 - (y + 1)) < 4.0) {
@@ -988,91 +1106,94 @@
         }
 
         function handlePlayerDeath(victimIdx) {
-            if (STATE.isRoundOver || STATE.isGameOver) return;
+            if(STATE.isGameOver){STATE.sfx.win(); return;} 
+            if (STATE.isRoundOver ) return;
             let winnerIdx = (victimIdx === 0) ? 1 : 0;
             STATE.players[winnerIdx].score++;
-            
-            STATE.messages.round = `P${victimIdx + 1} OBLITERATED!`; 
+
+            STATE.messages.round = `P${victimIdx + 1} OBLITERATED!`;
             STATE.messages.roundColor = "#ff0000";
-            
+
             if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
-                STATE.isGameOver = true; 
-                STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`; 
-                STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)]; 
-                STATE.messages.winColor = STATE.players[winnerIdx].color; 
+                STATE.isGameOver = true;
+                STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
+                STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+                STATE.messages.winColor = STATE.players[winnerIdx].color;
                 STATE.scrollX = CONFIG.LOGICAL_W + 5;
-            } else { 
-                STATE.isRoundOver = true; 
-                STATE.scrollX = CONFIG.LOGICAL_W + 5; 
+            } else {
+                STATE.isRoundOver = true;
+                STATE.scrollX = CONFIG.LOGICAL_W + 5;
             }
         }
 
         function fireChargedBeam(p) {
             if (p.boostEnergy < CONFIG.CHARGED_BEAM_COST) return;
             p.boostEnergy -= CONFIG.CHARGED_BEAM_COST;
-            
-            STATE.projectiles.push({ 
-                x: p.x + (p.size / 2), y: p.y + (p.size / 2), 
-                vx: p.lastDir.x * CONFIG.C_BEAM_SPEED, 
-                vy: p.lastDir.y * CONFIG.C_BEAM_SPEED, 
-                distTraveled: 0, 
-                owner: p.id, 
-                color: p.color 
+            STATE.sfx.chargedShoot();
+
+            STATE.projectiles.push({
+                x: p.x + (p.size / 2), y: p.y + (p.size / 2),
+                vx: p.lastDir.x * CONFIG.C_BEAM_SPEED,
+                vy: p.lastDir.y * CONFIG.C_BEAM_SPEED,
+                distTraveled: 0,
+                owner: p.id,
+                color: p.color
             });
-            
+
             for (let i = 0; i < 10; i++) {
-                STATE.particles.push({ 
-                    x: p.x + 1, y: p.y + 1, 
-                    vx: (Math.random() - 0.5), vy: (Math.random() - 0.5), 
-                    life: 0.8, color: '#fff' 
+                STATE.particles.push({
+                    x: p.x + 1, y: p.y + 1,
+                    vx: (Math.random() - 0.5), vy: (Math.random() - 0.5),
+                    life: 0.8, color: '#fff'
                 });
             }
         }
 
         function fireBeam(p) {
-            if (p.boostEnergy < CONFIG.BEAM_ENERGY_COST) return; 
+            if (p.boostEnergy < CONFIG.BEAM_ENERGY_COST) return;
             if (p.beamIdx < p.beamPixels.length) return;
             p.boostEnergy -= CONFIG.BEAM_ENERGY_COST;
-            
+            STATE.sfx.shoot();
+
             let start = gridIndex(Math.floor((p.x - CONFIG.MAZE_OFFSET_X + 1) / CONFIG.CELL_SIZE), Math.floor((p.y + 1) / CONFIG.CELL_SIZE));
             let end = gridIndex(p.goalC, p.goalR);
             if (!start || !end) return;
-            
+
             STATE.maze.forEach(c => { c.parent = null; c.bfsVisited = false; });
             let queue = [start]; start.bfsVisited = true;
             let found = false;
-            
+
             while (queue.length > 0) {
-                let curr = queue.shift(); 
+                let curr = queue.shift();
                 if (curr === end) { found = true; break; }
-                [[0,-1,0],[1,0,1],[0,1,2],[-1,0,3]].forEach(d => {
+                [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]].forEach(d => {
                     let n = gridIndex(curr.c + d[0], curr.r + d[1]);
-                    if (n && !n.bfsVisited && !curr.walls[d[2]]) { 
-                        n.bfsVisited = true; n.parent = curr; queue.push(n); 
+                    if (n && !n.bfsVisited && !curr.walls[d[2]]) {
+                        n.bfsVisited = true; n.parent = curr; queue.push(n);
                     }
                 });
             }
             if (!found) return;
-            
-            let pathCells = []; 
-            let temp = end; 
-            while (temp) { pathCells.push(temp); temp = temp.parent; } 
+
+            let pathCells = [];
+            let temp = end;
+            while (temp) { pathCells.push(temp); temp = temp.parent; }
             pathCells.reverse();
-            
+
             p.beamPixels = [];
             for (let i = 0; i < pathCells.length - 1; i++) {
                 let x1 = CONFIG.MAZE_OFFSET_X + (pathCells[i].c * CONFIG.CELL_SIZE) + 1;
                 let y1 = (pathCells[i].r * CONFIG.CELL_SIZE) + 1;
-                let x2 = CONFIG.MAZE_OFFSET_X + (pathCells[i+1].c * CONFIG.CELL_SIZE) + 1;
-                let y2 = (pathCells[i+1].r * CONFIG.CELL_SIZE) + 1;
-                
+                let x2 = CONFIG.MAZE_OFFSET_X + (pathCells[i + 1].c * CONFIG.CELL_SIZE) + 1;
+                let y2 = (pathCells[i + 1].r * CONFIG.CELL_SIZE) + 1;
+
                 p.beamPixels.push({ x: x1, y: y1 });
                 let dx = (x2 - x1) / 3;
                 let dy = (y2 - y1) / 3;
-                p.beamPixels.push({ x: x1 + dx, y: y1 + dy }); 
+                p.beamPixels.push({ x: x1 + dx, y: y1 + dy });
                 p.beamPixels.push({ x: x1 + dx * 2, y: y1 + dy * 2 });
             }
-            p.beamPixels.push({ x: CONFIG.MAZE_OFFSET_X + (pathCells[pathCells.length-1].c * CONFIG.CELL_SIZE) + 1, y: (pathCells[pathCells.length-1].r * CONFIG.CELL_SIZE) + 1 });
+            p.beamPixels.push({ x: CONFIG.MAZE_OFFSET_X + (pathCells[pathCells.length - 1].c * CONFIG.CELL_SIZE) + 1, y: (pathCells[pathCells.length - 1].r * CONFIG.CELL_SIZE) + 1 });
             p.beamIdx = 0;
         }
 
@@ -1084,70 +1205,70 @@
                 return;
             }
             if (STATE.isGameOver || STATE.isRoundOver) {
-                STATE.scrollX -= 0.5; 
+                STATE.scrollX -= 0.5;
                 let msgLen = (STATE.isGameOver ? STATE.messages.taunt.length : STATE.messages.round.length);
-                if (STATE.scrollX < -(msgLen * 4.5)) STATE.scrollX = CONFIG.LOGICAL_W; 
+                if (STATE.scrollX < -(msgLen * 4.5)) STATE.scrollX = CONFIG.LOGICAL_W;
                 return;
             }
-            if (STATE.gameTime <= 0) { 
-                STATE.isRoundOver = true; 
-                STATE.messages.round = "TIME OUT!"; 
-                STATE.messages.roundColor = "#ffff00"; 
-                STATE.scrollX = CONFIG.LOGICAL_W + 5; 
-                return; 
+            if (STATE.gameTime <= 0) {
+                STATE.isRoundOver = true;
+                STATE.messages.round = "TIME OUT!";
+                STATE.messages.roundColor = "#ffff00";
+                STATE.scrollX = CONFIG.LOGICAL_W + 5;
+                return;
             }
-            STATE.gameTime -= 1; 
+            STATE.gameTime -= 1;
 
             let now = Date.now();
-            STATE.mines.forEach(m => { 
-                if (!m.active && now - m.droppedAt > CONFIG.MINE_ARM_TIME) m.active = true; 
+            STATE.mines.forEach(m => {
+                if (!m.active && now - m.droppedAt > CONFIG.MINE_ARM_TIME) m.active = true;
             });
-            if (!STATE.ammoCrate) { 
-                STATE.ammoRespawnTimer++; 
-                if (STATE.ammoRespawnTimer > CONFIG.AMMO_RESPAWN_DELAY) { spawnAmmoCrate(); STATE.ammoRespawnTimer = 0; } 
+            if (!STATE.ammoCrate) {
+                STATE.ammoRespawnTimer++;
+                if (STATE.ammoRespawnTimer > CONFIG.AMMO_RESPAWN_DELAY) { spawnAmmoCrate(); STATE.ammoRespawnTimer = 0; }
             }
 
             // Projectiles Update
             for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
                 let proj = STATE.projectiles[i];
-                proj.x += proj.vx; 
-                proj.y += proj.vy; 
+                proj.x += proj.vx;
+                proj.y += proj.vy;
                 proj.distTraveled += CONFIG.C_BEAM_SPEED;
-                
+
                 if (proj.distTraveled >= CONFIG.C_BEAM_RANGE) { STATE.projectiles.splice(i, 1); continue; }
 
                 let hw = (Math.abs(proj.vx) > 0) ? CONFIG.C_BEAM_LENGTH / 2 : CONFIG.C_BEAM_WIDTH / 2;
                 let hh = (Math.abs(proj.vx) > 0) ? CONFIG.C_BEAM_WIDTH / 2 : CONFIG.C_BEAM_LENGTH / 2;
                 let tipX = proj.x + (proj.vx * 2);
                 let tipY = proj.y + (proj.vy * 2);
-                
+
                 if (isWall(tipX, tipY)) {
                     let gc = Math.floor((tipX - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
                     let gr = Math.floor(tipY / CONFIG.CELL_SIZE);
                     destroyWallAt(gc, gr);
                     STATE.particles.push({ x: tipX, y: tipY, vx: proj.vx * 0.5, vy: proj.vy * 0.5, life: 0.5, color: '#555' });
                 }
-                
+
                 for (let mIdx = STATE.mines.length - 1; mIdx >= 0; mIdx--) {
                     let m = STATE.mines[mIdx];
-                    if (Math.abs(proj.x - m.x) < hw + 1 && Math.abs(proj.y - m.y) < hh + 1) { 
-                        triggerExplosion(m.x, m.y); STATE.mines.splice(mIdx, 1); 
+                    if (Math.abs(proj.x - m.x) < hw + 1 && Math.abs(proj.y - m.y) < hh + 1) {
+                        triggerExplosion(m.x, m.y); STATE.mines.splice(mIdx, 1);
                     }
                 }
-                
-                let oppId = (proj.owner + 1) % 2; 
+
+                let oppId = (proj.owner + 1) % 2;
                 let opp = STATE.players[oppId];
-                let pLeft = opp.x; 
-                let pRight = opp.x + opp.size; 
-                let pTop = opp.y; 
+                let pLeft = opp.x;
+                let pRight = opp.x + opp.size;
+                let pTop = opp.y;
                 let pBot = opp.y + opp.size;
-                let bLeft = proj.x - hw; 
-                let bRight = proj.x + hw; 
-                let bTop = proj.y - hh; 
+                let bLeft = proj.x - hw;
+                let bRight = proj.x + hw;
+                let bTop = proj.y - hh;
                 let bBot = proj.y + hh;
-                
+
                 if (bLeft < pRight && bRight > pLeft && bTop < pBot && bBot > pTop) {
-                    if (!opp.shieldActive) { handlePlayerDeath(oppId); STATE.projectiles.splice(i, 1); return; } 
+                    if (!opp.shieldActive) { handlePlayerDeath(oppId); STATE.projectiles.splice(i, 1); return; }
                     else { STATE.projectiles.splice(i, 1); return; }
                 }
             }
@@ -1162,35 +1283,35 @@
                     let h2 = p2.beamPixels[b2];
                     if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < 4) {
                         triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2);
-                        p1.beamPixels = []; p1.beamIdx = 9999; 
+                        p1.beamPixels = []; p1.beamIdx = 9999;
                         p2.beamPixels = []; p2.beamIdx = 9999;
                     }
                 }
             }
 
             STATE.players.forEach((p, idx) => {
-                if (STATE.ammoCrate && Math.abs((p.x + 1) - (STATE.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (STATE.ammoCrate.y + 1)) < 2) { 
-                    p.minesLeft = CONFIG.MAX_MINES; STATE.ammoCrate = null; STATE.ammoRespawnTimer = 0; 
+                if (STATE.ammoCrate && Math.abs((p.x + 1) - (STATE.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (STATE.ammoCrate.y + 1)) < 2) {
+                    p.minesLeft = CONFIG.MAX_MINES; STATE.sfx.powerup(); STATE.ammoCrate = null; STATE.ammoRespawnTimer = 0;
                 }
-                
-                if (p.stunTime > 0) p.stunTime--; 
-                if (p.glitchTime > 0) p.glitchTime--; 
+
+                if (p.stunTime > 0) p.stunTime--;
+                if (p.glitchTime > 0) p.glitchTime--;
                 if (p.portalCooldown > 0) p.portalCooldown--;
                 else {
-                    let pc = Math.floor((p.x + p.size/2 - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
-                    let pr = Math.floor((p.y + p.size/2) / CONFIG.CELL_SIZE);
+                    let pc = Math.floor((p.x + p.size / 2 - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+                    let pr = Math.floor((p.y + p.size / 2) / CONFIG.CELL_SIZE);
                     let portal = STATE.portals.find(pt => pt.c === pc && pt.r === pr);
                     if (portal) {
                         let dest = STATE.portals.find(pt => pt !== portal);
-                        if (dest) { 
-                            p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5; 
-                            p.y = dest.r * CONFIG.CELL_SIZE + 0.5; 
-                            p.portalCooldown = 60; 
-                            if (Math.random() < CONFIG.GLITCH_CHANCE) p.glitchTime = CONFIG.GLITCH_DURATION; 
+                        if (dest) {
+                            p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5;
+                            p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
+                            p.portalCooldown = 60;
+                            if (Math.random() < CONFIG.GLITCH_CHANCE) p.glitchTime = CONFIG.GLITCH_DURATION;
                         }
                     }
                 }
-                p.trail.push({ x: p.x, y: p.y }); 
+                p.trail.push({ x: p.x, y: p.y });
                 if (p.trail.length > CONFIG.TRAIL_LENGTH) p.trail.shift();
 
                 if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) p.beamIdx += 0.8;
@@ -1219,21 +1340,21 @@
                 }
 
                 let cmd = {};
-                if (idx === 0) { 
-                    cmd = getHumanInput(CONTROLS_P1); 
-                } else { 
-                    if (STATE.gameMode === 'SINGLE') cmd = getCpuInput(p, STATE.players[0]); 
-                    else cmd = getHumanInput(CONTROLS_P2); 
+                if (idx === 0) {
+                    cmd = getHumanInput(CONTROLS_P1);
+                } else {
+                    if (STATE.gameMode === 'SINGLE') cmd = getCpuInput(p, STATE.players[0]);
+                    else cmd = getHumanInput(CONTROLS_P2);
                 }
                 applyPlayerActions(p, cmd);
             });
-            
-            for (let i = STATE.particles.length - 1; i >= 0; i--) { 
-                let p = STATE.particles[i]; 
-                p.x += p.vx; 
-                p.y += p.vy; 
-                p.life -= 0.05; 
-                if (p.life <= 0) STATE.particles.splice(i, 1); 
+
+            for (let i = STATE.particles.length - 1; i >= 0; i--) {
+                let p = STATE.particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.05;
+                if (p.life <= 0) STATE.particles.splice(i, 1);
             }
         }
 
@@ -1244,14 +1365,14 @@
         function drawLED(lx, ly, color) {
             const cx = (lx * CONFIG.PITCH) + (CONFIG.PITCH / 2);
             const cy = (ly * CONFIG.PITCH) + (CONFIG.PITCH / 2);
-            ctx.fillStyle = color; 
-            ctx.beginPath(); 
-            ctx.arc(cx, cy, CONFIG.LED_RADIUS, 0, Math.PI * 2); 
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(cx, cy, CONFIG.LED_RADIUS, 0, Math.PI * 2);
             ctx.fill();
         }
 
         function drawText(str, x, y, color) {
-            str = str.toUpperCase(); 
+            str = str.toUpperCase();
             let cx = x;
             for (let i = 0; i < str.length; i++) {
                 let map = BITMAP_FONT[str[i]];
@@ -1263,7 +1384,7 @@
                 cx += 4;
             }
         }
-        
+
         function drawDigit(x, y, num, color, rotateDeg) {
             const map = DIGIT_MAP[num];
             for (let i = 0; i < 15; i++) {
@@ -1271,8 +1392,8 @@
                     let c = i % 3;
                     let r = Math.floor(i / 3);
                     let dx, dy;
-                    if (rotateDeg === -90) { dx = r; dy = (2 - c); } 
-                    else if (rotateDeg === 90) { dx = (4 - r); dy = c; } 
+                    if (rotateDeg === -90) { dx = r; dy = (2 - c); }
+                    else if (rotateDeg === 90) { dx = (4 - r); dy = c; }
                     else { dx = c; dy = r; }
                     drawLED(x + dx, y + dy, color);
                 }
@@ -1280,31 +1401,31 @@
         }
 
         function renderMenu() {
-            ctx.fillStyle = '#000'; 
+            ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             for (let y = 0; y < CONFIG.LOGICAL_H; y++) for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
-            
+
             drawText("SELECT MODE", 42, 10, "#fff");
-            drawText("1. SINGLE PLAYER", 30, 25, Math.floor(Date.now()/500)%2===0 ? "#0ff":"#555");
-            drawText("2. MULTIPLAYER", 35, 35, Math.floor(Date.now()/500)%2!==0 ? "#f0f":"#555");
+            drawText("1. SINGLE PLAYER", 30, 25, Math.floor(Date.now() / 500) % 2 === 0 ? "#0ff" : "#555");
+            drawText("2. MULTIPLAYER", 35, 35, Math.floor(Date.now() / 500) % 2 !== 0 ? "#f0f" : "#555");
             drawText("CPU: HARD", 45, 55, "#f55");
         }
 
         function renderGame() {
-            ctx.fillStyle = '#000'; 
+            ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             for (let y = 0; y < CONFIG.LOGICAL_H; y++) for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#222');
 
             if (STATE.isGameOver || STATE.isRoundOver) {
-                if (STATE.isGameOver) { 
-                    if(Math.floor(Date.now()/300)%2===0) drawText(STATE.messages.win, 10, 15, STATE.messages.winColor); 
-                    drawText(STATE.messages.taunt, STATE.scrollX, 35, "#ff5555"); 
+                if (STATE.isGameOver) {
+                    if (Math.floor(Date.now() / 300) % 2 === 0) drawText(STATE.messages.win, 10, 15, STATE.messages.winColor);
+                    drawText(STATE.messages.taunt, STATE.scrollX, 35, "#ff5555");
                     drawText("PRESS 'R' TO RESET", 30, 52, "#888");
                 }
-                else { 
-                    drawText("ROUND OVER", 40, 20, "#fff"); 
-                    drawText(STATE.messages.round, STATE.scrollX, 40, STATE.messages.roundColor); 
-                    if(Math.floor(Date.now()/500)%2===0) drawText("PRESS 'R'", 42, 55, "#ffff00");
+                else {
+                    drawText("ROUND OVER", 40, 20, "#fff");
+                    drawText(STATE.messages.round, STATE.scrollX, 40, STATE.messages.roundColor);
+                    if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS 'R'", 42, 55, "#ffff00");
                 }
                 return;
             }
@@ -1315,114 +1436,114 @@
 
             // Draw Maze Walls
             STATE.maze.forEach(c => {
-                let x = c.c * CONFIG.CELL_SIZE + CONFIG.MAZE_OFFSET_X;
+                let x = c.c * CONFIG.CELL_SIZE + CONFIG.MAZE_OFFSET_X;triggerExplosion
                 let y = c.r * CONFIG.CELL_SIZE;
                 drawLED(x, y, wallColor);
-                if (c.walls[0]) { drawLED(x+1, y, wallColor); drawLED(x+2, y, wallColor); }
-                if (c.walls[3]) { drawLED(x, y+1, wallColor); drawLED(x, y+2, wallColor); }
-                if (c.c === CONFIG.COLS-1) { drawLED(x+3, y, wallColor); if(c.walls[1]){drawLED(x+3,y+1,wallColor);drawLED(x+3,y+2,wallColor);}}
-                if (c.r === CONFIG.ROWS-1) { drawLED(x, y+3, wallColor); if(c.walls[2]){drawLED(x+1,y+3,wallColor);drawLED(x+2,y+3,wallColor);}}
-                if(c.c===CONFIG.COLS-1 && c.r===CONFIG.ROWS-1) drawLED(x+3,y+3,wallColor);
+                if (c.walls[0]) { drawLED(x + 1, y, wallColor); drawLED(x + 2, y, wallColor); }
+                if (c.walls[3]) { drawLED(x, y + 1, wallColor); drawLED(x, y + 2, wallColor); }
+                if (c.c === CONFIG.COLS - 1) { drawLED(x + 3, y, wallColor); if (c.walls[1]) { drawLED(x + 3, y + 1, wallColor); drawLED(x + 3, y + 2, wallColor); } }
+                if (c.r === CONFIG.ROWS - 1) { drawLED(x, y + 3, wallColor); if (c.walls[2]) { drawLED(x + 1, y + 3, wallColor); drawLED(x + 2, y + 3, wallColor); } }
+                if (c.c === CONFIG.COLS - 1 && c.r === CONFIG.ROWS - 1) drawLED(x + 3, y + 3, wallColor);
             });
 
             // Draw Goals
-            let gc = Math.floor(Date.now()/200)%2===0 ? '#fff' : '#444';
-            STATE.players.forEach(p => { 
-                let gx = CONFIG.MAZE_OFFSET_X + p.goalC*CONFIG.CELL_SIZE+1;
-                let gy = p.goalR*CONFIG.CELL_SIZE+1; 
-                drawLED(gx,gy,gc); drawLED(gx+1,gy,gc); drawLED(gx,gy+1,gc); drawLED(gx+1,gy+1,gc); 
+            let gc = Math.floor(Date.now() / 200) % 2 === 0 ? '#fff' : '#444';
+            STATE.players.forEach(p => {
+                let gx = CONFIG.MAZE_OFFSET_X + p.goalC * CONFIG.CELL_SIZE + 1;
+                let gy = p.goalR * CONFIG.CELL_SIZE + 1;
+                drawLED(gx, gy, gc); drawLED(gx + 1, gy, gc); drawLED(gx, gy + 1, gc); drawLED(gx + 1, gy + 1, gc);
             });
 
             // Draw Portals & Ammo
-            STATE.portals.forEach(p => { 
-                drawLED(p.x, p.y, p.color); drawLED(p.x+1, p.y, p.color); drawLED(p.x, p.y+1, p.color); drawLED(p.x+1, p.y+1, p.color); 
+            STATE.portals.forEach(p => {
+                drawLED(p.x, p.y, p.color); drawLED(p.x + 1, p.y, p.color); drawLED(p.x, p.y + 1, p.color); drawLED(p.x + 1, p.y + 1, p.color);
             });
-            if (STATE.ammoCrate) { 
-                drawLED(STATE.ammoCrate.x, STATE.ammoCrate.y, '#0f0'); 
-                drawLED(STATE.ammoCrate.x+1, STATE.ammoCrate.y, '#0f0'); 
-                drawLED(STATE.ammoCrate.x, STATE.ammoCrate.y+1, '#0f0'); 
-                drawLED(STATE.ammoCrate.x+1, STATE.ammoCrate.y+1, '#0f0'); 
+            if (STATE.ammoCrate) {
+                drawLED(STATE.ammoCrate.x, STATE.ammoCrate.y, '#0f0');
+                drawLED(STATE.ammoCrate.x + 1, STATE.ammoCrate.y, '#0f0');
+                drawLED(STATE.ammoCrate.x, STATE.ammoCrate.y + 1, '#0f0');
+                drawLED(STATE.ammoCrate.x + 1, STATE.ammoCrate.y + 1, '#0f0');
             }
 
             // Draw Mines & Projectiles
-            STATE.mines.forEach(m => drawLED(m.x+m.visX, m.y+m.visY, m.active ? (Date.now()%200<100?'#f00':'#800') : '#444'));
+            STATE.mines.forEach(m => drawLED(m.x + m.visX, m.y + m.visY, m.active ? (Date.now() % 200 < 100 ? '#f00' : '#800') : '#444'));
             STATE.projectiles.forEach(p => {
-                let hw = (Math.abs(p.vx)>0) ? CONFIG.C_BEAM_LENGTH/2 : CONFIG.C_BEAM_WIDTH/2;
-                let hh = (Math.abs(p.vx)>0) ? CONFIG.C_BEAM_WIDTH/2 : CONFIG.C_BEAM_LENGTH/2;
-                let c = (Date.now()%50===0) ? '#fff' : p.color;
-                for(let py=Math.floor(p.y-hh); py<=Math.floor(p.y+hh); py++) 
-                    for(let px=Math.floor(p.x-hw); px<=Math.floor(p.x+hw); px++) 
+                let hw = (Math.abs(p.vx) > 0) ? CONFIG.C_BEAM_LENGTH / 2 : CONFIG.C_BEAM_WIDTH / 2;
+                let hh = (Math.abs(p.vx) > 0) ? CONFIG.C_BEAM_WIDTH / 2 : CONFIG.C_BEAM_LENGTH / 2;
+                let c = (Date.now() % 50 === 0) ? '#fff' : p.color;
+                for (let py = Math.floor(p.y - hh); py <= Math.floor(p.y + hh); py++)
+                    for (let px = Math.floor(p.x - hw); px <= Math.floor(p.x + hw); px++)
                         drawLED(px, py, c);
             });
 
             // Draw Players
             STATE.players.forEach(p => {
-                let rc = p.stunTime>0 ? (Date.now()%100<50?'#808':p.color) : (p.glitchTime>0 ? (Date.now()%100<50?'#0f0':p.color) : p.color);
-                
+                let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);
+
                 // Beam
-                for(let k=0; k<CONFIG.BEAM_LENGTH; k++){
-                    let i = Math.floor(p.beamIdx)-k;
-                    if(i>=0 && i<p.beamPixels.length) { 
-                        ctx.globalAlpha=1-(k/CONFIG.BEAM_LENGTH); 
-                        drawLED(p.beamPixels[i].x, p.beamPixels[i].y, rc); 
-                        ctx.globalAlpha=1; 
+                for (let k = 0; k < CONFIG.BEAM_LENGTH; k++) {
+                    let i = Math.floor(p.beamIdx) - k;
+                    if (i >= 0 && i < p.beamPixels.length) {
+                        ctx.globalAlpha = 1 - (k / CONFIG.BEAM_LENGTH);
+                        drawLED(p.beamPixels[i].x, p.beamPixels[i].y, rc);
+                        ctx.globalAlpha = 1;
                     }
                 }
-                
+
                 // Charge
-                if(p.isCharging) {
-                    let r = (Date.now()-p.chargeStartTime)/CONFIG.CHARGE_TIME; if(r>1)r=1;
-                    let cc = `hsl(${Math.floor((1-r)*120)},100%,50%)`;
-                    let sx=Math.floor(p.x)-1, sy=Math.floor(p.y)-1;
-                    let perim = [{x:0,y:0},{x:1,y:0},{x:2,y:0},{x:3,y:0},{x:3,y:1},{x:3,y:2},{x:3,y:3},{x:2,y:3},{x:1,y:3},{x:0,y:3},{x:0,y:2},{x:0,y:1}];
-                    let n = Math.ceil(12*r); for(let i=0;i<n;i++) drawLED(sx+perim[i].x, sy+perim[i].y, cc);
+                if (p.isCharging) {
+                    let r = (Date.now() - p.chargeStartTime) / CONFIG.CHARGE_TIME; if (r > 1) r = 1;
+                    let cc = `hsl(${Math.floor((1 - r) * 120)},100%,50%)`;
+                    let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
+                    let perim = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 3, y: 3 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
+                    let n = Math.ceil(12 * r); for (let i = 0; i < n; i++) drawLED(sx + perim[i].x, sy + perim[i].y, cc);
                 }
-                
+
                 // Shield
-                if(p.shieldActive) { 
-                    let sx=Math.floor(p.x)-1, sy=Math.floor(p.y)-1; 
-                    for(let i=0;i<4;i++) { 
-                        drawLED(sx+i, sy, '#88f'); drawLED(sx+i, sy+3, '#88f'); 
-                        drawLED(sx, sy+i, '#88f'); drawLED(sx+3, sy+i, '#88f'); 
-                    } 
+                if (p.shieldActive) {
+                    let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
+                    for (let i = 0; i < 4; i++) {
+                        drawLED(sx + i, sy, '#88f'); drawLED(sx + i, sy + 3, '#88f');
+                        drawLED(sx, sy + i, '#88f'); drawLED(sx + 3, sy + i, '#88f');
+                    }
                 }
-                
+
                 // Trail
-                if(p.boostEnergy>0 && p.currentSpeed>CONFIG.BASE_SPEED) p.trail.forEach((t,i) => { 
-                    ctx.globalAlpha=(i/p.trail.length)*0.5; 
-                    drawLED(Math.floor(t.x), Math.floor(t.y), rc); 
-                    drawLED(Math.floor(t.x)+1, Math.floor(t.y), rc); 
-                    ctx.globalAlpha=1; 
+                if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) p.trail.forEach((t, i) => {
+                    ctx.globalAlpha = (i / p.trail.length) * 0.5;
+                    drawLED(Math.floor(t.x), Math.floor(t.y), rc);
+                    drawLED(Math.floor(t.x) + 1, Math.floor(t.y), rc);
+                    ctx.globalAlpha = 1;
                 });
-                
-                drawLED(Math.floor(p.x), Math.floor(p.y), rc); 
-                drawLED(Math.floor(p.x)+1, Math.floor(p.y), rc); 
-                drawLED(Math.floor(p.x), Math.floor(p.y)+1, rc); 
-                drawLED(Math.floor(p.x)+1, Math.floor(p.y)+1, rc);
+
+                drawLED(Math.floor(p.x), Math.floor(p.y), rc);
+                drawLED(Math.floor(p.x) + 1, Math.floor(p.y), rc);
+                drawLED(Math.floor(p.x), Math.floor(p.y) + 1, rc);
+                drawLED(Math.floor(p.x) + 1, Math.floor(p.y) + 1, rc);
             });
-            
+
             STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
 
             // HUD
-            let p1=STATE.players[0], p2=STATE.players[1], s=Math.ceil(STATE.gameTime/60).toString().padStart(3,'0');
-            drawDigit(0,0,parseInt(p1.score.toString().padStart(2,'0')[0]),'#0ff',90); 
-            drawDigit(0,4,parseInt(p1.score.toString().padStart(2,'0')[1]),'#0ff',90);
-            drawDigit(0,10,p1.minesLeft, `hsl(${p1.minesLeft/4*120},100%,50%)`, 90);
-            for(let h=0;h<Math.floor(p1.boostEnergy/100*38);h++) for(let w=0;w<5;w++) drawLED(w,14+h,`hsl(${p1.boostEnergy/100*120},100%,50%)`);
-            
-            drawDigit(0,53,parseInt(s[0]),wallColor,90); 
-            drawDigit(0,57,parseInt(s[1]),wallColor,90); 
-            drawDigit(0,61,parseInt(s[2]),wallColor,90);
-            
-            let rx=123;
-            drawDigit(rx,61,parseInt(p2.score.toString().padStart(2,'0')[0]),'#f0f',-90); 
-            drawDigit(rx,57,parseInt(p2.score.toString().padStart(2,'0')[1]),'#f0f',-90);
-            drawDigit(rx,51,p2.minesLeft, `hsl(${p2.minesLeft/4*120},100%,50%)`, -90);
-            for(let h=0;h<Math.floor(p2.boostEnergy/100*38);h++) for(let w=0;w<5;w++) drawLED(rx+w,49-h,`hsl(${p2.boostEnergy/100*120},100%,50%)`);
-            
-            drawDigit(rx,8,parseInt(s[0]),wallColor,-90); 
-            drawDigit(rx,4,parseInt(s[1]),wallColor,-90); 
-            drawDigit(rx,0,parseInt(s[2]),wallColor,-90);
+            let p1 = STATE.players[0], p2 = STATE.players[1], s = Math.ceil(STATE.gameTime / 60).toString().padStart(3, '0');
+            drawDigit(0, 0, parseInt(p1.score.toString().padStart(2, '0')[0]), '#0ff', 90);
+            drawDigit(0, 4, parseInt(p1.score.toString().padStart(2, '0')[1]), '#0ff', 90);
+            drawDigit(0, 10, p1.minesLeft, `hsl(${p1.minesLeft / 4 * 120},100%,50%)`, 90);
+            for (let h = 0; h < Math.floor(p1.boostEnergy / 100 * 38); h++) for (let w = 0; w < 5; w++) drawLED(w, 14 + h, `hsl(${p1.boostEnergy / 100 * 120},100%,50%)`);
+
+            drawDigit(0, 53, parseInt(s[0]), wallColor, 90);
+            drawDigit(0, 57, parseInt(s[1]), wallColor, 90);
+            drawDigit(0, 61, parseInt(s[2]), wallColor, 90);
+
+            let rx = 123;
+            drawDigit(rx, 61, parseInt(p2.score.toString().padStart(2, '0')[0]), '#f0f', -90);
+            drawDigit(rx, 57, parseInt(p2.score.toString().padStart(2, '0')[1]), '#f0f', -90);
+            drawDigit(rx, 51, p2.minesLeft, `hsl(${p2.minesLeft / 4 * 120},100%,50%)`, -90);
+            for (let h = 0; h < Math.floor(p2.boostEnergy / 100 * 38); h++) for (let w = 0; w < 5; w++) drawLED(rx + w, 49 - h, `hsl(${p2.boostEnergy / 100 * 120},100%,50%)`);
+
+            drawDigit(rx, 8, parseInt(s[0]), wallColor, -90);
+            drawDigit(rx, 4, parseInt(s[1]), wallColor, -90);
+            drawDigit(rx, 0, parseInt(s[2]), wallColor, -90);
         }
 
         /** * ==========================================
@@ -1430,10 +1551,11 @@
          * ==========================================
          */
         function startGame() {
+            STATE.sfx.start();
             STATE.screen = 'PLAYING';
-            STATE.isGameOver = false; 
-            STATE.isRoundOver = false; 
-            STATE.players = [ new Player(0, '#00ffff', CONTROLS_P1), new Player(1, '#ff00ff', CONTROLS_P2) ];
+            STATE.isGameOver = false;
+            STATE.isRoundOver = false;
+            STATE.players = [new Player(0, '#00ffff', CONTROLS_P1), new Player(1, '#ff00ff', CONTROLS_P2)];
             document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
             initMaze();
         }
@@ -1445,19 +1567,20 @@
         }
 
         window.addEventListener('keydown', (e) => {
+            STATE.sfx.init();
             let k = e.code;
-            if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Enter"].includes(k)) e.preventDefault();
+            if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(k)) e.preventDefault();
             STATE.keys[k] = true;
-            
-            if (k === 'Escape') { 
-                STATE.screen = 'MENU'; 
+
+            if (k === 'Escape') {
+                STATE.screen = 'MENU';
                 document.getElementById('statusText').innerText = "SELECT MODE";
             }
-            
+
             if (STATE.screen === 'PLAYING') {
-                if (STATE.isGameOver && k === 'KeyR') { 
+                if (STATE.isGameOver && k === 'KeyR') {
                     startGame(); // Full Reset
-                } else if (STATE.isRoundOver && k === 'KeyR') { 
+                } else if (STATE.isRoundOver && k === 'KeyR') {
                     initMaze(); // Next Round (Keep Score)
                 }
             }
@@ -1468,4 +1591,5 @@
         loop();
     </script>
 </body>
+
 </html>
