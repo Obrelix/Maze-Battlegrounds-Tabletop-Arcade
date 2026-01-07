@@ -1,30 +1,30 @@
-# 🕹️ Maze Battlegrounds: Tabletop Arcade (v2.5 - AI Update)
+# 🕹️ Maze Battlegrounds: Tabletop Arcade (Pre-Alpha)
 
 A DIY head-to-head tabletop arcade console powered by a **Raspberry Pi Zero 2 W** and a **P2.5 128x64 RGB LED Matrix**.
 
 This repository contains the source code for the game *Maze Battleground*—a fast-paced tactical shooter designed specifically for low-resolution LED displays—along with the hardware specifications to build the physical machine.
 
-**New in v2.5:** Now features a smart CPU opponent for single-player practice!
+**Status:** Pre-Alpha. Features and mechanics are currently in active development and testing.
 
 ---
 
 ### 🌐 [**PLAY ONLINE DEMO**](https://obrelix.github.io/Maze-Battlegrounds-Tabletop-Arcade/)
-*(Test the mechanics directly in your browser!)*
+*(Test the current mechanics directly in your browser!)*
 
 ---
 
 ## 📖 About The Game
 
-**Maze Battleground** is a top-down shooter designed for a digital tabletop experience. The goal is to be the first to reach **5 Points**.
+**Maze Battleground** is a 1v1 top-down shooter designed for a digital tabletop experience. The goal is to be the first to reach **5 Points**.
 
 Points are awarded for:
 1.  **Reaching the Goal:** Navigating to the opponent's spawn zone.
 2.  **Elimination:** Killing the opponent with a Mine, Explosion, or Charged Beam.
 
-The battlefield is dynamic. Players can destroy walls, set traps, teleport, and utilize a new charging mechanic to break through defenses.
+The battlefield is dynamic. Players can destroy walls, set traps, teleport, and utilize a charging mechanic to break through defenses.
 
 ### Key Features
-* **Two Game Modes:** Choose between **Single Player (vs CPU)** or **Multiplayer (PvP)** via the new start menu.
+* **Two Game Modes:** Choose between **Single Player (vs CPU)** or **Multiplayer (PvP)** via the start menu.
 * **Smart AI:** The CPU opponent uses advanced pathfinding to dodge shots, avoid mines, use shields strategically, and aggressively hunt the player.
 * **Destructible Environment:** Use mines or the **Charged Beam** to blast through walls and create shortcuts.
 * **Tactical Physics:** Movement is momentum-based. Managing your **Boost Energy** is key to survival.
@@ -32,7 +32,7 @@ The battlefield is dynamic. Players can destroy walls, set traps, teleport, and 
 
 ## 🎮 Controls & Menu
 
-The game now starts with a mode selection menu.
+The game starts with a mode selection menu.
 
 ### Menu Navigation
 | Key | Action |
@@ -99,9 +99,6 @@ Your lifeblood. You have a single energy bar that recharges slowly. You must man
 To run the game locally on your computer:
 1.  Clone this repository.
 2.  Open `index.html` in any modern web browser.
-
-## 📟 Installation (Hardware Version)
-*(Coming Soon: Instructions for setting up the Raspberry Pi environment using rpi-rgb-led-matrix library)*2.  Open `index.html` in any modern web browser.
 
 ## 📟 Installation (Hardware Version)
 *(Coming Soon: Instructions for setting up the Raspberry Pi environment using rpi-rgb-led-matrix library)*
