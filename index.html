@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,145 +18,481 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden; 
+            overflow: hidden;
             user-select: none;
             outline: none;
         }
 
-        /* --- HEADER & DASHBOARD --- */
+       /* --- UPDATED HEADER & DASHBOARD --- */
         .arcade-header {
             width: 960px;
-            background: #080808;
+            background: #0b0b0b;
             border: 2px solid #333;
-            border-top: 4px solid #444;
-            border-radius: 6px;
+            border-bottom: 4px solid #444;
+            border-radius: 8px;
             margin-bottom: 15px;
-            padding: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            padding: 12px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            font-family: 'Courier New', monospace;
         }
 
         .header-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #111; padding: 4px 10px; border: 1px solid #222; border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(90deg, #111 0%, #1a1a1a 50%, #111 100%);
+            padding: 6px 15px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
 
         .game-title {
-            font-size: 1.4em; color: #fff; letter-spacing: 3px; font-weight: 900;
-            text-shadow: 0 0 5px rgba(255,255,255,0.5); font-style: italic; margin: 0;
+            font-size: 1.6em;
+            color: #fff;
+            letter-spacing: 4px;
+            font-weight: 900;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            font-style: italic;
+            text-transform: uppercase;
         }
 
         .round-info {
-            font-size: 0.9em; color: #f0c040; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;
+            font-size: 0.85em;
+            color: #ffd700;
+            font-weight: bold;
+            letter-spacing: 1px;
+            background: rgba(255, 215, 0, 0.1);
+            padding: 4px 8px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 3px;
         }
 
-        /* --- PANELS & CONTROLS --- */
+        /* --- DASHBOARD GRID --- */
         .dashboard {
-            display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 8px; height: 110px;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 1fr;
+            gap: 12px;
+            height: 140px; /* Increased slightly for better spacing */
         }
 
         .panel {
-            background: rgba(255,255,255,0.02); border-radius: 4px; padding: 6px;
-            display: flex; flex-direction: column; position: relative;
+            background: rgba(20, 20, 20, 0.6);
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
         }
 
-        .p1-panel { border: 1px solid rgba(0, 255, 255, 0.3); box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.05); }
-        .p2-panel { border: 1px solid rgba(255, 0, 255, 0.3); box-shadow: inset 0 0 10px rgba(255, 0, 255, 0.05); }
-        .rules-panel { border: 1px solid #333; background: #0c0c0c; }
+        .p1-panel {
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.05);
+        }
+
+        .p2-panel {
+            border: 1px solid rgba(255, 0, 255, 0.2);
+            box-shadow: inset 0 0 15px rgba(255, 0, 255, 0.05);
+        }
+
+        .rules-panel {
+            border: 1px solid #333;
+            background: #080808;
+            display: flex;
+            flex-direction: column;
+        }
 
         .panel-header {
-            font-size: 0.8em; font-weight: bold; text-align: center; margin-bottom: 5px;
-            text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px;
+            font-size: 0.9em;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            text-shadow: 0 0 5px currentColor;
+        }
+
+        /* --- CONTROL GROUPS --- */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .c-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.7em;
+            color: #aaa;
+            background: rgba(255,255,255,0.03);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .key-cap {
+            background: #222;
+            color: #fff;
+            padding: 1px 6px;
+            border-radius: 3px;
+            border-bottom: 2px solid #444;
+            border-top: 1px solid #333;
+            border-left: 1px solid #333;
+            border-right: 1px solid #333;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+            min-width: 18px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .action-name {
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Mechanics Colors */
+        .act-atk { color: #ff5555; }
+        .act-def { color: #55ffff; }
+        .act-mov { color: #55ff55; }
+        .act-ult { color: #ffd700; text-shadow: 0 0 3px rgba(255, 215, 0, 0.5); }
+
+        /* --- CENTER LEGEND --- */
+        .legend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 8px;
+            font-size: 0.7em;
+            color: #ccc;
+            height: 100%;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px dashed #222;
+        }
+
+        .l-icon {
+            width: 12px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+
+        .l-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+        }
+        
+        .l-title { font-weight: bold; }
+        .l-desc { font-size: 0.85em; opacity: 0.7; }
+
+        .hl-red { color: #ff5555; }
+        .hl-green { color: #55ff55; }
+        .hl-blue { color: #55ffff; }
+        .hl-gold { color: #ffd700; }
+        .hl-purple { color: #ff55ff; }
+
+        /* --- PANELS & CONTROLS --- */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr 1fr;
+            gap: 8px;
+            height: 110px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 4px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .p1-panel {
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.05);
+        }
+
+        .p2-panel {
+            border: 1px solid rgba(255, 0, 255, 0.3);
+            box-shadow: inset 0 0 10px rgba(255, 0, 255, 0.05);
+        }
+
+        .rules-panel {
+            border: 1px solid #333;
+            background: #0c0c0c;
+        }
+
+        .panel-header {
+            font-size: 0.8em;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 2px;
         }
 
         .control-grid {
-            display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; row-gap: 2px;
-            font-size: 0.7em; color: #aaa;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 8px;
+            row-gap: 2px;
+            font-size: 0.7em;
+            color: #aaa;
         }
 
-        .control-row { display: flex; justify-content: space-between; align-items: center; }
+        .control-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
         .key {
-            background: #222; color: #fff; padding: 1px 5px; border-radius: 3px; border: 1px solid #444;
-            font-family: monospace; font-weight: bold; font-size: 0.95em; min-width: 15px; text-align: center;
+            background: #222;
+            color: #fff;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid #444;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 0.95em;
+            min-width: 15px;
+            text-align: center;
         }
 
         /* --- RULES LIST --- */
         .rules-list {
-            display: flex; flex-direction: column; justify-content: space-between; height: 100%;
-            font-size: 0.75em; color: #ccc;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            font-size: 0.75em;
+            color: #ccc;
         }
-        .rule-item { display: flex; align-items: center; gap: 6px; border-bottom: 1px dashed #222; padding-bottom: 1px; }
-        .rule-item:last-child { border-bottom: none; }
-        
-        .icon { width: 15px; text-align: center; }
-        .hl-red { color: #ff5555; font-weight: bold; }
-        .hl-green { color: #55ff55; font-weight: bold; }
-        .hl-blue { color: #55ffff; font-weight: bold; }
-        .hl-gold { color: #ffd700; font-weight: bold; }
-        .hl-orange { color: #ffaa00; font-weight: bold; }
+
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px dashed #222;
+            padding-bottom: 1px;
+        }
+
+        .rule-item:last-child {
+            border-bottom: none;
+        }
+
+        .icon {
+            width: 15px;
+            text-align: center;
+        }
+
+        .hl-red {
+            color: #ff5555;
+            font-weight: bold;
+        }
+
+        .hl-green {
+            color: #55ff55;
+            font-weight: bold;
+        }
+
+        .hl-blue {
+            color: #55ffff;
+            font-weight: bold;
+        }
+
+        .hl-gold {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .hl-orange {
+            color: #ffaa00;
+            font-weight: bold;
+        }
 
         /* --- CANVAS & CONSOLE --- */
         .console-case {
-            background: #111; padding: 10px; border-radius: 2px; border: 1px solid #333;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.9); display: flex; align-items: center;
-            justify-content: center; position: relative; width: fit-content;
+            background: #111;
+            padding: 10px;
+            border-radius: 2px;
+            border: 1px solid #333;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: fit-content;
         }
-        .screen-bezel { 
-            background: #000; padding: 0; box-shadow: inset 0 0 10px #000; z-index: 10; position: relative; 
+
+        .screen-bezel {
+            background: #000;
+            padding: 0;
+            box-shadow: inset 0 0 10px #000;
+            z-index: 10;
+            position: relative;
         }
-        canvas { 
-            width: 960px; aspect-ratio: 2 / 1; background-color: #000; display: block; image-rendering: pixelated; 
+
+        canvas {
+            width: 960px;
+            aspect-ratio: 2 / 1;
+            background-color: #000;
+            display: block;
+            image-rendering: pixelated;
         }
-        .info { position: absolute; bottom: 10px; text-align: center; color: #555; width: 100%; font-size: 0.75em; }
+
+        .info {
+            position: absolute;
+            bottom: 10px;
+            text-align: center;
+            color: #555;
+            width: 100%;
+            font-size: 0.75em;
+        }
+
         .panel-id {
-            position: absolute; bottom: -25px; right: 0; color: #333; font-size: 10px; font-family: Arial, sans-serif;
+            position: absolute;
+            bottom: -25px;
+            right: 0;
+            color: #333;
+            font-size: 10px;
+            font-family: Arial, sans-serif;
         }
     </style>
 </head>
+
 <body tabindex="0" onclick="this.focus()">
 
     <div class="arcade-header">
         <div class="header-bar">
-            <div class="game-title">MAZE BATTLEGROUND</div>
-            <div class="round-info">WIN CONDITION: 5 POINTS</div>
+            <div class="game-title">MAZE BATTLEGROUND <span style="font-size:0.5em; opacity:0.5; vertical-align: middle;">v2.0</span></div>
+            <div class="round-info">GOAL: 5 POINTS</div>
         </div>
-        
+
         <div class="dashboard">
             <div class="panel p1-panel">
                 <div class="panel-header" style="color: #00ffff;">PLAYER 1</div>
-                <div class="control-grid">
-                    <div class="control-row"><span class="key">WASD</span> <span>MOVE</span></div>
-                    <div class="control-row"><span class="key">R</span> <span>SHIELD</span></div>
-                    <div class="control-row"><span class="key">F</span> <span>BEAM</span></div>
-                    <div class="control-row"><span class="key">E</span> <span>MINE</span></div>
-                    <div class="control-row"><span class="key">G</span> <span>BOOST</span></div>
-                    <div class="control-row"><span class="key" style="font-size:0.8em">SPACE</span> <span>BOOM</span></div>
+                <div class="control-group">
+                    <div class="c-row">
+                        <span class="action-name act-mov">MOVE</span>
+                        <div style="display:flex; gap:2px;">
+                            <span class="key-cap">W</span><span class="key-cap">A</span><span class="key-cap">S</span><span class="key-cap">D</span>
+                        </div>
+                    </div>
+                    <div class="c-row">
+                        <span class="action-name act-atk">MINE / BOOM</span>
+                        <div><span class="key-cap">E</span> + <span class="key-cap" style="font-size:0.8em">SPC</span></div>
+                    </div>
+                    <div class="c-row">
+                        <span class="action-name act-def">SHIELD</span>
+                        <span class="key-cap">R</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="action-name act-def">BEAM</span>
+                        <span class="key-cap">F</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="action-name act-mov">BOOST</span>
+                        <span class="key-cap">G</span>
+                    </div>
                 </div>
             </div>
 
             <div class="panel rules-panel">
-                <div class="rules-list">
-                    <div class="rule-item"><span class="icon">☠</span> <span><span class="hl-red">LETHAL:</span> Mines KILL (1 Pt to Foe)</span></div>
-                    <div class="rule-item"><span class="icon">⚡</span> <span><span class="hl-gold">BEAMS:</span> Stun Enemy</span></div>
-                    <div class="rule-item"><span class="icon">🛡</span> <span><span class="hl-blue">SHIELD:</span> Block Death/Stun</span></div>
-                    <div class="rule-item"><span class="icon">🌀</span> <span><span class="hl-blue">PORTALS:</span> Instant Teleport</span></div>
-                    <div class="rule-item"><span class="icon">⚠</span> <span><span class="hl-orange">GLITCH:</span> Portals Invert Controls</span></div>
-                    <div class="rule-item"><span class="icon">✦</span> <span><span class="hl-green">AMMO:</span> Green Box = +5 Mines</span></div>
+                <div class="panel-header" style="color: #aaa; font-size: 0.75em; letter-spacing: 4px;">SYSTEM MECHANICS</div>
+                <div class="legend-grid">
+                    
+                    <div class="legend-item">
+                        <span class="l-icon">☠</span>
+                        <div class="l-text">
+                            <span class="l-title hl-red">MINES</span>
+                            <span class="l-desc">Lethal. 1 Pt to Foe.</span>
+                        </div>
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="l-icon">🛡</span>
+                        <div class="l-text">
+                            <span class="l-title hl-blue">SHIELD</span>
+                            <span class="l-desc">Blocks Stun & Death.</span>
+                        </div>
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="l-icon">⚡</span>
+                        <div class="l-text">
+                            <span class="l-title hl-gold">TAP BEAM</span>
+                            <span class="l-desc">Stuns Enemy (Slow).</span>
+                        </div>
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="l-icon">💥</span>
+                        <div class="l-text">
+                            <span class="l-title hl-gold">HOLD BEAM</span>
+                            <span class="l-desc">Breaks Walls + Kills.</span>
+                        </div>
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="l-icon">🌀</span>
+                        <div class="l-text">
+                            <span class="l-title hl-purple">PORTAL</span>
+                            <span class="l-desc">Instant Teleport.</span>
+                        </div>
+                    </div>
+
+                    <div class="legend-item">
+                        <span class="l-icon">⚠</span>
+                        <div class="l-text">
+                            <span class="l-title hl-red">GLITCH</span>
+                            <span class="l-desc">Inverts Controls.</span>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
             <div class="panel p2-panel">
                 <div class="panel-header" style="color: #ff00ff;">PLAYER 2</div>
-                <div class="control-grid">
-                    <div class="control-row"><span class="key">ARROWS</span> <span>MOVE</span></div>
-                    <div class="control-row"><span class="key">I</span> <span>SHIELD</span></div>
-                    <div class="control-row"><span class="key">K</span> <span>BEAM</span></div>
-                    <div class="control-row"><span class="key">O</span> <span>MINE</span></div>
-                    <div class="control-row"><span class="key">L</span> <span>BOOST</span></div>
-                    <div class="control-row"><span class="key" style="font-size:0.8em">ENTER</span> <span>BOOM</span></div>
+                <div class="control-group">
+                    <div class="c-row">
+                        <div style="display:flex; gap:2px;">
+                            <span class="key-cap">^</span><span class="key-cap">&lt;</span><span class="key-cap">v</span><span class="key-cap">&gt;</span>
+                        </div>
+                        <span class="action-name act-mov">MOVE</span>
+                    </div>
+                    <div class="c-row">
+                        <div><span class="key-cap">O</span> + <span class="key-cap" style="font-size:0.8em">ENT</span></div>
+                        <span class="action-name act-atk">MINE / BOOM</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="key-cap">I</span>
+                        <span class="action-name act-def">SHIELD</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="key-cap">K</span>
+                        <span class="action-name act-def">BEAM</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="key-cap">L</span>
+                        <span class="action-name act-mov">BOOST</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -182,7 +519,7 @@
             PITCH: 10,
             LED_RADIUS: 3.5,
             HUD_WIDTH: 8,
-            
+
             // Maze
             CELL_SIZE: 3,
             ROWS: 21,
@@ -193,12 +530,12 @@
             BASE_SPEED: 0.3,
             MAX_SPEED: 1.2,
             MAX_SCORE: 5,
-            MAX_MINES: 5,
-            
+            MAX_MINES: 4,
+
             // Timers & Cooldowns
             BOOST_DRAIN: 100 / (5 * 60),
             SHIELD_DRAIN: (100 / (5 * 60)) * 1.5,
-            BOOST_REGEN: (100 / (5 * 60)) * 0.4,
+            BOOST_REGEN: (100 / (5 * 60)) * 0.3,
             BOOST_COOLDOWN_FRAMES: 60,
             STUN_DURATION: 360,
             GLITCH_DURATION: 180,
@@ -206,48 +543,56 @@
             MINE_ARM_TIME: 2000,
             MINE_COOLDOWN: 500,
             AMMO_RESPAWN_DELAY: 300,
-            
+
             // Costs
             BEAM_ENERGY_COST: 20,
             DETONATE_COST: 30,
-            
+
             // Visuals
             BEAM_LENGTH: 40,
             PARTICLE_COUNT: 40,
-            TRAIL_LENGTH: 12
+            TRAIL_LENGTH: 12,
+            // NEW: Charged Beam Stats
+            CHARGED_BEAM_COST: 80,
+            CHARGE_TIME: 3000,       // 3 Seconds
+            CHARGE_PENALTY: 0.6,     // 50% Speed reduction
+            C_BEAM_SPEED: 0.6,       // Speed of the projectile
+            C_BEAM_RANGE: 10,        // Distance before deleting
+            C_BEAM_LENGTH: 5,       // Length in pixels
+            C_BEAM_WIDTH: 2          // Width in pixels
         };
 
         const BITMAP_FONT = {
-            'A': [0,1,0, 1,0,1, 1,1,1, 1,0,1, 1,0,1], 'B': [1,1,0, 1,0,1, 1,1,0, 1,0,1, 1,1,0],
-            'C': [0,1,1, 1,0,0, 1,0,0, 1,0,0, 0,1,1], 'D': [1,1,0, 1,0,1, 1,0,1, 1,0,1, 1,1,0],
-            'E': [1,1,1, 1,0,0, 1,1,0, 1,0,0, 1,1,1], 'F': [1,1,1, 1,0,0, 1,1,0, 1,0,0, 1,0,0],
-            'G': [0,1,1, 1,0,0, 1,0,1, 1,0,1, 0,1,1], 'H': [1,0,1, 1,0,1, 1,1,1, 1,0,1, 1,0,1],
-            'I': [1,1,1, 0,1,0, 0,1,0, 0,1,0, 1,1,1], 'J': [0,0,1, 0,0,1, 0,0,1, 1,0,1, 0,1,0],
-            'K': [1,0,1, 1,0,1, 1,1,0, 1,0,1, 1,0,1], 'L': [1,0,0, 1,0,0, 1,0,0, 1,0,0, 1,1,1],
-            'M': [1,0,1, 1,1,1, 1,0,1, 1,0,1, 1,0,1], 'N': [1,1,0, 1,0,1, 1,0,1, 1,0,1, 1,0,1],
-            'O': [0,1,0, 1,0,1, 1,0,1, 1,0,1, 0,1,0], 'P': [1,1,0, 1,0,1, 1,1,0, 1,0,0, 1,0,0],
-            'Q': [0,1,0, 1,0,1, 1,0,1, 0,1,0, 0,0,1], 'R': [1,1,0, 1,0,1, 1,1,0, 1,0,1, 1,0,1],
-            'S': [0,1,1, 1,0,0, 0,1,0, 0,0,1, 1,1,0], 'T': [1,1,1, 0,1,0, 0,1,0, 0,1,0, 0,1,0],
-            'U': [1,0,1, 1,0,1, 1,0,1, 1,0,1, 0,1,0], 'V': [1,0,1, 1,0,1, 1,0,1, 1,0,1, 0,1,0],
-            'W': [1,0,1, 1,0,1, 1,0,1, 1,1,1, 1,0,1], 'X': [1,0,1, 1,0,1, 0,1,0, 1,0,1, 1,0,1],
-            'Y': [1,0,1, 1,0,1, 0,1,0, 0,1,0, 0,1,0], 'Z': [1,1,1, 0,0,1, 0,1,0, 1,0,0, 1,1,1],
-            '0': [0,1,0, 1,0,1, 1,0,1, 1,0,1, 0,1,0], '1': [0,1,0, 1,1,0, 0,1,0, 0,1,0, 1,1,1],
-            '2': [1,1,0, 0,0,1, 0,1,0, 1,0,0, 1,1,1], '3': [1,1,0, 0,0,1, 0,1,0, 0,0,1, 1,1,0],
-            '4': [1,0,1, 1,0,1, 1,1,1, 0,0,1, 0,0,1], '5': [1,1,1, 1,0,0, 1,1,0, 0,0,1, 1,1,0],
-            '6': [0,1,1, 1,0,0, 1,1,0, 1,0,1, 0,1,0], '7': [1,1,1, 0,0,1, 0,0,1, 0,0,1, 0,0,1],
-            '8': [0,1,0, 1,0,1, 0,1,0, 1,0,1, 0,1,0], '9': [0,1,0, 1,0,1, 0,1,1, 0,0,1, 0,1,0],
-            '!': [0,1,0, 0,1,0, 0,1,0, 0,0,0, 0,1,0], ' ': [0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,0,0],
-            "'": [0,1,0, 0,1,0, 0,0,0, 0,0,0, 0,0,0], '?': [1,1,0, 0,0,1, 0,1,0, 0,0,0, 0,1,0],
-            '-': [0,0,0, 0,0,0, 1,1,1, 0,0,0, 0,0,0], '.': [0,0,0, 0,0,0, 0,0,0, 0,0,0, 0,1,0],
-            ',': [0,0,0, 0,0,0, 0,0,0, 0,1,0, 1,0,0]
+            'A': [0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1], 'B': [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0],
+            'C': [0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 1], 'D': [1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0],
+            'E': [1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 1], 'F': [1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0],
+            'G': [0, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 1], 'H': [1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1],
+            'I': [1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1], 'J': [0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0],
+            'K': [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1], 'L': [1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1],
+            'M': [1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1], 'N': [1, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1],
+            'O': [0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0], 'P': [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0],
+            'Q': [0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1], 'R': [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+            'S': [0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0], 'T': [1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+            'U': [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0], 'V': [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0],
+            'W': [1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1], 'X': [1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
+            'Y': [1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0], 'Z': [1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1],
+            '0': [0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0], '1': [0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1],
+            '2': [1, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1], '3': [1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0],
+            '4': [1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1], '5': [1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 0],
+            '6': [0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0], '7': [1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+            '8': [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0], '9': [0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 0],
+            '!': [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0], ' ': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            "'": [0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], '?': [1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0],
+            '-': [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0], '.': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            ',': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0]
         };
 
         const DIGIT_MAP = {
-            0: [1,1,1, 1,0,1, 1,0,1, 1,0,1, 1,1,1], 1: [0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0],
-            2: [1,1,1, 0,0,1, 1,1,1, 1,0,0, 1,1,1], 3: [1,1,1, 0,0,1, 0,1,1, 0,0,1, 1,1,1],
-            4: [1,0,1, 1,0,1, 1,1,1, 0,0,1, 0,0,1], 5: [1,1,1, 1,0,0, 1,1,1, 0,0,1, 1,1,1],
-            6: [1,1,1, 1,0,0, 1,1,1, 1,0,1, 1,1,1], 7: [1,1,1, 0,0,1, 0,0,1, 0,0,1, 0,0,1],
-            8: [1,1,1, 1,0,1, 1,1,1, 1,0,1, 1,1,1], 9: [1,1,1, 1,0,1, 1,1,1, 0,0,1, 0,0,1]
+            0: [1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1], 1: [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+            2: [1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1], 3: [1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1],
+            4: [1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1], 5: [1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1],
+            6: [1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1], 7: [1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+            8: [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1], 9: [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1]
         };
 
         const TAUNTS = [
@@ -261,29 +606,31 @@
          * 2. CLASSES
          * ==========================================
          */
-        class Cell { 
-            constructor(c, r) { 
-                this.c = c; this.r = r; 
+        class Cell {
+            constructor(c, r) {
+                this.c = c; this.r = r;
                 this.walls = [true, true, true, true]; // Top, Right, Bottom, Left
-                this.visited = false; 
-                this.parent = null; 
-                this.bfsVisited = false; 
-            } 
+                this.visited = false;
+                this.parent = null;
+                this.bfsVisited = false;
+            }
         }
 
         class Player {
             constructor(id, startX, startY, goalC, goalR, color, controls) {
                 this.id = id;
-                this.x = startX; 
+                this.x = startX;
                 this.y = startY;
-                this.goalC = goalC; 
+                this.goalC = goalC;
                 this.goalR = goalR;
                 this.color = color;
-                this.controls = controls; // Key mappings
+                this.controls = controls;
                 this.size = 2.0;
                 this.score = 0;
-                
-                // State
+
+                // NEW: Direction tracking (Default: P1 Right, P2 Left)
+                this.lastDir = { x: id === 0 ? 1 : -1, y: 0 };
+
                 this.resetState();
             }
 
@@ -299,10 +646,14 @@
                 this.shieldActive = false;
                 this.currentSpeed = CONFIG.BASE_SPEED;
                 this.prevDetonateKey = false;
-                
+
                 // Beam Logic
                 this.beamPixels = [];
                 this.beamIdx = 0;
+
+                // NEW: Charge Logic
+                this.isCharging = false;
+                this.chargeStartTime = 0;
             }
         }
 
@@ -319,16 +670,17 @@
             mines: [],
             particles: [],
             portals: [],
+            projectiles: [],
             ammoCrate: null,
             ammoRespawnTimer: 0,
-            
+
             // Game Flow
             keys: {},
             gameTime: 0,
             maxGameTime: 0,
             isGameOver: false,
             isRoundOver: false,
-            
+
             // UI
             messages: {
                 win: "",
@@ -375,7 +727,7 @@
             let current = STATE.maze[0];
             current.visited = true;
 
-            while(true) {
+            while (true) {
                 // Inline neighbor check for DFS
                 let neighbors = [];
                 let top = gridIndex(current.c, current.r - 1);
@@ -411,14 +763,15 @@
             STATE.players[0].resetState();
 
             // Player 2
-            let endX = CONFIG.MAZE_OFFSET_X + ((CONFIG.COLS-1) * CONFIG.CELL_SIZE) + 1;
-            let endY = ((CONFIG.ROWS-1) * CONFIG.CELL_SIZE) + 1;
+            let endX = CONFIG.MAZE_OFFSET_X + ((CONFIG.COLS - 1) * CONFIG.CELL_SIZE) + 1;
+            let endY = ((CONFIG.ROWS - 1) * CONFIG.CELL_SIZE) + 1;
             STATE.players[1].x = endX;
             STATE.players[1].y = endY;
             STATE.players[1].resetState();
 
             STATE.mines = [];
             STATE.particles = [];
+            STATE.projectiles = [];
             generatePortals();
             STATE.ammoCrate = null;
             spawnAmmoCrate();
@@ -429,32 +782,32 @@
         function generatePortals() {
             STATE.portals = [];
             let attempts = 0;
-            while(STATE.portals.length < 2 && attempts < 100) {
+            while (STATE.portals.length < 2 && attempts < 100) {
                 let c = Math.floor(Math.random() * (CONFIG.COLS - 2)) + 1;
                 let r = Math.floor(Math.random() * (CONFIG.ROWS - 2)) + 1;
                 // Avoid corners
-                if ((c < 5 && r < 5) || (c > CONFIG.COLS-5 && r > CONFIG.ROWS-5)) continue;
+                if ((c < 5 && r < 5) || (c > CONFIG.COLS - 5 && r > CONFIG.ROWS - 5)) continue;
                 // Avoid stacking
                 let tooClose = false;
-                for(let p of STATE.portals) { if (Math.abs(p.c - c) + Math.abs(p.r - r) < 10) tooClose = true; }
+                for (let p of STATE.portals) { if (Math.abs(p.c - c) + Math.abs(p.r - r) < 10) tooClose = true; }
                 if (tooClose) continue;
 
-                let px = CONFIG.MAZE_OFFSET_X + (c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE/2) - 0.5;
-                let py = (r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE/2) - 0.5;
+                let px = CONFIG.MAZE_OFFSET_X + (c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2) - 0.5;
+                let py = (r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2) - 0.5;
                 STATE.portals.push({ c: c, r: r, x: px, y: py, color: STATE.portals.length === 0 ? '#ffaa00' : '#00aaff' });
             }
         }
 
         function spawnAmmoCrate() {
             let attempts = 0;
-            while(attempts < 50) {
+            while (attempts < 50) {
                 let c = Math.floor(Math.random() * (CONFIG.COLS - 2)) + 1;
                 let r = Math.floor(Math.random() * (CONFIG.ROWS - 2)) + 1;
-                if ((c < 5 && r < 5) || (c > CONFIG.COLS-5 && r > CONFIG.ROWS-5)) continue;
+                if ((c < 5 && r < 5) || (c > CONFIG.COLS - 5 && r > CONFIG.ROWS - 5)) continue;
                 if (STATE.portals.find(p => p.c === c && p.r === r)) continue;
 
-                let px = CONFIG.MAZE_OFFSET_X + (c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE/2) - 1.0;
-                let py = (r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE/2) - 1.0;
+                let px = CONFIG.MAZE_OFFSET_X + (c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2) - 1.0;
+                let py = (r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2) - 1.0;
                 STATE.ammoCrate = { x: px, y: py, c: c, r: r };
                 break;
             }
@@ -467,15 +820,15 @@
         function calculateGameTime() {
             // BFS to find shortest path
             let start = gridIndex(0, 0);
-            let end = gridIndex(CONFIG.COLS-1, CONFIG.ROWS-1);
+            let end = gridIndex(CONFIG.COLS - 1, CONFIG.ROWS - 1);
             STATE.maze.forEach(cell => { cell.bfsVisited = false; cell.parent = null; });
-            
+
             let queue = [start];
             start.bfsVisited = true;
             let pathLen = 0;
             let found = false;
 
-            while(queue.length > 0) {
+            while (queue.length > 0) {
                 let curr = queue.shift();
                 if (curr === end) { found = true; break; }
                 let neighbors = [
@@ -484,7 +837,7 @@
                     { cell: gridIndex(curr.c, curr.r + 1), wall: curr.walls[2] },
                     { cell: gridIndex(curr.c - 1, curr.r), wall: curr.walls[3] }
                 ];
-                for(let n of neighbors) {
+                for (let n of neighbors) {
                     if (n.cell && !n.cell.bfsVisited && !n.wall) {
                         n.cell.bfsVisited = true;
                         n.cell.parent = curr;
@@ -492,11 +845,11 @@
                     }
                 }
             }
-            if(found) {
+            if (found) {
                 let temp = end;
-                while(temp) { pathLen++; temp = temp.parent; }
+                while (temp) { pathLen++; temp = temp.parent; }
             }
-            
+
             let distPixels = pathLen * CONFIG.CELL_SIZE;
             let estSpeed = (CONFIG.BASE_SPEED + CONFIG.MAX_SPEED) / 2;
             STATE.gameTime = Math.floor((distPixels / estSpeed) * 6);
@@ -506,16 +859,16 @@
         function isWall(pixelX, pixelY) {
             if (pixelX < CONFIG.MAZE_OFFSET_X || pixelX >= CONFIG.LOGICAL_W - CONFIG.HUD_WIDTH) return true;
             if (pixelY < 0 || pixelY >= CONFIG.LOGICAL_H) return true;
-            
+
             let mx = pixelX - CONFIG.MAZE_OFFSET_X;
             let col = Math.floor(mx / CONFIG.CELL_SIZE);
             let row = Math.floor(pixelY / CONFIG.CELL_SIZE);
             let cell = gridIndex(col, row);
-            
+
             if (!cell) return true;
             let lx = Math.floor(mx) % CONFIG.CELL_SIZE;
             let ly = Math.floor(pixelY) % CONFIG.CELL_SIZE;
-            
+
             if (lx === 0 && ly === 0) return true; // Corner post
             if (ly === 0 && cell.walls[0]) return true; // Top wall
             if (lx === 0 && cell.walls[3]) return true; // Left wall
@@ -550,7 +903,7 @@
             destroyWallAt(gridC, gridR);
 
             // Particles
-            for(let i=0; i<CONFIG.PARTICLE_COUNT; i++) {
+            for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
                 STATE.particles.push({
                     x: x + 1, y: y + 1,
                     vx: (Math.random() - 0.5) * 2.5,
@@ -576,11 +929,11 @@
             if (STATE.isRoundOver || STATE.isGameOver) return;
             let winnerIdx = (victimIdx === 0) ? 1 : 0;
             STATE.players[winnerIdx].score++;
-            
+
             STATE.messages.round = `P${victimIdx + 1} OBLITERATED!`;
             STATE.messages.roundColor = "#ff0000";
-            
-            if(STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
+
+            if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
                 triggerWin(winnerIdx);
             } else {
                 STATE.isRoundOver = true;
@@ -612,7 +965,10 @@
          * 6. PLAYER ACTIONS (Moved from Giant Switch)
          * ==========================================
          */
+        /* --- REPLACE handlePlayerInput FUNCTION --- */
         function handlePlayerInput(p) {
+            let now = Date.now();
+
             // 1. Detonate
             if (STATE.keys[p.controls.boom] && !p.prevDetonateKey) {
                 if (p.boostEnergy >= CONFIG.DETONATE_COST) {
@@ -624,7 +980,7 @@
                             minesFound = true;
                         }
                     }
-                    if(minesFound) p.boostEnergy -= CONFIG.DETONATE_COST;
+                    if (minesFound) p.boostEnergy -= CONFIG.DETONATE_COST;
                 }
             }
             p.prevDetonateKey = STATE.keys[p.controls.boom];
@@ -637,13 +993,46 @@
                 p.shieldActive = false;
             }
 
-            // 3. Movement & Speed Logic
-            let speed = CONFIG.BASE_SPEED;
-            if (p.stunTime > 0) {
-                speed = CONFIG.BASE_SPEED * 0.8; // STUN_SPEED_FACTOR
-                if (!STATE.keys[p.controls.boost] && !p.shieldActive) 
-                    p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+            // 3. BEAM LOGIC (Standard vs Charged)
+            if (STATE.keys[p.controls.beam]) {
+                // Start Charging
+                if (!p.isCharging) {
+                    p.isCharging = true;
+                    p.chargeStartTime = now;
+                }
+
+                // Check if fully charged (Auto-fire after 3s or handle visual feedback)
+                if (now - p.chargeStartTime > CONFIG.CHARGE_TIME) {
+                    fireChargedBeam(p);
+                    p.isCharging = false; // Reset after firing
+                    p.chargeStartTime = 0; // Prevent rapid fire loop
+                }
             } else {
+                // Key Released
+                if (p.isCharging) {
+                    // If held less than charge time, fire normal beam
+                    if (now - p.chargeStartTime < CONFIG.CHARGE_TIME) {
+                        fireBeam(p);
+                    }
+                    p.isCharging = false;
+                }
+            }
+
+            // 4. Movement & Speed Logic
+            let speed = CONFIG.BASE_SPEED;
+
+            // Apply Stun or Charge Penalty
+            if (p.stunTime > 0) {
+                speed = CONFIG.BASE_SPEED * 0.8;
+                if (!STATE.keys[p.controls.boost] && !p.shieldActive)
+                    p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+            } else if (p.isCharging) {
+                // NEW: Charge Penalty
+                speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_PENALTY;
+                // Regenerate energy slowly while charging if not full
+                p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+            } else {
+                // Normal Boost Logic
                 if (p.boostCooldown > 0) {
                     p.boostCooldown--;
                     if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
@@ -652,7 +1041,7 @@
                         p.boostEnergy -= CONFIG.BOOST_DRAIN;
                         speed = CONFIG.MAX_SPEED;
                         if (p.boostEnergy <= 0) p.boostEnergy = 0;
-                    } 
+                    }
                 } else {
                     if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
                     else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
@@ -669,38 +1058,47 @@
 
             if (p.glitchTime > 0) { dx = -dx; dy = -dy; }
 
+            // NEW: Update Last Direction (for Charged Beam aiming)
+            // Only update if moving, normalize to straight lines preference
+            if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    p.lastDir = { x: dx > 0 ? 1 : -1, y: 0 };
+                } else {
+                    p.lastDir = { x: 0, y: dy > 0 ? 1 : -1 };
+                }
+            }
+
             // Collision & Sub-stepping
             let dist = Math.hypot(dx, dy);
             let stepSize = 0.5;
             let steps = Math.ceil(dist / stepSize);
             let sx = dx / steps, sy = dy / steps;
 
-            for(let i=0; i<steps; i++) {
+            for (let i = 0; i < steps; i++) {
                 if (sx !== 0 && !checkPlayerCollision(p, sx, 0)) p.x += sx;
                 if (sy !== 0 && !checkPlayerCollision(p, 0, sy)) p.y += sy;
             }
 
-            // 4. Abilities
+            // 5. Abilities
             if (STATE.keys[p.controls.mine]) dropMine(p);
-            if (STATE.keys[p.controls.beam]) fireBeam(p);
+            // (Beam is now handled in section 3)
 
-            // 5. Goal Check
+            // 6. Goal Check
             let gx = CONFIG.MAZE_OFFSET_X + (p.goalC * CONFIG.CELL_SIZE) + 1;
             let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
             if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
                 p.score++;
-                if(p.score >= CONFIG.MAX_SCORE) triggerWin(p.id);
+                if (p.score >= CONFIG.MAX_SCORE) triggerWin(p.id);
                 else triggerRoundWin(p.id);
             }
         }
-
         function dropMine(p) {
             if (p.minesLeft <= 0) return;
             let now = Date.now();
             if (now - p.lastMineTime < CONFIG.MINE_COOLDOWN) return;
             p.lastMineTime = now;
             p.minesLeft--;
-            
+
             STATE.mines.push({
                 x: Math.floor(p.x), y: Math.floor(p.y),
                 droppedAt: now, active: false,
@@ -708,33 +1106,140 @@
                 owner: p.id
             });
         }
+        /* --- ADD NEW FUNCTIONS --- */
+
+        function fireChargedBeam(p) {
+            // Check Cost
+            if (p.boostEnergy < CONFIG.CHARGED_BEAM_COST) return;
+
+            p.boostEnergy -= CONFIG.CHARGED_BEAM_COST;
+
+            // Create Projectile
+            STATE.projectiles.push({
+                x: p.x + (p.size / 2), // Start center of player
+                y: p.y + (p.size / 2),
+                vx: p.lastDir.x * CONFIG.C_BEAM_SPEED,
+                vy: p.lastDir.y * CONFIG.C_BEAM_SPEED,
+                distTraveled: 0,
+                owner: p.id,
+                color: p.color
+            });
+
+            // Recoil / Particle effect
+            for (let i = 0; i < 10; i++) {
+                STATE.particles.push({
+                    x: p.x + 1, y: p.y + 1,
+                    vx: (Math.random() - 0.5), vy: (Math.random() - 0.5),
+                    life: 0.8, color: '#fff'
+                });
+            }
+        }
+
+        function updateProjectiles() {
+            for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
+                let proj = STATE.projectiles[i];
+
+                // Move
+                proj.x += proj.vx;
+                proj.y += proj.vy;
+                proj.distTraveled += CONFIG.C_BEAM_SPEED;
+
+                // Range Check
+                if (proj.distTraveled >= CONFIG.C_BEAM_RANGE) {
+                    STATE.projectiles.splice(i, 1);
+                    continue;
+                }
+
+                // Define Hitbox based on direction (Long in direction of travel, 2px wide)
+                let hw = 0, hh = 0; // Half-widths
+                if (Math.abs(proj.vx) > 0) {
+                    // Horizontal moving: 10 wide, 2 high
+                    hw = CONFIG.C_BEAM_LENGTH / 2;
+                    hh = CONFIG.C_BEAM_WIDTH / 2;
+                } else {
+                    // Vertical moving: 2 wide, 10 high
+                    hw = CONFIG.C_BEAM_WIDTH / 2;
+                    hh = CONFIG.C_BEAM_LENGTH / 2;
+                }
+
+                // 1. Wall Collision (Break Walls)
+                // Check grid points covered by the beam
+                let checkPoints = [
+                    { x: proj.x + (proj.vx * 2), y: proj.y + (proj.vy * 2) } // Tip of the spear
+                ];
+
+                checkPoints.forEach(pt => {
+                    let gridC = Math.floor((pt.x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+                    let gridR = Math.floor(pt.y / CONFIG.CELL_SIZE);
+
+                    // If it hits a wall/grid boundary
+                    if (isWall(pt.x, pt.y)) {
+                        destroyWallAt(gridC, gridR);
+                        // Create debris
+                        STATE.particles.push({ x: pt.x, y: pt.y, vx: proj.vx * 0.5, vy: proj.vy * 0.5, life: 0.5, color: '#555' });
+                    }
+                });
+
+                // 2. Mine Collision (Trigger)
+                for (let mIdx = STATE.mines.length - 1; mIdx >= 0; mIdx--) {
+                    let m = STATE.mines[mIdx];
+                    if (Math.abs(proj.x - m.x) < hw + 1 && Math.abs(proj.y - m.y) < hh + 1) {
+                        triggerExplosion(m.x, m.y);
+                        STATE.mines.splice(mIdx, 1);
+                    }
+                }
+
+                // 3. Player Collision (Kill Opponent)
+                let opponentId = (proj.owner + 1) % 2;
+                let opp = STATE.players[opponentId];
+
+                // Simple AABB collision
+                let pLeft = opp.x, pRight = opp.x + opp.size;
+                let pTop = opp.y, pBot = opp.y + opp.size;
+
+                let bLeft = proj.x - hw, bRight = proj.x + hw;
+                let bTop = proj.y - hh, bBot = proj.y + hh;
+
+                if (bLeft < pRight && bRight > pLeft && bTop < pBot && bBot > pTop) {
+                    if (!opp.shieldActive) {
+                        handlePlayerDeath(opponentId);
+                        STATE.projectiles.splice(i, 1); // Remove beam on hit
+                        return;
+                    } else {
+                        // Deflected by shield
+                        STATE.projectiles.splice(i, 1);
+                        return;
+                    }
+                }
+            }
+        }
 
         function fireBeam(p) {
             if (p.boostEnergy < CONFIG.BEAM_ENERGY_COST) return;
             if (p.beamIdx < p.beamPixels.length) return; // Already firing
-            
+
             p.boostEnergy -= CONFIG.BEAM_ENERGY_COST;
 
             // BFS Pathfinding for Beam
             let mx = p.x - CONFIG.MAZE_OFFSET_X;
-            let start = gridIndex(Math.floor((mx+1)/CONFIG.CELL_SIZE), Math.floor((p.y+1)/CONFIG.CELL_SIZE));
+            let start = gridIndex(Math.floor((mx + 1) / CONFIG.CELL_SIZE), Math.floor((p.y + 1) / CONFIG.CELL_SIZE));
             let end = gridIndex(p.goalC, p.goalR);
-            if(!start || !end) return;
+            if (!start || !end) return;
 
             STATE.maze.forEach(c => { c.parent = null; c.bfsVisited = false; });
             let queue = [start]; start.bfsVisited = true;
             let found = false;
 
-            while(queue.length > 0) {
+            while (queue.length > 0) {
                 let curr = queue.shift();
                 if (curr === end) { found = true; break; }
-                let neighbors = [ 
-                    { cell: gridIndex(curr.c, curr.r - 1), wall: curr.walls[0] }, 
-                    { cell: gridIndex(curr.c + 1, curr.r), wall: curr.walls[1] }, 
-                    { cell: gridIndex(curr.c, curr.r + 1), wall: curr.walls[2] }, 
-                    { cell: gridIndex(curr.c - 1, curr.r), wall: curr.walls[3] } 
+                let neighbors = [
+                    { cell: gridIndex(curr.c, curr.r - 1), wall: curr.walls[0] },
+                    { cell: gridIndex(curr.c + 1, curr.r), wall: curr.walls[1] },
+                    { cell: gridIndex(curr.c, curr.r + 1), wall: curr.walls[2] },
+                    { cell: gridIndex(curr.c - 1, curr.r), wall: curr.walls[3] }
                 ];
-                for(let n of neighbors) {
+                for (let n of neighbors) {
                     if (n.cell && !n.cell.bfsVisited && !n.wall) {
                         n.cell.bfsVisited = true;
                         n.cell.parent = curr;
@@ -747,35 +1252,35 @@
             // Reconstruct Path to Pixels
             let pathCells = [];
             let temp = end;
-            while(temp) { pathCells.push(temp); temp = temp.parent; }
+            while (temp) { pathCells.push(temp); temp = temp.parent; }
             pathCells.reverse();
-            
+
             p.beamPixels = [];
-            for(let i=0; i<pathCells.length - 1; i++) {
+            for (let i = 0; i < pathCells.length - 1; i++) {
                 let c1 = pathCells[i];
-                let c2 = pathCells[i+1];
+                let c2 = pathCells[i + 1];
                 let x1 = CONFIG.MAZE_OFFSET_X + (c1.c * CONFIG.CELL_SIZE) + 1;
                 let y1 = (c1.r * CONFIG.CELL_SIZE) + 1;
                 let x2 = CONFIG.MAZE_OFFSET_X + (c2.c * CONFIG.CELL_SIZE) + 1;
                 let y2 = (c2.r * CONFIG.CELL_SIZE) + 1;
-                
-                p.beamPixels.push({x: x1, y: y1});
-                
+
+                p.beamPixels.push({ x: x1, y: y1 });
+
                 // Handle Portal Jump in path
                 let hitPortal = STATE.portals.find(pt => pt.c === c1.c && pt.r === c1.r);
                 if (hitPortal) {
-                     let dest = STATE.portals.find(pt => pt !== hitPortal);
-                     if(dest) { /* Visual jump logic handled inherently by coordinate shift */ }
+                    let dest = STATE.portals.find(pt => pt !== hitPortal);
+                    if (dest) { /* Visual jump logic handled inherently by coordinate shift */ }
                 }
 
                 // Interpolate
                 let dx = (x2 - x1) / 3;
                 let dy = (y2 - y1) / 3;
-                p.beamPixels.push({x: x1 + dx, y: y1 + dy});
-                p.beamPixels.push({x: x1 + (dx*2), y: y1 + (dy*2)});
+                p.beamPixels.push({ x: x1 + dx, y: y1 + dy });
+                p.beamPixels.push({ x: x1 + (dx * 2), y: y1 + (dy * 2) });
             }
             // Add final
-            let last = pathCells[pathCells.length-1];
+            let last = pathCells[pathCells.length - 1];
             p.beamPixels.push({ x: CONFIG.MAZE_OFFSET_X + (last.c * CONFIG.CELL_SIZE) + 1, y: (last.r * CONFIG.CELL_SIZE) + 1 });
             p.beamIdx = 0;
         }
@@ -793,7 +1298,7 @@
             }
 
             // Timers
-            if(STATE.gameTime <= 0) { triggerRoundWin(-1); return; }
+            if (STATE.gameTime <= 0) { triggerRoundWin(-1); return; }
             STATE.gameTime -= 1;
             STATE.wallHue = (STATE.wallHue + 0.5) % 360;
 
@@ -804,23 +1309,23 @@
             });
 
             // Ammo Crate Logic
-            if(!STATE.ammoCrate) {
+            if (!STATE.ammoCrate) {
                 STATE.ammoRespawnTimer++;
-                if(STATE.ammoRespawnTimer > CONFIG.AMMO_RESPAWN_DELAY) {
+                if (STATE.ammoRespawnTimer > CONFIG.AMMO_RESPAWN_DELAY) {
                     spawnAmmoCrate();
                     STATE.ammoRespawnTimer = 0;
                 }
             }
-
+            updateProjectiles();
             // Beam Collisions (Beam vs Beam)
-            let p1 = STATE.players[0]; 
+            let p1 = STATE.players[0];
             let p2 = STATE.players[1];
             if (p1.beamPixels.length > 0 && p2.beamPixels.length > 0) {
                 let b1 = Math.floor(p1.beamIdx), b2 = Math.floor(p2.beamIdx);
                 if (b1 < p1.beamPixels.length && b2 < p2.beamPixels.length) {
                     let h1 = p1.beamPixels[b1], h2 = p2.beamPixels[b2];
                     if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < 4) {
-                        triggerExplosion((h1.x+h2.x)/2, (h1.y+h2.y)/2);
+                        triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2);
                         p1.beamPixels = []; p1.beamIdx = 9999;
                         p2.beamPixels = []; p2.beamIdx = 9999;
                     }
@@ -831,7 +1336,7 @@
             STATE.players.forEach((p, idx) => {
                 // Ammo Pickup
                 if (STATE.ammoCrate) {
-                    if (Math.abs((p.x+1) - (STATE.ammoCrate.x+1)) < 2 && Math.abs((p.y+1) - (STATE.ammoCrate.y+1)) < 2) {
+                    if (Math.abs((p.x + 1) - (STATE.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (STATE.ammoCrate.y + 1)) < 2) {
                         p.minesLeft = CONFIG.MAX_MINES;
                         STATE.ammoCrate = null;
                         STATE.ammoRespawnTimer = 0;
@@ -844,32 +1349,32 @@
                 if (p.portalCooldown > 0) p.portalCooldown--;
                 else {
                     // Portal Check
-                    let pc = Math.floor((p.x + p.size/2 - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
-                    let pr = Math.floor((p.y + p.size/2) / CONFIG.CELL_SIZE);
+                    let pc = Math.floor((p.x + p.size / 2 - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+                    let pr = Math.floor((p.y + p.size / 2) / CONFIG.CELL_SIZE);
                     let portal = STATE.portals.find(pt => pt.c === pc && pt.r === pr);
-                    if(portal) {
+                    if (portal) {
                         let dest = STATE.portals.find(pt => pt !== portal);
-                        if(dest) {
-                            p.x = CONFIG.MAZE_OFFSET_X + (dest.c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE - p.size)/2;
-                            p.y = (dest.r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE - p.size)/2;
+                        if (dest) {
+                            p.x = CONFIG.MAZE_OFFSET_X + (dest.c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE - p.size) / 2;
+                            p.y = (dest.r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE - p.size) / 2;
                             p.portalCooldown = 60;
-                            if(Math.random() < CONFIG.GLITCH_CHANCE) p.glitchTime = CONFIG.GLITCH_DURATION;
-                            
+                            if (Math.random() < CONFIG.GLITCH_CHANCE) p.glitchTime = CONFIG.GLITCH_DURATION;
+
                             // FX
-                            for(let i=0; i<10; i++) STATE.particles.push({x: portal.x+1, y: portal.y+1, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 0.5, color: '#fff'});
-                            for(let i=0; i<10; i++) STATE.particles.push({x: dest.x+1, y: dest.y+1, vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2, life: 0.5, color: '#fff'});
+                            for (let i = 0; i < 10; i++) STATE.particles.push({ x: portal.x + 1, y: portal.y + 1, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, life: 0.5, color: '#fff' });
+                            for (let i = 0; i < 10; i++) STATE.particles.push({ x: dest.x + 1, y: dest.y + 1, vx: (Math.random() - 0.5) * 2, vy: (Math.random() - 0.5) * 2, life: 0.5, color: '#fff' });
                         }
                     }
                 }
 
-                p.trail.push({x: p.x, y: p.y});
-                if(p.trail.length > CONFIG.TRAIL_LENGTH) p.trail.shift();
+                p.trail.push({ x: p.x, y: p.y });
+                if (p.trail.length > CONFIG.TRAIL_LENGTH) p.trail.shift();
 
                 // Beam vs Player & Mines
-                if(p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) p.beamIdx += 0.8;
+                if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) p.beamIdx += 0.8;
                 let opponent = STATE.players[(idx + 1) % 2];
                 let tipIdx = Math.floor(opponent.beamIdx);
-                
+
                 // Check if Opponent Beam hits Me
                 if (tipIdx >= 0 && tipIdx < opponent.beamPixels.length) {
                     let tip = opponent.beamPixels[tipIdx];
@@ -880,13 +1385,13 @@
                 }
 
                 // Mine Collisions
-                for(let i=STATE.mines.length-1; i>=0; i--) {
+                for (let i = STATE.mines.length - 1; i >= 0; i--) {
                     let m = STATE.mines[i];
                     // Beam hits mine
                     let bIdx = Math.floor(p.beamIdx);
-                    if(bIdx >= 0 && bIdx < p.beamPixels.length) {
+                    if (bIdx >= 0 && bIdx < p.beamPixels.length) {
                         let bp = p.beamPixels[bIdx];
-                        if (bp.x >= m.x - 1 && bp.x <= m.x+3 && bp.y >= m.y - 1 && bp.y <= m.y+3) {
+                        if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
                             triggerExplosion(m.x, m.y);
                             STATE.mines.splice(i, 1);
                             p.beamPixels = []; p.beamIdx = 9999;
@@ -894,7 +1399,7 @@
                         }
                     }
                     // Player steps on active mine
-                    if(m.active) {
+                    if (m.active) {
                         if (p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
                             triggerExplosion(m.x, m.y);
                         }
@@ -922,12 +1427,12 @@
         function drawText(str, x, y, color) {
             str = str.toUpperCase();
             let cx = x;
-            for(let i=0; i<str.length; i++) {
+            for (let i = 0; i < str.length; i++) {
                 let map = BITMAP_FONT[str[i]];
-                if(map) {
-                    for(let p=0; p<15; p++) {
-                        if(map[p] === 1) {
-                            drawLED(cx + (p%3), y + Math.floor(p/3), color);
+                if (map) {
+                    for (let p = 0; p < 15; p++) {
+                        if (map[p] === 1) {
+                            drawLED(cx + (p % 3), y + Math.floor(p / 3), color);
                         }
                     }
                 }
@@ -938,8 +1443,8 @@
         function drawDigit(x, y, num, color, rotateDeg) {
             const map = DIGIT_MAP[num];
             const w = 3, h = 5;
-            for(let i=0; i<15; i++) {
-                if(map[i] === 1) {
+            for (let i = 0; i < 15; i++) {
+                if (map[i] === 1) {
                     let c = i % 3, r = Math.floor(i / 3);
                     let dx, dy;
                     if (rotateDeg === -90) { dx = r; dy = (w - 1 - c); }
@@ -955,14 +1460,14 @@
             ctx.fillStyle = '#000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             // Draw Grid Background
-            for(let y=0; y<CONFIG.LOGICAL_H; y++) for(let x=0; x<CONFIG.LOGICAL_W; x++) drawLED(x, y, '#222');
+            for (let y = 0; y < CONFIG.LOGICAL_H; y++) for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#222');
 
-            if(STATE.isGameOver) {
-                if(Math.floor(Date.now() / 200) % 2 === 0) drawText(STATE.messages.win, 10, 15, STATE.messages.winColor);
+            if (STATE.isGameOver) {
+                if (Math.floor(Date.now() / 200) % 2 === 0) drawText(STATE.messages.win, 10, 15, STATE.messages.winColor);
                 drawText(STATE.messages.taunt, STATE.scrollX, 35, "#ff5555");
                 drawText("PRESS 'R'", 40, 52, "#888");
             } else if (STATE.isRoundOver) {
-                if(Math.floor(Date.now() / 200) % 2 === 0) drawText("ROUND OVER", 10, 20, "#fff");
+                if (Math.floor(Date.now() / 200) % 2 === 0) drawText("ROUND OVER", 10, 20, "#fff");
                 drawText(STATE.messages.round, STATE.scrollX, 40, STATE.messages.roundColor);
             } else {
                 let timeRatio = Math.max(0, Math.min(1, STATE.gameTime / STATE.maxGameTime));
@@ -971,6 +1476,31 @@
 
                 drawMaze(wallColor);
                 drawHUD(clockHue = wallHue); // Pass hue for consistency
+                STATE.projectiles.forEach(proj => {
+                    let hw = 0, hh = 0;
+                    if (Math.abs(proj.vx) > 0) {
+                        // Horizontal
+                        hw = CONFIG.C_BEAM_LENGTH / 2; hh = CONFIG.C_BEAM_WIDTH / 2;
+                    } else {
+                        // Vertical
+                        hw = CONFIG.C_BEAM_WIDTH / 2; hh = CONFIG.C_BEAM_LENGTH / 2;
+                    }
+
+                    // Flicker effect
+                    let c = (Math.floor(Date.now() / 50) % 2 === 0) ? '#ffffff' : proj.color;
+
+                    // Draw the rect of LEDs
+                    let startX = Math.floor(proj.x - hw);
+                    let startY = Math.floor(proj.y - hh);
+                    let endX = Math.floor(proj.x + hw);
+                    let endY = Math.floor(proj.y + hh);
+
+                    for (let py = startY; py <= endY; py++) {
+                        for (let px = startX; px <= endX; px++) {
+                            drawLED(px, py, c);
+                        }
+                    }
+                });
             }
         }
 
@@ -981,17 +1511,17 @@
                 let x = (cell.c * CONFIG.CELL_SIZE) + CONFIG.MAZE_OFFSET_X;
                 let y = cell.r * CONFIG.CELL_SIZE;
                 drawLED(x, y, wallColor);
-                if (cell.walls[0]) { drawLED(x+1, y, wallColor); drawLED(x+2, y, wallColor); }
-                if (cell.walls[3]) { drawLED(x, y+1, wallColor); drawLED(x, y+2, wallColor); }
+                if (cell.walls[0]) { drawLED(x + 1, y, wallColor); drawLED(x + 2, y, wallColor); }
+                if (cell.walls[3]) { drawLED(x, y + 1, wallColor); drawLED(x, y + 2, wallColor); }
                 if (cell.c === CONFIG.COLS - 1) {
-                    drawLED(x+3, y, wallColor);
-                    if (cell.walls[1]) { drawLED(x+3, y+1, wallColor); drawLED(x+3, y+2, wallColor); }
+                    drawLED(x + 3, y, wallColor);
+                    if (cell.walls[1]) { drawLED(x + 3, y + 1, wallColor); drawLED(x + 3, y + 2, wallColor); }
                 }
                 if (cell.r === CONFIG.ROWS - 1) {
-                    drawLED(x, y+3, wallColor);
-                    if (cell.walls[2]) { drawLED(x+1, y+3, wallColor); drawLED(x+2, y+3, wallColor); }
+                    drawLED(x, y + 3, wallColor);
+                    if (cell.walls[2]) { drawLED(x + 1, y + 3, wallColor); drawLED(x + 2, y + 3, wallColor); }
                 }
-                if (cell.c === CONFIG.COLS - 1 && cell.r === CONFIG.ROWS - 1) drawLED(x+3, y+3, wallColor);
+                if (cell.c === CONFIG.COLS - 1 && cell.r === CONFIG.ROWS - 1) drawLED(x + 3, y + 3, wallColor);
             }
 
             // Goals
@@ -999,25 +1529,25 @@
             STATE.players.forEach(p => {
                 let gx = CONFIG.MAZE_OFFSET_X + (p.goalC * CONFIG.CELL_SIZE) + 1;
                 let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
-                drawLED(gx, gy, goalColor); drawLED(gx+1, gy, goalColor); 
-                drawLED(gx, gy+1, goalColor); drawLED(gx+1, gy+1, goalColor);
+                drawLED(gx, gy, goalColor); drawLED(gx + 1, gy, goalColor);
+                drawLED(gx, gy + 1, goalColor); drawLED(gx + 1, gy + 1, goalColor);
             });
 
             // Portals
             STATE.portals.forEach(p => {
                 ctx.globalAlpha = 0.5 + (0.5 * Math.abs(Math.sin(Date.now() / 300)));
-                drawLED(p.x, p.y, p.color); drawLED(p.x+1, p.y, p.color);
-                drawLED(p.x, p.y+1, p.color); drawLED(p.x+1, p.y+1, p.color);
+                drawLED(p.x, p.y, p.color); drawLED(p.x + 1, p.y, p.color);
+                drawLED(p.x, p.y + 1, p.color); drawLED(p.x + 1, p.y + 1, p.color);
                 ctx.globalAlpha = 1.0;
             });
 
             // Ammo
-            if(STATE.ammoCrate) {
+            if (STATE.ammoCrate) {
                 ctx.globalAlpha = 0.8 + (0.2 * Math.abs(Math.sin(Date.now() / 200)));
                 drawLED(STATE.ammoCrate.x, STATE.ammoCrate.y, '#00ff00');
-                drawLED(STATE.ammoCrate.x+1, STATE.ammoCrate.y, '#00ff00');
-                drawLED(STATE.ammoCrate.x, STATE.ammoCrate.y+1, '#00ff00');
-                drawLED(STATE.ammoCrate.x+1, STATE.ammoCrate.y+1, '#00ff00');
+                drawLED(STATE.ammoCrate.x + 1, STATE.ammoCrate.y, '#00ff00');
+                drawLED(STATE.ammoCrate.x, STATE.ammoCrate.y + 1, '#00ff00');
+                drawLED(STATE.ammoCrate.x + 1, STATE.ammoCrate.y + 1, '#00ff00');
                 ctx.globalAlpha = 1.0;
             }
 
@@ -1032,44 +1562,77 @@
             STATE.players.forEach(p => {
                 // Color Logic (Stun/Glitch)
                 let renderColor = p.color;
-                if (p.stunTime > 0) renderColor = (Math.floor(Date.now()/50)%2===0) ? '#880088' : p.color;
-                else if (p.glitchTime > 0) renderColor = (Math.floor(Date.now()/50)%2===0) ? '#00ff00' : p.color;
+                if (p.stunTime > 0) renderColor = (Math.floor(Date.now() / 50) % 2 === 0) ? '#880088' : p.color;
+                else if (p.glitchTime > 0) renderColor = (Math.floor(Date.now() / 50) % 2 === 0) ? '#00ff00' : p.color;
 
                 // Beam
-                if(p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) {
-                    for(let k=0; k<CONFIG.BEAM_LENGTH; k++) {
+                if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) {
+                    for (let k = 0; k < CONFIG.BEAM_LENGTH; k++) {
                         let i = Math.floor(p.beamIdx) - k;
-                        if(i >= 0 && i < p.beamPixels.length) {
-                            ctx.globalAlpha = 1.0 - (k/CONFIG.BEAM_LENGTH);
+                        if (i >= 0 && i < p.beamPixels.length) {
+                            ctx.globalAlpha = 1.0 - (k / CONFIG.BEAM_LENGTH);
                             drawLED(p.beamPixels[i].x, p.beamPixels[i].y, renderColor);
                             ctx.globalAlpha = 1.0;
                         }
                     }
                 }
+                // Visual Charge Indicator (Flicker White when charging)
+                if (p.isCharging) {
+                    let chargeRatio = (Date.now() - p.chargeStartTime) / CONFIG.CHARGE_TIME;
+                    if (chargeRatio > 1) chargeRatio = 1;
 
+                    // As charge gets fuller, flicker faster
+                    let flickerSpeed = 100 - (chargeRatio * 150);
+                    if (Math.floor(Date.now() / flickerSpeed) % 2 === 0) {
+                        renderColor = '#000000';
+                    }
+                    
+                    let chargeColor = `hsl(${Math.floor((1-chargeRatio) * 120)}, 100%, 50%)`;
+                    let sx = Math.floor(p.x) - 1;
+                    let sy = Math.floor(p.y) - 1;
+
+                    // 4. Define the Perimeter Path (Clockwise for a 4x4 grid)
+                    // A 4x4 grid has 12 unique border pixels.
+                    const perimeterPath = [
+                        { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, // Top Edge
+                        { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 3, y: 3 },             // Right Edge
+                        { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 3 },             // Bottom Edge
+                        { x: 0, y: 2 }, { x: 0, y: 1 }                          // Left Edge
+                    ];
+
+                    // 5. Calculate how many LEDs to light up
+                    let totalLEDs = perimeterPath.length; // 12
+                    let activeLEDs = Math.ceil(totalLEDs * chargeRatio);
+
+                    // 6. Draw loop
+                    for (let i = 0; i < activeLEDs; i++) {
+                        let offset = perimeterPath[i];
+                        drawLED(sx + offset.x, sy + offset.y, chargeColor);
+                    }
+                }
                 // Shield
                 if (p.shieldActive) {
                     let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
-                    for(let i=0; i<4; i++) {
+                    for (let i = 0; i < 4; i++) {
                         drawLED(sx + i, sy, '#8888ff'); drawLED(sx + i, sy + 3, '#8888ff');
                         drawLED(sx, sy + i, '#8888ff'); drawLED(sx + 3, sy + i, '#8888ff');
                     }
                 }
 
-                if(p.portalCooldown > 0 && Math.floor(Date.now()/50)%2===0) return; // Blink
+                if (p.portalCooldown > 0 && Math.floor(Date.now() / 50) % 2 === 0) return; // Blink
 
                 // Trail
                 if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) {
                     p.trail.forEach((pos, idx) => {
                         ctx.globalAlpha = (idx / p.trail.length) * 0.5;
-                        for(let py=0; py<p.size; py++) for(let px=0; px<p.size; px++) 
-                            drawLED(Math.floor(pos.x+px), Math.floor(pos.y+py), renderColor);
+                        for (let py = 0; py < p.size; py++) for (let px = 0; px < p.size; px++)
+                            drawLED(Math.floor(pos.x + px), Math.floor(pos.y + py), renderColor);
                     });
                     ctx.globalAlpha = 1.0;
                 }
 
                 // Body
-                for(let py=0; py<p.size; py++) for(let px=0; px<p.size; px++) 
+                for (let py = 0; py < p.size; py++) for (let px = 0; px < p.size; px++)
                     drawLED(Math.floor(p.x + px), Math.floor(p.y + py), renderColor);
             });
 
@@ -1077,7 +1640,7 @@
             STATE.particles.forEach((p, idx) => {
                 drawLED(p.x, p.y, p.color);
                 p.x += p.vx; p.y += p.vy; p.life -= 0.05;
-                if(p.life <= 0) STATE.particles.splice(idx, 1);
+                if (p.life <= 0) STATE.particles.splice(idx, 1);
             });
         }
 
@@ -1091,13 +1654,13 @@
             // P1
             drawDigit(0, 0, parseInt(p1s[0]), '#00ffff', 90);
             drawDigit(0, 4, parseInt(p1s[1]), '#00ffff', 90);
-            let b1MineColor = `hsl(${Math.floor((p1.minesLeft/5)*120)}, 100%, 50%)`;
+            let b1MineColor = `hsl(${Math.floor((p1.minesLeft / CONFIG.MAX_MINES) * 120)}, 100%, 50%)`;
             drawDigit(0, 10, parseInt(p1.minesLeft), b1MineColor, 90);
-            
+
             // P1 Boost Bar
-            let b1H = Math.floor((p1.boostEnergy/100) * 38);
-            let b1Color = `hsl(${Math.floor((p1.boostEnergy/100)*120)}, 100%, 50%)`;
-            for(let h=0; h<b1H; h++) for(let w=0; w<5; w++) drawLED(w, 14+h, b1Color);
+            let b1H = Math.floor((p1.boostEnergy / 100) * 38);
+            let b1Color = `hsl(${Math.floor((p1.boostEnergy / 100) * 120)}, 100%, 50%)`;
+            for (let h = 0; h < b1H; h++) for (let w = 0; w < 5; w++) drawLED(w, 14 + h, b1Color);
 
             // Time
             drawDigit(0, 53, parseInt(seconds[0]), clockColor, 90);
@@ -1108,13 +1671,13 @@
             let rx = 123;
             drawDigit(rx, 61, parseInt(p2s[0]), '#ff00ff', -90);
             drawDigit(rx, 57, parseInt(p2s[1]), '#ff00ff', -90);
-            let b2MineColor = `hsl(${Math.floor((p2.minesLeft/5)*120)}, 100%, 50%)`;
+            let b2MineColor = `hsl(${Math.floor((p2.minesLeft / CONFIG.MAX_MINES) * 120)}, 100%, 50%)`;
             drawDigit(rx, 51, parseInt(p2.minesLeft), b2MineColor, -90);
-            
+
             // P2 Boost Bar
-            let b2H = Math.floor((p2.boostEnergy/100) * 38);
-            let b2Color = `hsl(${Math.floor((p2.boostEnergy/100)*120)}, 100%, 50%)`;
-            for(let h=0; h<b2H; h++) for(let w=0; w<5; w++) drawLED(rx+w, 49-h, b2Color);
+            let b2H = Math.floor((p2.boostEnergy / 100) * 38);
+            let b2Color = `hsl(${Math.floor((p2.boostEnergy / 100) * 120)}, 100%, 50%)`;
+            for (let h = 0; h < b2H; h++) for (let w = 0; w < 5; w++) drawLED(rx + w, 49 - h, b2Color);
 
             // Time Mirrored
             drawDigit(rx, 8, parseInt(seconds[0]), clockColor, -90);
@@ -1141,24 +1704,25 @@
 
         window.addEventListener('keydown', (e) => {
             let k = e.key.toLowerCase();
-            if([" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "enter"].includes(k)) e.preventDefault();
+            if ([" ", "arrowup", "arrowdown", "arrowleft", "arrowright", "enter"].includes(k)) e.preventDefault();
             STATE.keys[k] = true;
 
-            if(STATE.isGameOver && k === 'r') resetGame();
-            else if(STATE.isRoundOver) initMaze(); // Any key to restart round handled by update loop via isRoundOver flag? No, original code re-inits here.
+            if (STATE.isGameOver && k === 'r') resetGame();
+            else if (STATE.isRoundOver) initMaze(); // Any key to restart round handled by update loop via isRoundOver flag? No, original code re-inits here.
         });
 
         window.addEventListener('keyup', (e) => STATE.keys[e.key.toLowerCase()] = false);
-        window.addEventListener('blur', () => { for(let k in STATE.keys) STATE.keys[k] = false; });
+        window.addEventListener('blur', () => { for (let k in STATE.keys) STATE.keys[k] = false; });
 
         // Bootstrap
-        STATE.players.push(new Player(0, 0, 0, CONFIG.COLS-1, CONFIG.ROWS-1, '#00ffff', CONTROLS_P1));
+        STATE.players.push(new Player(0, 0, 0, CONFIG.COLS - 1, CONFIG.ROWS - 1, '#00ffff', CONTROLS_P1));
         STATE.players.push(new Player(1, 0, 0, 0, 0, '#ff00ff', CONTROLS_P2));
-        
+
         initMaze();
         loop();
         window.focus();
 
     </script>
 </body>
+
 </html>
