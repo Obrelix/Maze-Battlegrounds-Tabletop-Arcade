@@ -675,6 +675,7 @@ class Player {
         this.botRetargetTimer = 0;
         this.stuckCounter = 0;
         this.forceUnstuckTimer = 0;
+        this.isDead = false;
     }
 }
 
@@ -701,6 +702,8 @@ const STATE = {
     maxGameTime: 0,
     isGameOver: false,
     isRoundOver: false,
+    deathTimer: 0, 
+    victimIdx: -1, 
     messages: {
         win: "",
         taunt: "",
@@ -1385,26 +1388,30 @@ function triggerExplosion(x, y) {
 }
 
 function handlePlayerDeath(victimIdx) {
-    if (STATE.isGameOver) {
-        STATE.sfx.win();
-        return;
-    }
-    if (STATE.isRoundOver) return;
-    let winnerIdx = (victimIdx === 0) ? 1 : 0;
-    STATE.players[winnerIdx].score++;
+    // Αν ήδη τρέχει διαδικασία θανάτου ή έχει τελειώσει το παιχνίδι, αγνόησέ το
+    if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
 
-    STATE.messages.round = `P${victimIdx + 1} OBLITERATED!`;
-    STATE.messages.roundColor = "#ff0000";
+    // 1. Mark player as dead
+    STATE.players[victimIdx].isDead = true;
+    STATE.victimIdx = victimIdx;
 
-    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
-        STATE.isGameOver = true;
-        STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
-        STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
-        STATE.messages.winColor = STATE.players[winnerIdx].color;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
-    } else {
-        STATE.isRoundOver = true;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
+    // 2. Start the Death Timer 
+    STATE.deathTimer = 120;
+
+    // 3. Extra visual effects
+    let p = STATE.players[victimIdx];
+    STATE.sfx.explosion(); // Παίξε ξανά ήχο για έμφαση
+    
+    // Πρόσθεσε πολλά particles εκεί που ήταν ο παίκτης
+    for (let i = 0; i < 30; i++) {
+        STATE.particles.push({
+            x: p.x + 1, // Κέντρο παίκτη
+            y: p.y + 1,
+            vx: (Math.random() - 0.5) * 4, // Πιο γρήγορα particles
+            vy: (Math.random() - 0.5) * 4,
+            life: 1.5, // Να κρατήσουν λίγο παραπάνω
+            color: p.color
+        });
     }
 }
 
@@ -1512,6 +1519,29 @@ function fireBeam(p) {
     p.beamIdx = 0;
 }
 
+function finalizeRound() {
+    let victimIdx = STATE.victimIdx;
+    let winnerIdx = (victimIdx === 0) ? 1 : 0;
+    
+    STATE.players[winnerIdx].score++;
+    STATE.messages.round = `P${victimIdx + 1} OBLITERATED!`;
+    STATE.messages.roundColor = "#ff0000";
+
+    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
+        STATE.isGameOver = true;
+        STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
+        STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+        STATE.messages.winColor = STATE.players[winnerIdx].color;
+        STATE.scrollX = CONFIG.LOGICAL_W + 5;
+    } else {
+        STATE.isRoundOver = true;
+        STATE.scrollX = CONFIG.LOGICAL_W + 5;
+    }
+    
+    // Reset timer
+    STATE.deathTimer = 0;
+}
+
 // --- Main Update ---
 function update() {
     if (STATE.screen === 'MENU') {
@@ -1523,14 +1553,29 @@ function update() {
             STATE.gameMode = 'MULTI';
             startGame();
         }
+        updateParticles();
         return;
     }
+
+    if (STATE.deathTimer > 0) {
+        STATE.deathTimer--;
+        
+        updateProjectiles();
+        updateParticles();
+        
+        if (STATE.deathTimer <= 0) {
+            finalizeRound();
+        }
+        return; 
+    }
+
     if (STATE.isGameOver || STATE.isRoundOver) {
         STATE.scrollX -= 0.5;
         let msgLen = (STATE.isGameOver ? STATE.messages.taunt.length : STATE.messages.round.length);
         if (STATE.scrollX < -(msgLen * 4.5)) STATE.scrollX = CONFIG.LOGICAL_W;
         return;
     }
+    updateProjectiles();
     if (STATE.gameTime <= 0) {
         STATE.isRoundOver = true;
         STATE.messages.round = "TIME OUT!";
@@ -1549,68 +1594,6 @@ function update() {
         if (STATE.ammoRespawnTimer > CONFIG.AMMO_RESPAWN_DELAY) {
             spawnAmmoCrate();
             STATE.ammoRespawnTimer = 0;
-        }
-    }
-
-    // Projectiles Update
-    for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
-        let proj = STATE.projectiles[i];
-        proj.x += proj.vx;
-        proj.y += proj.vy;
-        proj.distTraveled += CONFIG.C_BEAM_SPEED;
-
-        if (proj.distTraveled >= CONFIG.C_BEAM_RANGE) {
-            STATE.projectiles.splice(i, 1);
-            continue;
-        }
-
-        let hw = (Math.abs(proj.vx) > 0) ? CONFIG.C_BEAM_LENGTH / 2 : CONFIG.C_BEAM_WIDTH / 2;
-        let hh = (Math.abs(proj.vx) > 0) ? CONFIG.C_BEAM_WIDTH / 2 : CONFIG.C_BEAM_LENGTH / 2;
-        let tipX = proj.x + (proj.vx * 2);
-        let tipY = proj.y + (proj.vy * 2);
-
-        if (isWall(tipX, tipY)) {
-            let gc = Math.floor((tipX - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
-            let gr = Math.floor(tipY / CONFIG.CELL_SIZE);
-            destroyWallAt(gc, gr);
-            STATE.particles.push({
-                x: tipX,
-                y: tipY,
-                vx: proj.vx * 0.5,
-                vy: proj.vy * 0.5,
-                life: 0.5,
-                color: '#555'
-            });
-        }
-
-        for (let mIdx = STATE.mines.length - 1; mIdx >= 0; mIdx--) {
-            let m = STATE.mines[mIdx];
-            if (Math.abs(proj.x - m.x) < hw + 1 && Math.abs(proj.y - m.y) < hh + 1) {
-                triggerExplosion(m.x, m.y);
-                STATE.mines.splice(mIdx, 1);
-            }
-        }
-
-        let oppId = (proj.owner + 1) % 2;
-        let opp = STATE.players[oppId];
-        let pLeft = opp.x;
-        let pRight = opp.x + opp.size;
-        let pTop = opp.y;
-        let pBot = opp.y + opp.size;
-        let bLeft = proj.x - hw;
-        let bRight = proj.x + hw;
-        let bTop = proj.y - hh;
-        let bBot = proj.y + hh;
-
-        if (bLeft < pRight && bRight > pLeft && bTop < pBot && bBot > pTop) {
-            if (!opp.shieldActive) {
-                handlePlayerDeath(oppId);
-                STATE.projectiles.splice(i, 1);
-                return;
-            } else {
-                STATE.projectiles.splice(i, 1);
-                return;
-            }
         }
     }
 
@@ -1703,7 +1686,10 @@ function update() {
         }
         applyPlayerActions(p, cmd);
     });
+    updateParticles();
+}
 
+function updateParticles() {
     for (let i = STATE.particles.length - 1; i >= 0; i--) {
         let p = STATE.particles[i];
         p.x += p.vx;
@@ -1711,6 +1697,72 @@ function update() {
         p.life -= 0.05;
         if (p.life <= 0) STATE.particles.splice(i, 1);
     }
+}
+
+function updateProjectiles() {
+     
+    // Projectiles Update
+    for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
+        let proj = STATE.projectiles[i];
+        proj.x += proj.vx;
+        proj.y += proj.vy;
+        proj.distTraveled += CONFIG.C_BEAM_SPEED;
+
+        if (proj.distTraveled >= CONFIG.C_BEAM_RANGE) {
+            STATE.projectiles.splice(i, 1);
+            continue;
+        }
+
+        let hw = (Math.abs(proj.vx) > 0) ? CONFIG.C_BEAM_LENGTH / 2 : CONFIG.C_BEAM_WIDTH / 2;
+        let hh = (Math.abs(proj.vx) > 0) ? CONFIG.C_BEAM_WIDTH / 2 : CONFIG.C_BEAM_LENGTH / 2;
+        let tipX = proj.x + (proj.vx * 2);
+        let tipY = proj.y + (proj.vy * 2);
+
+        if (isWall(tipX, tipY)) {
+            let gc = Math.floor((tipX - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+            let gr = Math.floor(tipY / CONFIG.CELL_SIZE);
+            destroyWallAt(gc, gr);
+            STATE.particles.push({
+                x: tipX,
+                y: tipY,
+                vx: proj.vx * 0.5,
+                vy: proj.vy * 0.5,
+                life: 0.5,
+                color: '#555'
+            });
+        }
+
+        for (let mIdx = STATE.mines.length - 1; mIdx >= 0; mIdx--) {
+            let m = STATE.mines[mIdx];
+            if (Math.abs(proj.x - m.x) < hw + 1 && Math.abs(proj.y - m.y) < hh + 1) {
+                triggerExplosion(m.x, m.y);
+                STATE.mines.splice(mIdx, 1);
+            }
+        }
+
+        let oppId = (proj.owner + 1) % 2;
+        let opp = STATE.players[oppId];
+        let pLeft = opp.x;
+        let pRight = opp.x + opp.size;
+        let pTop = opp.y;
+        let pBot = opp.y + opp.size;
+        let bLeft = proj.x - hw;
+        let bRight = proj.x + hw;
+        let bTop = proj.y - hh;
+        let bBot = proj.y + hh;
+
+        if (bLeft < pRight && bRight > pLeft && bTop < pBot && bBot > pTop) {
+            if (!opp.shieldActive) {
+                handlePlayerDeath(oppId);
+                STATE.projectiles.splice(i, 1);
+                return;
+            } else {
+                STATE.projectiles.splice(i, 1);
+                return;
+            }
+        }
+    }
+
 }
 
 /** * ==========================================
@@ -1871,6 +1923,7 @@ function renderGame() {
 
     // Draw Players
     STATE.players.forEach(p => {
+        if (p.isDead) return;
         let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);
 
         // Beam
