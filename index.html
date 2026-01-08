@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maze Battleground: Clean Code Edition</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.2/nipplejs.min.js"></script>
     <style>
         /* =========================================
            1. GLOBAL STYLES
@@ -65,7 +66,7 @@
             canvas {
                 width: 100% !important;
                 height: auto !important;
-                max-height: 60vh;
+                max-height: 80vh;
                 object-fit: contain;
             }
 
@@ -76,24 +77,34 @@
                 bottom: 10px;
                 left: 0;
                 width: 100%;
-                height: 35vh;
+                height: 90vh;
                 justify-content: space-between;
-                padding: 0 20px;
+                padding: 0 ;
                 box-sizing: border-box;
                 z-index: 9999;
                 pointer-events: none;
             }
 
-            .touch-area {
+            #joystick-zone {
+                width: 17%;
+                height: 100%;
+                pointer-events: auto;
+                position: relative;
+            }
+
+            .touch-area.actions {
                 pointer-events: auto;
                 display: grid;
-                gap: 5px;
+                gap: 8px;
                 align-content: center;
+                grid-template-columns: 55px 55px 55px;
+                grid-template-rows: 55px 55px;
+                margin-right: 10px;
             }
 
             .btn {
-                width: 50px;
-                height: 50px;
+                width: 55px;
+                height: 55px;
                 background: rgba(255, 255, 255, 0.1);
                 border: 2px solid rgba(255, 255, 255, 0.4);
                 border-radius: 50%;
@@ -102,83 +113,44 @@
                 justify-content: center;
                 align-items: center;
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 11px;
                 user-select: none;
                 backdrop-filter: blur(2px);
                 box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
             }
 
             .btn:active {
-                background: rgba(0, 255, 255, 0.5);
-                border-color: #0ff;
+                background: rgba(255, 255, 255, 0.3);
                 transform: scale(0.95);
             }
 
-            /* --- D-PAD LAYOUT (LEFT) --- */
-            .d-pad {
-                grid-template-columns: 50px 50px 50px;
-                grid-template-rows: 50px 50px 50px;
-            }
-
-            .btn-up {
-                grid-column: 2;
+            .btn[data-key="KeyG"] {
+                grid-column: 4;
                 grid-row: 1;
-                border-radius: 10px 10px 0 0;
-            }
-
-            .btn-left {
-                grid-column: 1;
-                grid-row: 2;
-                border-radius: 10px 0 0 10px;
-            }
-
-            .btn-right {
-                grid-column: 3;
-                grid-row: 2;
-                border-radius: 0 10px 10px 0;
-            }
-
-            .btn-down {
-                grid-column: 2;
-                grid-row: 3;
-                border-radius: 0 0 10px 10px;
-            }
-
-            /* --- ACTIONS LAYOUT (Right) --- */
-            .actions {
-                grid-template-columns: 55px 55px 55px;
-                grid-template-rows: 55px 55px;
-                margin-right: 10px;
             }
 
             .btn[data-key="KeyR"] {
-                border-color: #0ff;
-                color: #0ff;
-                font-size: 9px;
+                grid-column: 4;
+                grid-row: 2;
+                font-size: 10px;
             }
 
-            /* Shield */
             .btn[data-key="KeyF"] {
-                border-color: #ffd700;
-                color: #ffd700;
+                grid-column: 4;
+                grid-row: 3;
             }
 
-            /* Beam */
-            .btn[data-key="Space"] {
-                border-color: #f00;
-                color: #f00;
-                background: rgba(255, 0, 0, 0.1);
-                width: 60px;
-                height: 60px;
-            }
-
-            /* BOOM (Bigger) */
             .btn[data-key="KeyE"] {
-                border-color: #f0f;
-                color: #f0f;
+                grid-column: 4;
+                grid-row: 4;
             }
 
-            /* Mine */
+            .btn[data-key="Space"] {
+                grid-column: 3;
+                grid-row: 4;
+                border-width: 3px;
+                background: rgba(255, 0, 0, 0.15);
+            }
         }
 
         @media (max-width: 900px) and (orientation: portrait) {
@@ -556,17 +528,15 @@
     </div>
     <div class="info">MENU: '1'/'2' | GAME: 'R' NEXT ROUND/RESET | 'ESC' MENU</div>
     <div id="mobile-controls">
-        <div class="touch-area d-pad">
-            <div class="btn btn-up" data-key="KeyW">▲</div>
-            <div class="btn btn-left" data-key="KeyA">◀</div>
-            <div class="btn btn-right" data-key="KeyD">▶</div>
-            <div class="btn btn-down" data-key="KeyS">▼</div>
-        </div>
+        <div id="joystick-zone"></div>
+
         <div class="touch-area actions">
-            <div class="btn" style="grid-column: 2; grid-row: 1; border-color: #55ffff;" data-key="KeyR">SHLD</div>
-            <div class="btn" style="grid-column: 1; grid-row: 2; border-color: #ffd700;" data-key="KeyF">BEAM</div>
-            <div class="btn" style="grid-column: 2; grid-row: 2; border-color: #ff5555;" data-key="Space">BOOM</div>
-            <div class="btn" style="grid-column: 3; grid-row: 2; border-color: #ff55ff;" data-key="KeyE">MINE</div>
+            <div class="btn" style="border-color: #55ffff; color: #55ffff;" data-key="KeyR">SHLD</div>
+            <div class="btn" style="border-color: #00ff00; color: #00ff00;" data-key="KeyG">BOOST</div>
+
+            <div class="btn" style="border-color: #ffd700; color: #ffd700;" data-key="KeyF">BEAM</div>
+            <div class="btn" style="border-color: #ff5555; color: #ff5555;" data-key="Space">BOOM</div>
+            <div class="btn" style="border-color: #ff55ff; color: #ff55ff;" data-key="KeyE">MINE</div>
         </div>
     </div>
     <script>
@@ -609,7 +579,8 @@
             C_BEAM_SPEED: 0.6,
             C_BEAM_RANGE: 10,
             C_BEAM_LENGTH: 5,
-            C_BEAM_WIDTH: 2
+            C_BEAM_WIDTH: 2,
+            GAMEPAD_THRESH: 0.5
         };
 
         const CONTROLS_P1 = {
@@ -1137,8 +1108,69 @@
          * 6. INPUT & AI LOGIC
          * ==========================================
          */
-        const GAMEPAD_THRESH = 0.5; // Deadzone for the thumbstick 
 
+        function initTouchControls() {
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    if(STATE.sfx && STATE.sfx.ctx) STATE.sfx.init(); 
+                    const code = btn.getAttribute('data-key');
+                    STATE.keys[code] = true;
+
+                    if ((STATE.isGameOver || STATE.isRoundOver) && code === 'KeyR') {
+                        if (STATE.isGameOver) startGame(); else initMaze();
+                    }
+                    if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startGame(); }
+                }, { passive: false });
+
+                btn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const code = btn.getAttribute('data-key');
+                    STATE.keys[code] = false;
+                }, { passive: false });
+            });
+
+            // if (window.innerWidth > 1024) return; 
+
+            const joystickZone = document.getElementById('joystick-zone');
+
+            const manager = nipplejs.create({
+                zone: joystickZone,
+                mode: 'static',
+                position: { left: '50%', top: '50%' },
+                color: 'white',
+                size: 100
+            });
+
+            function resetMoveKeys() {
+                STATE.keys['KeyW'] = false;
+                STATE.keys['KeyS'] = false;
+                STATE.keys['KeyA'] = false;
+                STATE.keys['KeyD'] = false;
+            }
+
+            manager.on('start', () => { 
+                 if(STATE.sfx && STATE.sfx.ctx) STATE.sfx.init();
+            });
+
+            manager.on('move', (evt, data) => {
+                resetMoveKeys();
+                if (data.direction) {
+                    const dir = data.direction;
+                    if (dir.angle === 'up' || dir.y === 'up') STATE.keys['KeyW'] = true;
+                    if (dir.angle === 'down' || dir.y === 'down') STATE.keys['KeyS'] = true;
+                    if (dir.angle === 'left' || dir.x === 'left') STATE.keys['KeyA'] = true;
+                    if (dir.angle === 'right' || dir.x === 'right') STATE.keys['KeyD'] = true;
+
+                    if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startGame(); }
+                }
+            });
+
+            manager.on('end', (evt, data) => {
+                resetMoveKeys();
+            });
+        }
         /** * ==========================================
          * NATIVE GAMEPAD POLLING (NEW)
          * ==========================================
@@ -1178,10 +1210,10 @@
                 let target = (i === 0) ? gpInput.p1 : gpInput.p2;
 
                 // D-PAD / AXES  (Analog Stick)
-                if (gp.axes[1] < -GAMEPAD_THRESH) target.up = true;
-                if (gp.axes[1] > GAMEPAD_THRESH) target.down = true;
-                if (gp.axes[0] < -GAMEPAD_THRESH) target.left = true;
-                if (gp.axes[0] > GAMEPAD_THRESH) target.right = true;
+                if (gp.axes[1] < -CONFIG.GAMEPAD_THRESH) target.up = true;
+                if (gp.axes[1] > CONFIG.GAMEPAD_THRESH) target.down = true;
+                if (gp.axes[0] < -CONFIG.GAMEPAD_THRESH) target.left = true;
+                if (gp.axes[0] > CONFIG.GAMEPAD_THRESH) target.right = true;
 
                 // SNES Style mapping (Standard HTML5 Gamepad Layout) B=0, A=1, Y=2, X=3, L=4, R=5
                 if (gp.buttons[12]?.pressed) target.up = true; // D-Pad Up
@@ -1395,35 +1427,7 @@
 
             return cmd;
         }
-        /** * ==========================================
-         * MOBILE TOUCH HANDLERS
-         * ==========================================
-         */
-        function initTouchControls() {
-            const buttons = document.querySelectorAll('.btn');
 
-            buttons.forEach(btn => {
-                btn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    const code = btn.getAttribute('data-key');
-                    STATE.keys[code] = true;
-                    if ((STATE.isGameOver || STATE.isRoundOver) && code === 'KeyR') {
-                        if (STATE.isGameOver) startGame();
-                        else initMaze();
-                    }
-                    if (STATE.screen === 'MENU') {
-                        STATE.gameMode = 'SINGLE';
-                        startGame();
-                    }
-                }, { passive: false });
-
-                btn.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    const code = btn.getAttribute('data-key');
-                    STATE.keys[code] = false;
-                }, { passive: false });
-            });
-        }
         /** * ==========================================
          * 7. CORE GAME LOOP & PHYSICS
          * ==========================================
@@ -2070,7 +2074,6 @@
             // Draw Maze Walls
             STATE.maze.forEach(c => {
                 let x = c.c * CONFIG.CELL_SIZE + CONFIG.MAZE_OFFSET_X;
-                triggerExplosion
                 let y = c.r * CONFIG.CELL_SIZE;
                 drawLED(x, y, wallColor);
                 if (c.walls[0]) {
@@ -2293,9 +2296,19 @@
         });
         window.addEventListener('keyup', (e) => STATE.keys[e.code] = false);
 
-        initTouchControls();
-        // Start Loop
-        loop(); 
+       window.addEventListener('load', () => {
+            // Έλεγχος αν η βιβλιοθήκη φορτώθηκε σωστά
+            if (typeof nipplejs === 'undefined') {
+                console.error("Nipple.js failed to load!");
+                alert("Joystick library blocked by browser/network.\nPlease try a different browser or check internet connection.");
+                // Ξεκινάμε χωρίς joystick για να μην κολλήσει
+            } else {
+                initTouchControls();
+            }
+            
+            // Έναρξη του Loop
+            loop(); 
+        });
     </script>
 </body>
 
