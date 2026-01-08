@@ -30,7 +30,6 @@
    ========================================= */
         #mobile-controls {
             display: none;
-            /* Κρυφό από default (για PC) */
         }
 
         @media (max-width: 900px) {
@@ -44,7 +43,6 @@
                 /* Απενεργοποίηση zoom/scroll */
             }
 
-            /* Κρύβουμε το header και τα panels για να γλιτώσουμε χώρο */
             .arcade-header {
                 display: none;
             }
@@ -64,9 +62,10 @@
 
             .info {
                 display: none;
-                /* Κρύβουμε τα info texts */
             }
-
+            .arcade-header{
+                display: none;
+            }
             /* --- ON SCREEN CONTROLS --- */
             #mobile-controls {
                 display: flex;
