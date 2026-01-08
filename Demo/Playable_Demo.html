@@ -53,6 +53,85 @@
                 display: none !important;
             }
 
+            #mobile-rules-btn {
+                display: flex;
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                width: 40px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 2px solid rgba(255, 255, 255, 0.4);
+                border-radius: 50%;
+                color: #fff;
+                justify-content: center;
+                align-items: center;
+                font-weight: bold;
+                font-size: 20px;
+                z-index: 20000;
+                /* Πάνω από όλα */
+                backdrop-filter: blur(4px);
+                cursor: pointer;
+            }
+
+            #mobile-rules-modal {
+                display: none;
+                /* Κρυφό αρχικά */
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 20001;
+                justify-content: center;
+                align-items: center;
+                backdrop-filter: blur(5px);
+            }
+
+            .modal-content {
+                background: #111;
+                border: 2px solid #444;
+                padding: 20px;
+                border-radius: 8px;
+                width: 80%;
+                max-width: 400px;
+                box-shadow: 0 0 20px rgba(0, 0, 0, 0.9);
+                text-align: left;
+            }
+
+            .m-rule {
+                margin: 8px 0;
+                font-size: 0.9em;
+                border-bottom: 1px dashed #222;
+                padding-bottom: 4px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .m-rule .icon {
+                font-size: 1.2em;
+                width: 20px;
+                text-align: center;
+            }
+
+            .close-btn {
+                margin-top: 15px;
+                background: #333;
+                color: #fff;
+                text-align: center;
+                padding: 10px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: bold;
+                border: 1px solid #555;
+            }
+
+            .close-btn:active {
+                background: #555;
+            }
+
             .console-case {
                 margin-top: 5px;
                 width: 98vw;
@@ -79,7 +158,7 @@
                 width: 100%;
                 height: 70vh;
                 justify-content: space-between;
-                padding: 0 ;
+                padding: 0;
                 box-sizing: border-box;
                 z-index: 9999;
                 pointer-events: none;
@@ -141,7 +220,7 @@
 
             .btn[data-key="KeyF"] {
                 border-radius: 12%;
-                width: 110px;
+                width: 115px;
                 grid-column-start: 1;
                 grid-column-end: 2;
                 grid-row: 2;
@@ -534,14 +613,33 @@
         <div class="panel-id">SYS.V2-REF.CLEAN</div>
     </div>
     <div class="info">MENU: '1'/'2' | GAME: 'R' NEXT ROUND/RESET | 'ESC' MENU</div>
+    <div id="mobile-rules-btn" onclick="toggleRules()">?</div>
+
+    <div id="mobile-rules-modal">
+        <div class="modal-content">
+            <h3 style="border-bottom: 1px solid #333; padding-bottom: 5px;">SYSTEM MECHANICS</h3>
+
+            <div class="m-rule"><span class="icon">☠</span> <span style="color:#ff5555">MINES</span>: Lethal (1 Pt)
+            </div>
+            <div class="m-rule"><span class="icon">🛡</span> <span style="color:#55ffff">SHIELD</span>: Blocks All</div>
+            <div class="m-rule"><span class="icon">⚡</span> <span style="color:#ffd700">TAP BEAM</span>: Stuns Enemy
+            </div>
+            <div class="m-rule"><span class="icon">💥</span> <span style="color:#ffd700">HOLD BEAM</span>: Break/Kill
+            </div>
+            <div class="m-rule"><span class="icon">🌀</span> <span style="color:#ff55ff">PORTAL</span>: Teleport</div>
+            <div class="m-rule"><span class="icon">⚠</span> <span style="color:#ff5555">GLITCH</span>: Invert Controls
+            </div>
+
+            <div class="close-btn" onclick="toggleRules()">CLOSE</div>
+        </div>
+    </div>
     <div id="mobile-controls">
         <div id="joystick-zone"></div>
 
         <div class="touch-area actions">
-            <div class="btn" style="border-color: #55ffff; color: #55ffff;" data-key="KeyStart">START</div>
+            <div class="btn" style="border-color: #ffffff; color: #ffffff;" data-key="KeyStart">START</div>
             <div class="btn" style="border-color: #55ffff; color: #55ffff;" data-key="KeyR">SHLD</div>
             <div class="btn" style="border-color: #00ff00; color: #00ff00;" data-key="KeyG">BOOST</div>
-
             <div class="btn" style="border-color: #ffd700; color: #ffd700;" data-key="KeyF">BEAM</div>
             <div class="btn" style="border-color: #ff5555; color: #ff5555;" data-key="Space">BOOM</div>
             <div class="btn" style="border-color: #ff55ff; color: #ff55ff;" data-key="KeyE">MINE</div>
@@ -1124,7 +1222,7 @@
             buttons.forEach(btn => {
                 btn.addEventListener('touchstart', (e) => {
                     e.preventDefault();
-                    if(STATE.sfx && STATE.sfx.ctx) STATE.sfx.init(); 
+                    if (STATE.sfx && STATE.sfx.ctx) STATE.sfx.init();
                     const code = btn.getAttribute('data-key');
                     STATE.keys[code] = true;
 
@@ -1160,8 +1258,8 @@
                 STATE.keys['KeyD'] = false;
             }
 
-            manager.on('start', () => { 
-                 if(STATE.sfx && STATE.sfx.ctx) STATE.sfx.init();
+            manager.on('start', () => {
+                if (STATE.sfx && STATE.sfx.ctx) STATE.sfx.init();
             });
 
             manager.on('move', (evt, data) => {
@@ -2285,6 +2383,15 @@
             requestAnimationFrame(loop);
         }
 
+        function toggleRules() {
+            const modal = document.getElementById('mobile-rules-modal');
+            if (modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'flex';
+            }
+        }
+
         window.addEventListener('keydown', (e) => {
             STATE.sfx.init();
             let k = e.code;
@@ -2306,15 +2413,15 @@
         });
         window.addEventListener('keyup', (e) => STATE.keys[e.code] = false);
 
-       window.addEventListener('load', () => {
+        window.addEventListener('load', () => {
             if (typeof nipplejs === 'undefined') {
                 console.error("Nipple.js failed to load!");
                 alert("Joystick library blocked by browser/network.\nPlease try a different browser or check internet connection.");
             } else {
                 initTouchControls();
             }
-            
-            loop(); 
+
+            loop();
         });
     </script>
 </body>
