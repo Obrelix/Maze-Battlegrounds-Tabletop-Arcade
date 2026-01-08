@@ -26,118 +26,174 @@
         }
 
         /* =========================================
-   MOBILE / RESPONSIVE STYLES
-   ========================================= */
+           MOBILE / RESPONSIVE STYLES (FIXED)
+           ========================================= */
         #mobile-controls {
             display: none;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 1024px) {
 
             body {
                 justify-content: flex-start;
-                padding-top: 10px;
-                background-image: none;
-                background-color: #000;
-                touch-action: none;
-                /* Απενεργοποίηση zoom/scroll */
+                align-items: center;
+                padding-top: 0;
+                background: #000;
+                height: 100vh;
+                overflow: hidden;
             }
 
             .arcade-header {
-                display: none;
+                display: none !important;
+            }
+
+            .info,
+            .panel-id {
+                display: none !important;
             }
 
             .console-case {
-                width: 95vw;
-                padding: 2px;
-                box-shadow: none;
+                margin-top: 5px;
+                width: 98vw;
+                max-width: 100%;
+                padding: 0;
                 border: none;
+                background: transparent;
+                box-shadow: none;
             }
 
-            /* Canvas must fit on width */
             canvas {
                 width: 100% !important;
                 height: auto !important;
+                max-height: 60vh;
+                object-fit: contain;
             }
 
-            .info {
-                display: none;
-            }
-            .arcade-header{
-                display: none;
-            }
-            /* --- ON SCREEN CONTROLS --- */
+
             #mobile-controls {
                 display: flex;
-                width: 100%;
-                height: 180px;
-                position: fixed;
+                position: absolute;
                 bottom: 10px;
+                left: 0;
+                width: 100%;
+                height: 35vh;
                 justify-content: space-between;
                 padding: 0 20px;
                 box-sizing: border-box;
-                z-index: 100;
+                z-index: 9999;
                 pointer-events: none;
             }
 
             .touch-area {
                 pointer-events: auto;
                 display: grid;
-                gap: 10px;
-            }
-
-            /* D-PAD (Left) */
-            .d-pad {
-                grid-template-columns: 60px 60px 60px;
-                grid-template-rows: 60px 60px 60px;
-                align-self: flex-end;
-            }
-
-            /* ACTIONS (Right) */
-            .actions {
-                grid-template-columns: 50px 50px 50px;
-                grid-template-rows: 50px 50px;
-                align-self: flex-end;
+                gap: 5px;
+                align-content: center;
             }
 
             .btn {
-                background: rgba(255, 255, 255, 0.15);
-                border: 2px solid rgba(255, 255, 255, 0.3);
+                width: 50px;
+                height: 50px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 2px solid rgba(255, 255, 255, 0.4);
                 border-radius: 50%;
-                color: rgba(255, 255, 255, 0.8);
+                color: #fff;
                 display: flex;
                 justify-content: center;
                 align-items: center;
                 font-weight: bold;
-                font-size: 14px;
+                font-size: 12px;
                 user-select: none;
-                touch-action: none;
+                backdrop-filter: blur(2px);
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
             }
 
             .btn:active {
-                background: rgba(0, 255, 255, 0.4);
+                background: rgba(0, 255, 255, 0.5);
                 border-color: #0ff;
+                transform: scale(0.95);
             }
 
-            /* D-Pad buttons */
+            /* --- D-PAD LAYOUT (LEFT) --- */
+            .d-pad {
+                grid-template-columns: 50px 50px 50px;
+                grid-template-rows: 50px 50px 50px;
+            }
+
             .btn-up {
                 grid-column: 2;
                 grid-row: 1;
+                border-radius: 10px 10px 0 0;
             }
 
             .btn-left {
                 grid-column: 1;
                 grid-row: 2;
+                border-radius: 10px 0 0 10px;
             }
 
             .btn-right {
                 grid-column: 3;
                 grid-row: 2;
+                border-radius: 0 10px 10px 0;
             }
 
             .btn-down {
                 grid-column: 2;
                 grid-row: 3;
+                border-radius: 0 0 10px 10px;
+            }
+
+            /* --- ACTIONS LAYOUT (Right) --- */
+            .actions {
+                grid-template-columns: 55px 55px 55px;
+                grid-template-rows: 55px 55px;
+                margin-right: 10px;
+            }
+
+            .btn[data-key="KeyR"] {
+                border-color: #0ff;
+                color: #0ff;
+                font-size: 9px;
+            }
+
+            /* Shield */
+            .btn[data-key="KeyF"] {
+                border-color: #ffd700;
+                color: #ffd700;
+            }
+
+            /* Beam */
+            .btn[data-key="Space"] {
+                border-color: #f00;
+                color: #f00;
+                background: rgba(255, 0, 0, 0.1);
+                width: 60px;
+                height: 60px;
+            }
+
+            /* BOOM (Bigger) */
+            .btn[data-key="KeyE"] {
+                border-color: #f0f;
+                color: #f0f;
+            }
+
+            /* Mine */
+        }
+
+        @media (max-width: 900px) and (orientation: portrait) {
+            body::before {
+                content: "PLEASE ROTATE YOUR DEVICE ↻";
+                position: absolute;
+                top: 40%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: yellow;
+                font-size: 20px;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 10px;
+                z-index: 10000;
+                pointer-events: none;
             }
         }
 
@@ -1348,7 +1404,7 @@
 
             buttons.forEach(btn => {
                 btn.addEventListener('touchstart', (e) => {
-                    e.preventDefault(); 
+                    e.preventDefault();
                     const code = btn.getAttribute('data-key');
                     STATE.keys[code] = true;
                     if ((STATE.isGameOver || STATE.isRoundOver) && code === 'KeyR') {
@@ -2236,7 +2292,7 @@
             }
         });
         window.addEventListener('keyup', (e) => STATE.keys[e.code] = false);
-        
+
         initTouchControls();
         // Start Loop
         loop(); 
