@@ -2072,7 +2072,12 @@
                 if (tipIdx >= 0 && tipIdx < opponent.beamPixels.length) {
                     let tip = opponent.beamPixels[tipIdx];
                     if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
-                        if (!p.shieldActive) p.stunTime = CONFIG.STUN_DURATION;
+                        if (!p.shieldActive) {
+                           p.stunTime = CONFIG.STUN_DURATION; 
+                            // // if (Math.random() < 0.5) 
+                            p.glitchTime = CONFIG.STUN_DURATION;
+                            STATE.sfx.charge();
+                        }
                         opponent.beamPixels = [];
                         opponent.beamIdx = 9999;
                     }
