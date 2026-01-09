@@ -31,8 +31,7 @@
            ========================================= */
         #mobile-rules-btn,
         #mobile-rules-modal,
-        #mobile-start-btn,
-        #mobile-select-btn,
+        #mobile-config,
         #mobile-controls {
             display: none;
         }
@@ -206,6 +205,7 @@
                 grid-column: 1;
                 grid-row: 1;
             }
+
             .btnInfo:active {
                 background: rgba(255, 0, 0, 0.5);
             }
@@ -674,7 +674,7 @@
         <div class="screen-bezel">
             <canvas id="ledMatrix" width="1280" height="640"></canvas>
         </div>
-        <div class="panel-id">P2.5 Indoor LED panel 128x64 px 320mm x 160mm </div>
+        <div class="panel-id">P2.5 RGB LED panel 128px x 64px - 320mm x 160mm</div>
     </div>
     <div class="info">MENU: '1'/'2' | GAME: 'R' NEXT ROUND/RESET | 'ESC' MENU</div>
 
@@ -835,6 +835,7 @@
             '-': [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
             '.': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
         };
+
         const DIGIT_MAP = {
             0: [1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1],
             1: [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0],
@@ -847,6 +848,7 @@
             8: [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
             9: [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1]
         };
+
         const GRACE_FRAMES = 10;
         /** * ==========================================
          * 2. CLASSES
@@ -933,18 +935,40 @@
             explosion() {
                 this.playNoise(0.4);
             } // "Kshhh"
-            shield() {
-                this.playTone(150, 'square', 0.1);
-            } // Hum
+            
+            win() {
+                [440, 554, 659, 880].forEach((f, i) => setTimeout(() => this.playTone(f, 'square', 0.2), i * 150));
+            }
+
             powerup() {
                 this.playTone(400, 'sine', 0.1);
                 setTimeout(() => this.playTone(600, 'sine', 0.1), 100);
             }
-            win() {
-                [440, 554, 659, 880].forEach((f, i) => setTimeout(() => this.playTone(f, 'square', 0.2), i * 150));
-            }
             start() {
                 this.playTone(440, 'triangle', 0.5, 880);
+            }
+            death() {
+                const melody = [500, 400, 300, 200, 100, 50, 10]; 
+                melody.forEach((freq, index) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 'triangle', 0.1, freq - 50);
+                    }, index * 120); 
+                });
+            }
+            roundOver() {
+                this.playTone(880, 'square', 0.15); // Beep
+                setTimeout(() => this.playTone(440, 'square', 0.4), 200); // Boop (Longer)
+            }
+            shield() {
+                this.playTone(100, 'sine', 0.25, 800);
+            }
+            niaNiaNia() {
+                const melody = [880, 784, 880, 784, 880, 784, 880]; 
+                melody.forEach((freq, index) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 'triangle', 0.1, freq - 50);
+                    }, index * 120); 
+                });
             }
         }
 
@@ -1292,7 +1316,7 @@
             buttons.forEach(btn => {
                 btn.addEventListener('touchstart', (e) => {
                     e.preventDefault();
-                    if (STATE.sfx && STATE.sfx.ctx) STATE.sfx.init();
+                    if (STATE.sfx) STATE.sfx.init();
                     const code = btn.getAttribute('data-key');
                     STATE.keys[code] = true;
 
@@ -1329,7 +1353,7 @@
             }
 
             manager.on('start', () => {
-                if (STATE.sfx && STATE.sfx.ctx) STATE.sfx.init();
+                if (STATE.sfx) STATE.sfx.init();
             });
 
             manager.on('move', (evt, data) => {
@@ -1632,6 +1656,7 @@
 
             // Shield
             if (input.shield && p.boostEnergy > 0) {
+                if (!p.shieldActive)STATE.sfx.shield();
                 p.shieldActive = true;
                 p.boostEnergy -= CONFIG.SHIELD_DRAIN;
             } else {
@@ -1783,7 +1808,6 @@
         }
 
         function handlePlayerDeath(victimIdx) {
-            // Αν ήδη τρέχει διαδικασία θανάτου ή έχει τελειώσει το παιχνίδι, αγνόησέ το
             if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
 
             // 1. Mark player as dead
@@ -1795,16 +1819,15 @@
 
             // 3. Extra visual effects
             let p = STATE.players[victimIdx];
-            STATE.sfx.explosion(); // Παίξε ξανά ήχο για έμφαση
+            STATE.sfx.death();
 
-            // Πρόσθεσε πολλά particles εκεί που ήταν ο παίκτης
             for (let i = 0; i < 30; i++) {
                 STATE.particles.push({
-                    x: p.x + 1, // Κέντρο παίκτη
+                    x: p.x + 1,
                     y: p.y + 1,
-                    vx: (Math.random() - 0.5) * 4, // Πιο γρήγορα particles
+                    vx: (Math.random() - 0.5) * 4,
                     vy: (Math.random() - 0.5) * 4,
-                    life: 1.5, // Να κρατήσουν λίγο παραπάνω
+                    life: 1.5,
                     color: p.color
                 });
             }
@@ -1923,12 +1946,14 @@
             STATE.messages.roundColor = "#ff0000";
 
             if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
+                STATE.sfx.win();
                 STATE.isGameOver = true;
                 STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
                 STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
                 STATE.messages.winColor = STATE.players[winnerIdx].color;
                 STATE.scrollX = CONFIG.LOGICAL_W + 5;
             } else {
+                STATE.sfx.roundOver();
                 STATE.isRoundOver = true;
                 STATE.scrollX = CONFIG.LOGICAL_W + 5;
             }
@@ -2437,7 +2462,7 @@
          * ==========================================
          */
         function startGame() {
-            STATE.sfx.start();
+            if (STATE.sfx) STATE.sfx.init();
             STATE.screen = 'PLAYING';
             STATE.isGameOver = false;
             STATE.isRoundOver = false;
@@ -2463,7 +2488,7 @@
         }
 
         window.addEventListener('keydown', (e) => {
-            STATE.sfx.init();
+            if (STATE.sfx) STATE.sfx.init();
             let k = e.code;
             if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(k)) e.preventDefault();
             STATE.keys[k] = true;
@@ -2474,9 +2499,9 @@
             }
 
             if (STATE.screen === 'PLAYING') {
-                if (STATE.isGameOver && (k === 'KeyR' || k === 'KeyStart' || code === 'KeySelect')) {
+                if (STATE.isGameOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect')) {
                     startGame(); // Full Reset
-                } else if (STATE.isRoundOver && (k === 'KeyR' || k === 'KeyStart' || code === 'KeySelect')) {
+                } else if (STATE.isRoundOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect')) {
                     initMaze(); // Next Round (Keep Score)
                 }
             }
@@ -2487,9 +2512,8 @@
             if (typeof nipplejs === 'undefined') {
                 console.error("Nipple.js failed to load!");
                 alert("Joystick library blocked by browser/network.\nPlease try a different browser or check internet connection.");
-            } else {
+            } else
                 initTouchControls();
-            }
 
             loop();
         });
