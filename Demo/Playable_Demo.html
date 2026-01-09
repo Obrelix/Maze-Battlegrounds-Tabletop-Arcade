@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maze Battleground: Clean Code Edition</title>
+    <title>Maze Battleground: Pixel Perfect</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.2/nipplejs.min.js"></script>
     <style>
         /* =========================================
@@ -29,6 +29,10 @@
         /* =========================================
            MOBILE / RESPONSIVE STYLES (FIXED)
            ========================================= */
+        #mobile-rules-btn,
+        #mobile-rules-modal,
+        #mobile-start-btn,
+        #mobile-select-btn,
         #mobile-controls {
             display: none;
         }
@@ -58,25 +62,23 @@
                 position: absolute;
                 top: 10px;
                 left: 10px;
-                width: 40px;
+                width: 50px;
                 height: 40px;
                 background: rgba(255, 255, 255, 0.1);
                 border: 2px solid rgba(255, 255, 255, 0.4);
-                border-radius: 50%;
+                border-radius: 10px;
                 color: #fff;
                 justify-content: center;
                 align-items: center;
                 font-weight: bold;
                 font-size: 20px;
                 z-index: 20000;
-                /* Πάνω από όλα */
                 backdrop-filter: blur(4px);
                 cursor: pointer;
             }
 
             #mobile-rules-modal {
                 display: none;
-                /* Κρυφό αρχικά */
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -149,6 +151,74 @@
                 object-fit: contain;
             }
 
+            .touch-area.config {
+                pointer-events: auto;
+                display: grid;
+                gap: 7px;
+                align-content: center;
+                grid-template-columns: 40px;
+                grid-template-rows: 40px 40px 40px;
+                margin-left: 5px;
+            }
+
+            #mobile-config {
+                display: flex;
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                width: 100%;
+                justify-content: space-between;
+                padding: 0;
+                box-sizing: border-box;
+                z-index: 9999;
+                pointer-events: none;
+            }
+
+            .btn[data-key="KeySelect"] {
+                border-radius: 10px;
+                width: 80px;
+                height: 40px;
+                grid-column: 1;
+                grid-row: 3;
+            }
+
+            .btn[data-key="KeyStart"] {
+                border-radius: 10px;
+                width: 80px;
+                height: 40px;
+                grid-column: 1;
+                grid-row: 2;
+            }
+
+            .btnInfo {
+                width: 80px;
+                height: 40px;
+                background: rgba(255, 255, 255, 0.1);
+                border: 2px solid rgba(255, 255, 255, 0.4);
+                border-radius: 30%;
+                color: #fff;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-weight: bold;
+                font-size: 11px;
+                border-radius: 10px;
+                grid-column: 1;
+                grid-row: 1;
+            }
+            .btnInfo:active {
+                background: rgba(255, 0, 0, 0.5);
+            }
+
+            .touch-area.actions {
+                pointer-events: auto;
+                display: grid;
+                gap: 7px;
+                align-content: center;
+                grid-template-columns: 55px 55px;
+                grid-template-rows: 55px 55px 55px;
+                margin-right: 10px;
+            }
 
             #mobile-controls {
                 display: flex;
@@ -156,7 +226,6 @@
                 bottom: 10px;
                 left: 0;
                 width: 100%;
-                height: 70vh;
                 justify-content: space-between;
                 padding: 0;
                 box-sizing: border-box;
@@ -166,7 +235,7 @@
 
             #joystick-zone {
                 width: 17%;
-                height: 100%;
+                /* height: 100%; */
                 pointer-events: auto;
                 position: relative;
             }
@@ -177,7 +246,7 @@
                 gap: 7px;
                 align-content: center;
                 grid-template-columns: 55px 55px;
-                grid-template-rows: 55px 55px 55px 55px 55px;
+                grid-template-rows: 55px 55px 55px;
                 margin-right: 10px;
             }
 
@@ -203,11 +272,6 @@
                 transform: scale(0.95);
             }
 
-            .btn[data-key="KeyStart"] {
-                grid-column: 2;
-                grid-row: 5;
-            }
-
             .btn[data-key="KeyG"] {
                 grid-column: 1;
                 grid-row: 3;
@@ -219,7 +283,7 @@
             }
 
             .btn[data-key="KeyF"] {
-                border-radius: 12%;
+                border-radius: 10px;
                 width: 115px;
                 grid-column-start: 1;
                 grid-column-end: 2;
@@ -610,10 +674,9 @@
         <div class="screen-bezel">
             <canvas id="ledMatrix" width="1280" height="640"></canvas>
         </div>
-        <div class="panel-id">SYS.V2-REF.CLEAN</div>
+        <div class="panel-id">P2.5 Indoor LED panel 128x64 px 320mm x 160mm </div>
     </div>
     <div class="info">MENU: '1'/'2' | GAME: 'R' NEXT ROUND/RESET | 'ESC' MENU</div>
-    <div id="mobile-rules-btn" onclick="toggleRules()">?</div>
 
     <div id="mobile-rules-modal">
         <div class="modal-content">
@@ -633,11 +696,16 @@
             <div class="close-btn" onclick="toggleRules()">CLOSE</div>
         </div>
     </div>
+    <div id="mobile-config">
+        <div class="touch-area config">
+            <div class="btnInfo" style="border-color: #00b7ff; color: #00b7ff;" onclick="toggleRules()">?</div>
+            <div class="btn" style="border-color: #00ff00; color: #00ff00;" data-key="KeyStart">Start</div>
+            <!-- <div class="btn" style="border-color: #ffd700; color: #ffd700;" data-key="KeySelect">Select</div> -->
+        </div>
+    </div>
     <div id="mobile-controls">
         <div id="joystick-zone"></div>
-
         <div class="touch-area actions">
-            <div class="btn" style="border-color: #ffffff; color: #ffffff;" data-key="KeyStart">START</div>
             <div class="btn" style="border-color: #55ffff; color: #55ffff;" data-key="KeyR">SHLD</div>
             <div class="btn" style="border-color: #00ff00; color: #00ff00;" data-key="KeyG">BOOST</div>
             <div class="btn" style="border-color: #ffd700; color: #ffd700;" data-key="KeyF">BEAM</div>
@@ -690,6 +758,7 @@
         };
 
         const CONTROLS_P1 = {
+            select: 'KeySelect',
             start: 'KeyStart',
             up: 'KeyW',
             down: 'KeyS',
@@ -703,6 +772,7 @@
         };
 
         const CONTROLS_P2 = {
+            select: 'KeySelect',
             start: 'KeyStart',
             up: 'ArrowUp',
             down: 'ArrowDown',
@@ -1226,7 +1296,7 @@
                     const code = btn.getAttribute('data-key');
                     STATE.keys[code] = true;
 
-                    if ((STATE.isGameOver || STATE.isRoundOver) && (code === 'KeyR' || code === 'KeyStart')) {
+                    if ((STATE.isGameOver || STATE.isRoundOver) && (code === 'KeyR' || code === 'KeyStart' || code === 'KeySelect')) {
                         if (STATE.isGameOver) startGame(); else initMaze();
                     }
                     if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startGame(); }
@@ -2404,9 +2474,9 @@
             }
 
             if (STATE.screen === 'PLAYING') {
-                if (STATE.isGameOver && (k === 'KeyR' || k === 'KeyStart')) {
+                if (STATE.isGameOver && (k === 'KeyR' || k === 'KeyStart' || code === 'KeySelect')) {
                     startGame(); // Full Reset
-                } else if (STATE.isRoundOver && (k === 'KeyR' || k === 'KeyStart')) {
+                } else if (STATE.isRoundOver && (k === 'KeyR' || k === 'KeyStart' || code === 'KeySelect')) {
                     initMaze(); // Next Round (Keep Score)
                 }
             }
