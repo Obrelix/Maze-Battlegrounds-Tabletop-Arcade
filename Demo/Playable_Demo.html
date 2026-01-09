@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maze Battleground: Pixel Perfect</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.2/nipplejs.min.js"></script>
+    <script src="libs/nipplejs.min.js"></script>
     <style>
         /* =========================================
            1. GLOBAL STYLES
@@ -578,7 +578,7 @@
     <div class="arcade-header">
         <div class="header-bar">
             <div class="game-title">MAZE BATTLEGROUND <span
-                    style="font-size:0.5em; opacity:0.5; vertical-align: middle;">CLEAN</span></div>
+                    style="font-size:0.5em; opacity:0.5; vertical-align: middle;">MAYHEM</span></div>
             <div class="round-info" id="statusText">SELECT MODE</div>
         </div>
 
@@ -676,7 +676,9 @@
         </div>
         <div class="panel-id">P2.5 RGB LED panel 128px x 64px - 320mm x 160mm</div>
     </div>
-    <div class="info">MENU: '1'/'2' | GAME: 'R' NEXT ROUND/RESET | 'ESC' MENU</div>
+    <div class="info">MENU: '1'/'2' | GAME: 'R' NEXT ROUND/RESET | 'ESC' MENU |
+        <span style="color: #ffaa00;">⚠ ANTI-GHOSTING KEYBOARD REQUIRED</span>
+    </div>
 
     <div id="mobile-rules-modal">
         <div class="modal-content">
@@ -833,7 +835,8 @@
             '!': [0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
             ' ': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             '-': [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-            '.': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+            '.': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            ':': [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
         };
 
         const DIGIT_MAP = {
@@ -935,7 +938,7 @@
             explosion() {
                 this.playNoise(0.4);
             } // "Kshhh"
-            
+
             win() {
                 [440, 554, 659, 880].forEach((f, i) => setTimeout(() => this.playTone(f, 'square', 0.2), i * 150));
             }
@@ -948,11 +951,11 @@
                 this.playTone(440, 'triangle', 0.5, 880);
             }
             death() {
-                const melody = [500, 400, 300, 200, 100, 50, 10]; 
+                const melody = [500, 400, 300, 200, 100, 50, 10];
                 melody.forEach((freq, index) => {
                     setTimeout(() => {
                         this.playTone(freq, 'triangle', 0.1, freq - 50);
-                    }, index * 120); 
+                    }, index * 120);
                 });
             }
             roundOver() {
@@ -963,11 +966,11 @@
                 this.playTone(100, 'sine', 0.25, 800);
             }
             niaNiaNia() {
-                const melody = [880, 784, 880, 784, 880, 784, 880]; 
+                const melody = [880, 784, 880, 784, 880, 784, 880];
                 melody.forEach((freq, index) => {
                     setTimeout(() => {
                         this.playTone(freq, 'triangle', 0.1, freq - 50);
-                    }, index * 120); 
+                    }, index * 120);
                 });
             }
         }
@@ -1041,8 +1044,14 @@
          * 3. GLOBAL STATE
          * ==========================================
          */
+
         const canvas = document.getElementById('ledMatrix');
         const ctx = canvas.getContext('2d');
+
+        // OFFSCREEN BUFFER
+        const bgCanvas = document.createElement('canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let isBgRendered = false; // Flag to ensure we only draw it once
 
         const STATE = {
             screen: 'MENU',
@@ -1062,7 +1071,9 @@
             isRoundOver: false,
             deathTimer: 0,
             victimIdx: -1,
+            looser: -1,
             messages: {
+                deathReason: "",
                 win: "",
                 taunt: "",
                 round: "",
@@ -1644,7 +1655,7 @@
                     let minesFound = false;
                     for (let i = STATE.mines.length - 1; i >= 0; i--) {
                         if (STATE.mines[i].owner === p.id) {
-                            triggerExplosion(STATE.mines[i].x, STATE.mines[i].y);
+                            triggerExplosion(STATE.mines[i].x, STATE.mines[i].y, "KILLED BY REMOTE DETONATION");
                             STATE.mines.splice(i, 1);
                             minesFound = true;
                         }
@@ -1656,7 +1667,7 @@
 
             // Shield
             if (input.shield && p.boostEnergy > 0) {
-                if (!p.shieldActive)STATE.sfx.shield();
+                if (!p.shieldActive) STATE.sfx.shield();
                 p.shieldActive = true;
                 p.boostEnergy -= CONFIG.SHIELD_DRAIN;
             } else {
@@ -1768,6 +1779,7 @@
                 p.score++;
                 if (p.score >= CONFIG.MAX_SCORE) {
                     STATE.isGameOver = true;
+                    STATE.looser = p.id == 0 ? 1 : 2;
                     STATE.messages.win = `PLAYER ${p.id + 1} WINS!`;
                     STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
                     STATE.messages.winColor = p.color;
@@ -1781,11 +1793,56 @@
             }
         }
 
-        function triggerExplosion(x, y) {
+        function triggerExplosion(x, y, reason = "EXPLODED") {
             STATE.sfx.explosion();
-            let gc = Math.floor((x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
-            let gr = Math.floor(y / CONFIG.CELL_SIZE);
-            destroyWallAt(gc, gr);
+
+            // --- IMPROVED: WALL-SPECIFIC DESTRUCTION ---
+            // Instead of checking cell centers, we check if the explosion 
+            // is close to the specific walls. This prevents walls from surviving
+            // when the explosion is directly on top of them.
+
+            const BLAST_RADIUS = 4.5; // Slightly increased for better feel
+
+            let centerC = Math.floor((x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+            let centerR = Math.floor(y / CONFIG.CELL_SIZE);
+            let range = 2;
+
+            for (let r = centerR - range; r <= centerR + range; r++) {
+                for (let c = centerC - range; c <= centerC + range; c++) {
+                    let cell = gridIndex(c, r);
+                    if (!cell) continue;
+
+                    // Pixel coordinates of the cell's top-left corner
+                    let wx = CONFIG.MAZE_OFFSET_X + c * CONFIG.CELL_SIZE;
+                    let wy = r * CONFIG.CELL_SIZE;
+
+                    // 1. CHECK TOP WALL (Horizontal line at wy)
+                    // We check distance from explosion (x,y) to the wall's midpoint (wx+1.5, wy)
+                    if (Math.abs((wx + 1.5) - x) < BLAST_RADIUS && Math.abs(wy - y) < BLAST_RADIUS) {
+                        cell.walls[0] = false;
+                        let top = gridIndex(c, r - 1); if (top) top.walls[2] = false;
+                    }
+
+                    // 2. CHECK BOTTOM WALL (Horizontal line at wy + 3)
+                    if (Math.abs((wx + 1.5) - x) < BLAST_RADIUS && Math.abs((wy + 3) - y) < BLAST_RADIUS) {
+                        cell.walls[2] = false;
+                        let bottom = gridIndex(c, r + 1); if (bottom) bottom.walls[0] = false;
+                    }
+
+                    // 3. CHECK LEFT WALL (Vertical line at wx)
+                    if (Math.abs(wx - x) < BLAST_RADIUS && Math.abs((wy + 1.5) - y) < BLAST_RADIUS) {
+                        cell.walls[3] = false;
+                        let left = gridIndex(c - 1, r); if (left) left.walls[1] = false;
+                    }
+
+                    // 4. CHECK RIGHT WALL (Vertical line at wx + 3)
+                    if (Math.abs((wx + 3) - x) < BLAST_RADIUS && Math.abs((wy + 1.5) - y) < BLAST_RADIUS) {
+                        cell.walls[1] = false;
+                        let right = gridIndex(c + 1, r); if (right) right.walls[3] = false;
+                    }
+                }
+            }
+            // -------------------------------------------
 
             for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
                 STATE.particles.push({
@@ -1800,24 +1857,25 @@
 
             if (!STATE.isRoundOver && !STATE.isGameOver) {
                 STATE.players.forEach((p, idx) => {
-                    if (Math.abs(p.x + 1 - (x + 1)) < 4.0 && Math.abs(p.y + 1 - (y + 1)) < 4.0) {
-                        if (!p.shieldActive) handlePlayerDeath(idx);
+                    // Check if player is inside the same BLAST_RADIUS
+                    if (Math.abs(p.x + 1 - (x + 1)) < BLAST_RADIUS && Math.abs(p.y + 1 - (y + 1)) < BLAST_RADIUS) {
+                        if (!p.shieldActive) handlePlayerDeath(idx, reason);
                     }
                 });
             }
         }
-
-        function handlePlayerDeath(victimIdx) {
+        function handlePlayerDeath(victimIdx, reason) {
             if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
 
             // 1. Mark player as dead
             STATE.players[victimIdx].isDead = true;
             STATE.victimIdx = victimIdx;
+            // 2. Store the reason in the global state (add this property implicitly)
+            STATE.deathReason = reason || "ELIMINATED BY A SNEAKY BUG";
+            // 3. Start the Death Timer 
+            STATE.deathTimer = 50;
 
-            // 2. Start the Death Timer 
-            STATE.deathTimer = 120;
-
-            // 3. Extra visual effects
+            // 4. Extra visual effects
             let p = STATE.players[victimIdx];
             STATE.sfx.death();
 
@@ -1942,12 +2000,13 @@
             let winnerIdx = (victimIdx === 0) ? 1 : 0;
 
             STATE.players[winnerIdx].score++;
-            STATE.messages.round = `P${victimIdx + 1} OBLITERATED!`;
+            STATE.messages.round = `P${victimIdx + 1} ${STATE.deathReason}!`;
             STATE.messages.roundColor = "#ff0000";
 
             if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
                 STATE.sfx.win();
                 STATE.isGameOver = true;
+                STATE.looser = winnerIdx == 0 ? 1 : 2;
                 STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
                 STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
                 STATE.messages.winColor = STATE.players[winnerIdx].color;
@@ -1990,6 +2049,7 @@
             }
 
             if (STATE.isGameOver || STATE.isRoundOver) {
+                updateParticles();
                 STATE.scrollX -= 0.5;
                 let msgLen = (STATE.isGameOver ? STATE.messages.taunt.length : STATE.messages.round.length);
                 if (STATE.scrollX < -(msgLen * 4.5)) STATE.scrollX = CONFIG.LOGICAL_W;
@@ -2026,7 +2086,7 @@
                     let h1 = p1.beamPixels[b1];
                     let h2 = p2.beamPixels[b2];
                     if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < 4) {
-                        triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2);
+                        triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2, "KILLED BY CHAIN REACTION");
                         p1.beamPixels = [];
                         p1.beamIdx = 9999;
                         p2.beamPixels = [];
@@ -2073,7 +2133,7 @@
                     let tip = opponent.beamPixels[tipIdx];
                     if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
                         if (!p.shieldActive) {
-                           p.stunTime = CONFIG.STUN_DURATION; 
+                            p.stunTime = CONFIG.STUN_DURATION;
                             // // if (Math.random() < 0.5) 
                             p.glitchTime = CONFIG.STUN_DURATION;
                             STATE.sfx.charge();
@@ -2089,7 +2149,7 @@
                     if (bIdx >= 0 && bIdx < p.beamPixels.length) {
                         let bp = p.beamPixels[bIdx];
                         if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
-                            triggerExplosion(m.x, m.y);
+                            triggerExplosion(m.x, m.y, "BAD LUCK");
                             STATE.mines.splice(i, 1);
                             p.beamPixels = [];
                             p.beamIdx = 9999;
@@ -2097,7 +2157,7 @@
                         }
                     }
                     if (m.active && p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
-                        triggerExplosion(m.x, m.y);
+                        triggerExplosion(m.x, m.y, "STEPPED ON MINE");
                         STATE.mines.splice(i, 1);
                     }
                 }
@@ -2160,7 +2220,7 @@
                 for (let mIdx = STATE.mines.length - 1; mIdx >= 0; mIdx--) {
                     let m = STATE.mines[mIdx];
                     if (Math.abs(proj.x - m.x) < hw + 1 && Math.abs(proj.y - m.y) < hh + 1) {
-                        triggerExplosion(m.x, m.y);
+                        triggerExplosion(m.x, m.y, "GOT CAUGHT");
                         STATE.mines.splice(mIdx, 1);
                     }
                 }
@@ -2178,7 +2238,7 @@
 
                 if (bLeft < pRight && bRight > pLeft && bTop < pBot && bBot > pTop) {
                     if (!opp.shieldActive) {
-                        handlePlayerDeath(oppId);
+                        handlePlayerDeath(oppId, "TOOK CHARGED SHOT");
                         STATE.projectiles.splice(i, 1);
                         return;
                     } else {
@@ -2194,6 +2254,7 @@
          * 8. RENDERING
          * ==========================================
          */
+
         function drawLED(lx, ly, color) {
             const cx = (lx * CONFIG.PITCH) + (CONFIG.PITCH / 2);
             const cy = (ly * CONFIG.PITCH) + (CONFIG.PITCH / 2);
@@ -2257,29 +2318,16 @@
         }
 
         function renderGame() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            for (let y = 0; y < CONFIG.LOGICAL_H; y++)
-                for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#222');
-
-            if (STATE.isGameOver || STATE.isRoundOver) {
-                if (STATE.isGameOver) {
-                    if (Math.floor(Date.now() / 300) % 2 === 0) drawText(STATE.messages.win, 10, 15, STATE.messages.winColor);
-                    drawText(STATE.messages.taunt, STATE.scrollX, 35, "#ff5555");
-                    drawText("PRESS 'R' TO RESET", 30, 52, "#888");
-                } else {
-                    drawText("ROUND OVER", 40, 20, "#fff");
-                    drawText(STATE.messages.round, STATE.scrollX, 40, STATE.messages.roundColor);
-                    if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS 'R'", 42, 55, "#ffff00");
-                }
-                return;
-            }
+            // 1. Draw Background (Instant, using the pre-rendered image)
+            // Note: We REMOVED the nested "for" loops here because they are already in the image!
+            if (!isBgRendered) preRenderBackground();
+            ctx.drawImage(bgCanvas, 0, 0);
 
             let timeRatio = STATE.maxGameTime > 0 ? Math.max(0, Math.min(1, STATE.gameTime / STATE.maxGameTime)) : 0;
             let hue = Math.floor(timeRatio * 180);
             let wallColor = `hsl(${hue}, 100%, 50%)`;
 
-            // Draw Maze Walls
+            // 2. Draw Maze Walls
             STATE.maze.forEach(c => {
                 let x = c.c * CONFIG.CELL_SIZE + CONFIG.MAZE_OFFSET_X;
                 let y = c.r * CONFIG.CELL_SIZE;
@@ -2309,7 +2357,7 @@
                 if (c.c === CONFIG.COLS - 1 && c.r === CONFIG.ROWS - 1) drawLED(x + 3, y + 3, wallColor);
             });
 
-            // Draw Goals
+            // 3. Draw Goals
             let gc = Math.floor(Date.now() / 200) % 2 === 0 ? '#fff' : '#444';
             STATE.players.forEach(p => {
                 let gx = CONFIG.MAZE_OFFSET_X + p.goalC * CONFIG.CELL_SIZE + 1;
@@ -2320,7 +2368,7 @@
                 drawLED(gx + 1, gy + 1, gc);
             });
 
-            // Draw Portals & Ammo
+            // 4. Draw Portals & Ammo
             STATE.portals.forEach(p => {
                 drawLED(p.x, p.y, p.color);
                 drawLED(p.x + 1, p.y, p.color);
@@ -2334,7 +2382,7 @@
                 drawLED(STATE.ammoCrate.x + 1, STATE.ammoCrate.y + 1, '#0f0');
             }
 
-            // Draw Mines & Projectiles
+            // 5. Draw Mines & Projectiles
             STATE.mines.forEach(m => drawLED(m.x + m.visX, m.y + m.visY, m.active ? (Date.now() % 200 < 100 ? '#f00' : '#800') : '#444'));
             STATE.projectiles.forEach(p => {
                 let hw = (Math.abs(p.vx) > 0) ? CONFIG.C_BEAM_LENGTH / 2 : CONFIG.C_BEAM_WIDTH / 2;
@@ -2345,7 +2393,7 @@
                         drawLED(px, py, c);
             });
 
-            // Draw Players
+            // 6. Draw Players
             STATE.players.forEach(p => {
                 if (p.isDead) return;
                 let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);
@@ -2367,66 +2415,29 @@
                     let cc = `hsl(${Math.floor((1 - r) * 120)},100%,50%)`;
                     let sx = Math.floor(p.x) - 1,
                         sy = Math.floor(p.y) - 1;
-                    let perim = [{
-                        x: 0,
-                        y: 0
-                    }, {
-                        x: 1,
-                        y: 0
-                    }, {
-                        x: 2,
-                        y: 0
-                    }, {
-                        x: 3,
-                        y: 0
-                    }, {
-                        x: 3,
-                        y: 1
-                    }, {
-                        x: 3,
-                        y: 2
-                    }, {
-                        x: 3,
-                        y: 3
-                    }, {
-                        x: 2,
-                        y: 3
-                    }, {
-                        x: 1,
-                        y: 3
-                    }, {
-                        x: 0,
-                        y: 3
-                    }, {
-                        x: 0,
-                        y: 2
-                    }, {
-                        x: 0,
-                        y: 1
-                    }];
-                    let n = Math.ceil(12 * r);
-                    for (let i = 0; i < n; i++) drawLED(sx + perim[i].x, sy + perim[i].y, cc);
+                    let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
+                    let n = Math.ceil(8 * r);
+                    for (let i = 0; i < n; i++)
+                        drawLED(sx + perim[i].x, sy + perim[i].y, cc);
                 }
 
                 // Shield
                 if (p.shieldActive) {
                     let sx = Math.floor(p.x) - 1,
                         sy = Math.floor(p.y) - 1;
-                    for (let i = 0; i < 4; i++) {
-                        drawLED(sx + i, sy, '#88f');
-                        drawLED(sx + i, sy + 3, '#88f');
-                        drawLED(sx, sy + i, '#88f');
-                        drawLED(sx + 3, sy + i, '#88f');
-                    }
+                    let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
+                    for (let i = 0; i < 8; i++)
+                        drawLED(sx + perim[i].x, sy + perim[i].y, '#88f');
                 }
 
                 // Trail
-                if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) p.trail.forEach((t, i) => {
-                    ctx.globalAlpha = (i / p.trail.length) * 0.5;
-                    drawLED(Math.floor(t.x), Math.floor(t.y), rc);
-                    drawLED(Math.floor(t.x) + 1, Math.floor(t.y), rc);
-                    ctx.globalAlpha = 1;
-                });
+                if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED)
+                    p.trail.forEach((t, i) => {
+                        ctx.globalAlpha = 0.7;
+                        drawLED(Math.floor(t.x), Math.floor(t.y), rc);
+                        drawLED(Math.floor(t.x) + 1, Math.floor(t.y), rc);
+                        ctx.globalAlpha = 1;
+                    });
 
                 drawLED(Math.floor(p.x), Math.floor(p.y), rc);
                 drawLED(Math.floor(p.x) + 1, Math.floor(p.y), rc);
@@ -2434,9 +2445,11 @@
                 drawLED(Math.floor(p.x) + 1, Math.floor(p.y) + 1, rc);
             });
 
+            // 7. Draw Particles
+            // THIS is what makes the explosion visible!
             STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
 
-            // HUD
+            // 8. Draw HUD
             let p1 = STATE.players[0],
                 p2 = STATE.players[1],
                 s = Math.ceil(STATE.gameTime / 60).toString().padStart(3, '0');
@@ -2460,12 +2473,58 @@
             drawDigit(rx, 8, parseInt(s[0]), wallColor, -90);
             drawDigit(rx, 4, parseInt(s[1]), wallColor, -90);
             drawDigit(rx, 0, parseInt(s[2]), wallColor, -90);
+
+            // 9. OVERLAY TEXT & DIMMER
+            if (STATE.isGameOver || STATE.isRoundOver) {
+                //DIM THE BACKGROUND 
+                // This draws a dark, transparent black layer over the entire game
+                // making the text readable while keeping the explosion visible.
+                ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // -------------------------------
+
+                if (STATE.isGameOver) {
+                    if (Math.floor(Date.now() / 300) % 2 === 0)
+                        drawText(STATE.messages.win, 38, 15, STATE.messages.winColor);
+                    let msg = `P${STATE.looser} : '${STATE.messages.taunt}'`
+                    drawText(msg, STATE.scrollX, 35, "#ff5555");
+                    drawText("PRESS 'R' TO RESET", 30, 52, "#888");
+                } else {
+                    drawText("ROUND OVER", 46, 20, "#fff");
+                    drawText(STATE.messages.round, STATE.scrollX, 40, STATE.messages.roundColor);
+                    if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS 'START'", 42, 55, "#ffff00");
+                }
+            }
         }
 
         /** * ==========================================
          * 9. INIT & EVENT LISTENERS
          * ==========================================
          */
+
+        function preRenderBackground() {
+            bgCanvas.width = canvas.width;
+            bgCanvas.height = canvas.height;
+
+            // Fill black background
+            bgCtx.fillStyle = '#000';
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            // Draw the faint #222 LEDs once
+            for (let y = 0; y < CONFIG.LOGICAL_H; y++) {
+                for (let x = 0; x < CONFIG.LOGICAL_W; x++) {
+                    // We inline the drawLED logic here for the offscreen context
+                    const cx = (x * CONFIG.PITCH) + (CONFIG.PITCH / 2);
+                    const cy = (y * CONFIG.PITCH) + (CONFIG.PITCH / 2);
+                    bgCtx.fillStyle = '#222';
+                    bgCtx.beginPath();
+                    bgCtx.arc(cx, cy, CONFIG.LED_RADIUS, 0, Math.PI * 2);
+                    bgCtx.fill();
+                }
+            }
+            isBgRendered = true;
+        }
+
         function startGame() {
             if (STATE.sfx) STATE.sfx.init();
             STATE.screen = 'PLAYING';
