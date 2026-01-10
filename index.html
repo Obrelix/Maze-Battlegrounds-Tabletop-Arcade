@@ -751,6 +751,7 @@
             TRAIL_LENGTH: 12,
             CHARGED_BEAM_COST: 80,
             CHARGE_TIME: 3000,
+            GLITCH_TIME: 4000,
             CHARGE_PENALTY: 0.6,
             C_BEAM_SPEED: 0.6,
             C_BEAM_RANGE: 10,
@@ -1055,6 +1056,7 @@
                 this.beamIdx = 0;
                 this.isCharging = false;
                 this.chargeStartTime = 0;
+                this.glitchStartTime = 0;
                 this.chargeGrace = 0;
                 this.botPath = [];
                 this.botNextCell = null;
@@ -2192,7 +2194,10 @@
                             p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5;
                             p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
                             p.portalCooldown = 60;
-                            if (Math.random() < CONFIG.GLITCH_CHANCE) p.glitchTime = CONFIG.GLITCH_DURATION;
+                            if (Math.random() < CONFIG.GLITCH_CHANCE) {
+                                p.glitchStartTime = Date.now();
+                                p.glitchTime = CONFIG.GLITCH_DURATION;
+                            }
                         }
                     }
                 }
@@ -2210,7 +2215,7 @@
                     if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
                         if (!p.shieldActive) {
                             p.stunTime = CONFIG.STUN_DURATION;
-                            // // if (Math.random() < 0.5) 
+                            p.glitchStartTime = Date.now();
                             p.glitchTime = CONFIG.STUN_DURATION;
                             STATE.sfx.charge();
                         }
@@ -2412,7 +2417,7 @@
 
         function renderGame() {
             // --- FIX 1: Update Camera Physics ---
-            STATE.camera.update(); 
+            STATE.camera.update();
 
             // 1. Draw Background
             if (!isBgRendered) preRenderBackground();
@@ -2420,7 +2425,7 @@
             // SAVE CONTEXT BEFORE SHAKING
             ctx.save();
             ctx.translate(STATE.camera.x, STATE.camera.y); // Apply Shake
-            
+
             // Draw Background Image
             ctx.drawImage(bgCanvas, 0, 0);
 
@@ -2512,8 +2517,15 @@
             // 6. Draw Players
             STATE.players.forEach(p => {
                 if (p.isDead) return;
-                let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);
-
+                let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);                
+                if (p.glitchTime > 0) {
+                    let gc = Date.now() % 100 < 50 ? '#00FF27' : '#EEFF00';
+                    let sx = Math.floor(p.x) - 1,
+                        sy = Math.floor(p.y) - 1;
+                    let perim = [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 3 }, { x: 0, y: 3 }];
+                    for (let i = 0; i < perim.length; i++)
+                        drawLED(sx + perim[i].x, sy + perim[i].y, gc);
+                }
                 // Beam
                 for (let k = 0; k < CONFIG.BEAM_LENGTH; k++) {
                     let i = Math.floor(p.beamIdx) - k;
@@ -2566,7 +2578,7 @@
 
             // --- FIX 2: Restore Context BEFORE Drawing HUD ---
             // This ensures the HUD doesn't shake with the world
-            ctx.restore(); 
+            ctx.restore();
 
             // 8. Draw HUD
             let p1 = STATE.players[0],

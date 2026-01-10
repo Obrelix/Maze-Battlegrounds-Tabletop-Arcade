@@ -751,6 +751,7 @@
             TRAIL_LENGTH: 12,
             CHARGED_BEAM_COST: 80,
             CHARGE_TIME: 3000,
+            GLITCH_TIME: 4000,
             CHARGE_PENALTY: 0.6,
             C_BEAM_SPEED: 0.6,
             C_BEAM_RANGE: 10,
@@ -857,6 +858,31 @@
          * 2. CLASSES
          * ==========================================
          */
+        class Camera {
+            constructor() {
+                this.x = 0;
+                this.y = 0;
+                this.shakeStrength = 0;
+                this.shakeDamp = 0.9;
+            }
+
+            shake(amount) {
+                this.shakeStrength = amount;
+            }
+
+            update() {
+                if (this.shakeStrength > 0.5) {
+                    this.x = (Math.random() - 0.5) * this.shakeStrength;
+                    this.y = (Math.random() - 0.5) * this.shakeStrength;
+                    this.shakeStrength *= this.shakeDamp;
+                } else {
+                    this.x = 0;
+                    this.y = 0;
+                    this.shakeStrength = 0;
+                }
+            }
+        }
+
         class SoundFX {
             constructor() {
                 this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1030,6 +1056,7 @@
                 this.beamIdx = 0;
                 this.isCharging = false;
                 this.chargeStartTime = 0;
+                this.glitchStartTime = 0;
                 this.chargeGrace = 0;
                 this.botPath = [];
                 this.botNextCell = null;
@@ -1082,7 +1109,8 @@
                 roundColor: "#fff"
             },
             scrollX: 0,
-            sfx: new SoundFX()
+            sfx: new SoundFX(),
+            camera: new Camera(),
         };
 
         /** * ==========================================
@@ -1813,7 +1841,7 @@
 
         function triggerExplosion(x, y, reason = "EXPLODED") {
             STATE.sfx.explosion();
-
+            STATE.camera.shake(15);
             const BLAST_RADIUS = 4.0;
             let centerC = Math.floor((x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
             let centerR = Math.floor(y / CONFIG.CELL_SIZE);
@@ -2166,7 +2194,10 @@
                             p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5;
                             p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
                             p.portalCooldown = 60;
-                            if (Math.random() < CONFIG.GLITCH_CHANCE) p.glitchTime = CONFIG.GLITCH_DURATION;
+                            if (Math.random() < CONFIG.GLITCH_CHANCE) {
+                                p.glitchStartTime = Date.now();
+                                p.glitchTime = CONFIG.GLITCH_DURATION;
+                            }
                         }
                     }
                 }
@@ -2184,7 +2215,7 @@
                     if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
                         if (!p.shieldActive) {
                             p.stunTime = CONFIG.STUN_DURATION;
-                            // // if (Math.random() < 0.5) 
+                            p.glitchStartTime = Date.now();
                             p.glitchTime = CONFIG.STUN_DURATION;
                             STATE.sfx.charge();
                         }
@@ -2385,8 +2416,17 @@
         }
 
         function renderGame() {
+            // --- FIX 1: Update Camera Physics ---
+            STATE.camera.update();
+
             // 1. Draw Background
             if (!isBgRendered) preRenderBackground();
+
+            // SAVE CONTEXT BEFORE SHAKING
+            ctx.save();
+            ctx.translate(STATE.camera.x, STATE.camera.y); // Apply Shake
+
+            // Draw Background Image
             ctx.drawImage(bgCanvas, 0, 0);
 
             let timeRatio = STATE.maxGameTime > 0 ? Math.max(0, Math.min(1, STATE.gameTime / STATE.maxGameTime)) : 0;
@@ -2398,23 +2438,17 @@
                 let x = c.c * CONFIG.CELL_SIZE + CONFIG.MAZE_OFFSET_X;
                 let y = c.r * CONFIG.CELL_SIZE;
 
-                // --- FIX: Remove floating dots in explosions ---
-                // Only draw the corner post if it connects to an existing wall
                 let drawCorner = false;
-
-                // Check if this cell has a Top or Left wall attached to this corner
                 if (c.walls[0] || c.walls[3]) drawCorner = true;
 
-                // Check if neighbors have walls attached to this corner
                 if (!drawCorner) {
                     let left = gridIndex(c.c - 1, c.r);
                     let top = gridIndex(c.c, c.r - 1);
-                    if (left && left.walls[0]) drawCorner = true; // Left neighbor has Top wall
-                    if (top && top.walls[3]) drawCorner = true;   // Top neighbor has Left wall
+                    if (left && left.walls[0]) drawCorner = true;
+                    if (top && top.walls[3]) drawCorner = true;
                 }
 
                 if (drawCorner) drawLED(x, y, wallColor);
-                // ----------------------------------------------
 
                 if (c.walls[0]) {
                     drawLED(x + 1, y, wallColor);
@@ -2425,9 +2459,7 @@
                     drawLED(x, y + 2, wallColor);
                 }
 
-                // Draw Edge Walls (Right/Bottom) for map borders
                 if (c.c === CONFIG.COLS - 1) {
-                    // Check if we need the top-right corner post
                     if (c.walls[1] || c.walls[0]) drawLED(x + 3, y, wallColor);
                     if (c.walls[1]) {
                         drawLED(x + 3, y + 1, wallColor);
@@ -2435,14 +2467,12 @@
                     }
                 }
                 if (c.r === CONFIG.ROWS - 1) {
-                    // Check if we need the bottom-left corner post
                     if (c.walls[2] || c.walls[3]) drawLED(x, y + 3, wallColor);
                     if (c.walls[2]) {
                         drawLED(x + 1, y + 3, wallColor);
                         drawLED(x + 2, y + 3, wallColor);
                     }
                 }
-                // Absolute bottom-right corner of the map
                 if (c.c === CONFIG.COLS - 1 && c.r === CONFIG.ROWS - 1) {
                     drawLED(x + 3, y + 3, wallColor);
                 }
@@ -2487,8 +2517,15 @@
             // 6. Draw Players
             STATE.players.forEach(p => {
                 if (p.isDead) return;
-                let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);
-
+                let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);                
+                if (p.glitchTime > 0) {
+                    let gc = Date.now() % 100 < 50 ? '#00FF27' : '#EEFF00';
+                    let sx = Math.floor(p.x) - 1,
+                        sy = Math.floor(p.y) - 1;
+                    let perim = [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 3 }, { x: 0, y: 3 }];
+                    for (let i = 0; i < perim.length; i++)
+                        drawLED(sx + perim[i].x, sy + perim[i].y, gc);
+                }
                 // Beam
                 for (let k = 0; k < CONFIG.BEAM_LENGTH; k++) {
                     let i = Math.floor(p.beamIdx) - k;
@@ -2538,6 +2575,10 @@
 
             // 7. Draw Particles
             STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
+
+            // --- FIX 2: Restore Context BEFORE Drawing HUD ---
+            // This ensures the HUD doesn't shake with the world
+            ctx.restore();
 
             // 8. Draw HUD
             let p1 = STATE.players[0],
