@@ -1072,6 +1072,7 @@
             deathTimer: 0,
             victimIdx: -1,
             looser: -1,
+            isDraw: false,
             messages: {
                 deathReason: "",
                 win: "",
@@ -1146,21 +1147,38 @@
         }
 
         function destroyWallAt(c, r) {
-            if (c <= 0 || c >= CONFIG.COLS - 1 || r <= 0 || r >= CONFIG.ROWS - 1) return;
-            let center = gridIndex(c, r);
-            if (center) {
-                center.walls = [false, false, false, false];
+            // FIX: Removed the restrictive line that returned early for edge cells
+            let cell = gridIndex(c, r);
+            if (!cell) return;
+
+            // 1. Destroy TOP wall (Index 0) - ONLY if not the absolute map top border
+            if (r > 0) {
+                cell.walls[0] = false;
                 let top = gridIndex(c, r - 1);
                 if (top) top.walls[2] = false;
+            }
+
+            // 2. Destroy RIGHT wall (Index 1) - ONLY if not the absolute map right border
+            if (c < CONFIG.COLS - 1) {
+                cell.walls[1] = false;
                 let right = gridIndex(c + 1, r);
                 if (right) right.walls[3] = false;
+            }
+
+            // 3. Destroy BOTTOM wall (Index 2) - ONLY if not the absolute map bottom border
+            if (r < CONFIG.ROWS - 1) {
+                cell.walls[2] = false;
                 let bottom = gridIndex(c, r + 1);
                 if (bottom) bottom.walls[0] = false;
+            }
+
+            // 4. Destroy LEFT wall (Index 3) - ONLY if not the absolute map left border
+            if (c > 0) {
+                cell.walls[3] = false;
                 let left = gridIndex(c - 1, r);
                 if (left) left.walls[1] = false;
             }
         }
-
         /** * ==========================================
          * 5. GAME FLOW & GENERATION
          * ==========================================
@@ -1776,7 +1794,7 @@
             let gx = CONFIG.MAZE_OFFSET_X + (p.goalC * CONFIG.CELL_SIZE) + 1;
             let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
             if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
-                p.score++;
+                p.score += 2;
                 if (p.score >= CONFIG.MAX_SCORE) {
                     STATE.isGameOver = true;
                     STATE.looser = p.id == 0 ? 1 : 2;
@@ -1796,73 +1814,91 @@
         function triggerExplosion(x, y, reason = "EXPLODED") {
             STATE.sfx.explosion();
 
-            // --- IMPROVED: WALL-SPECIFIC DESTRUCTION ---
-            // Instead of checking cell centers, we check if the explosion 
-            // is close to the specific walls. This prevents walls from surviving
-            // when the explosion is directly on top of them.
-
-            const BLAST_RADIUS = 4.5; // Slightly increased for better feel
-
+            const BLAST_RADIUS = 4.0;
             let centerC = Math.floor((x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
             let centerR = Math.floor(y / CONFIG.CELL_SIZE);
-            let range = 2;
+            let cellRadius = 1;
 
-            for (let r = centerR - range; r <= centerR + range; r++) {
-                for (let c = centerC - range; c <= centerC + range; c++) {
-                    let cell = gridIndex(c, r);
-                    if (!cell) continue;
-
-                    // Pixel coordinates of the cell's top-left corner
-                    let wx = CONFIG.MAZE_OFFSET_X + c * CONFIG.CELL_SIZE;
-                    let wy = r * CONFIG.CELL_SIZE;
-
-                    // 1. CHECK TOP WALL (Horizontal line at wy)
-                    // We check distance from explosion (x,y) to the wall's midpoint (wx+1.5, wy)
-                    if (Math.abs((wx + 1.5) - x) < BLAST_RADIUS && Math.abs(wy - y) < BLAST_RADIUS) {
-                        cell.walls[0] = false;
-                        let top = gridIndex(c, r - 1); if (top) top.walls[2] = false;
-                    }
-
-                    // 2. CHECK BOTTOM WALL (Horizontal line at wy + 3)
-                    if (Math.abs((wx + 1.5) - x) < BLAST_RADIUS && Math.abs((wy + 3) - y) < BLAST_RADIUS) {
-                        cell.walls[2] = false;
-                        let bottom = gridIndex(c, r + 1); if (bottom) bottom.walls[0] = false;
-                    }
-
-                    // 3. CHECK LEFT WALL (Vertical line at wx)
-                    if (Math.abs(wx - x) < BLAST_RADIUS && Math.abs((wy + 1.5) - y) < BLAST_RADIUS) {
-                        cell.walls[3] = false;
-                        let left = gridIndex(c - 1, r); if (left) left.walls[1] = false;
-                    }
-
-                    // 4. CHECK RIGHT WALL (Vertical line at wx + 3)
-                    if (Math.abs((wx + 3) - x) < BLAST_RADIUS && Math.abs((wy + 1.5) - y) < BLAST_RADIUS) {
-                        cell.walls[1] = false;
-                        let right = gridIndex(c + 1, r); if (right) right.walls[3] = false;
+            // --- Wall Destruction Logic ---
+            for (let r = centerR - cellRadius; r <= centerR + cellRadius; r++) {
+                for (let c = centerC - cellRadius; c <= centerC + cellRadius; c++) {
+                    if (c < 0 || c >= CONFIG.COLS || r < 0 || r >= CONFIG.ROWS) continue;
+                    let dc = c - centerC;
+                    let dr = r - centerR;
+                    if (dc * dc + dr * dr <= 2) {
+                        destroyWallAt(c, r);
                     }
                 }
             }
-            // -------------------------------------------
 
-            for (let i = 0; i < CONFIG.PARTICLE_COUNT; i++) {
+            // --- Particle Spawning ---
+            const PARTICLE_COUNT = 30;
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * 3.5;
                 STATE.particles.push({
                     x: x + 1,
                     y: y + 1,
-                    vx: (Math.random() - 0.5) * 2.5,
-                    vy: (Math.random() - 0.5) * 2.5,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    decay: 0.03 + Math.random() * 0.04,
                     life: 1.0,
-                    color: Math.random() > 0.5 ? '#ffff00' : '#ff4400'
+                    color: '#ffffff'
                 });
             }
 
+            // --- Player Damage Logic (FIXED) ---
+            // 1. Collect all victims first
+            let hitIndices = [];
             if (!STATE.isRoundOver && !STATE.isGameOver) {
                 STATE.players.forEach((p, idx) => {
-                    // Check if player is inside the same BLAST_RADIUS
                     if (Math.abs(p.x + 1 - (x + 1)) < BLAST_RADIUS && Math.abs(p.y + 1 - (y + 1)) < BLAST_RADIUS) {
-                        if (!p.shieldActive) handlePlayerDeath(idx, reason);
+                        if (!p.shieldActive && !p.isDead) {
+                            hitIndices.push(idx);
+                        }
                     }
                 });
             }
+
+            // 2. Process deaths if anyone was hit
+            if (hitIndices.length > 0) {
+                handleMultiDeath(hitIndices, reason);
+            }
+        }
+
+        function handleMultiDeath(indices, reason) {
+            if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
+
+            // Set global death state
+            STATE.deathTimer = 50;
+            STATE.deathReason = reason || "ELIMINATED";
+            STATE.sfx.death();
+
+            // Check for Draw
+            if (indices.length > 1) {
+                STATE.isDraw = true; // Mark as draw
+            } else {
+                STATE.victimIdx = indices[0]; // Mark single victim
+                STATE.isDraw = false;
+            }
+
+            // Apply death effects to ALL victims
+            indices.forEach(idx => {
+                let p = STATE.players[idx];
+                p.isDead = true;
+
+                // Visual effects for each player
+                for (let i = 0; i < 30; i++) {
+                    STATE.particles.push({
+                        x: p.x + 1,
+                        y: p.y + 1,
+                        vx: (Math.random() - 0.5) * 4,
+                        vy: (Math.random() - 0.5) * 4,
+                        life: 1.5,
+                        color: p.color
+                    });
+                }
+            });
         }
         function handlePlayerDeath(victimIdx, reason) {
             if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
@@ -1996,6 +2032,21 @@
         }
 
         function finalizeRound() {
+            // --- HANDLE DRAW ---
+            if (STATE.isDraw) {
+                STATE.messages.round = "DOUBLE KO! DRAW!";
+                STATE.messages.roundColor = "#ffffff";
+                STATE.sfx.roundOver(); // Play generic sound
+                STATE.isRoundOver = true;
+                STATE.scrollX = CONFIG.LOGICAL_W + 5;
+
+                // Reset Logic
+                STATE.deathTimer = 0;
+                STATE.isDraw = false;
+                return;
+            }
+
+            // --- STANDARD WINNER LOGIC ---
             let victimIdx = STATE.victimIdx;
             let winnerIdx = (victimIdx === 0) ? 1 : 0;
 
@@ -2006,7 +2057,7 @@
             if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
                 STATE.sfx.win();
                 STATE.isGameOver = true;
-                STATE.looser = winnerIdx == 0 ? 1 : 2;
+                STATE.looser = victimIdx == 0 ? 1 : 2; // Fixed logic
                 STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
                 STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
                 STATE.messages.winColor = STATE.players[winnerIdx].color;
@@ -2017,7 +2068,6 @@
                 STATE.scrollX = CONFIG.LOGICAL_W + 5;
             }
 
-            // Reset timer
             STATE.deathTimer = 0;
         }
 
@@ -2177,9 +2227,26 @@
         function updateParticles() {
             for (let i = STATE.particles.length - 1; i >= 0; i--) {
                 let p = STATE.particles[i];
+
+                // Move
                 p.x += p.vx;
                 p.y += p.vy;
-                p.life -= 0.05;
+
+                // 1. ADD FRICTION (Air Resistance)
+                // This makes particles burst fast then slow down nicely
+                p.vx *= 0.85;
+                p.vy *= 0.85;
+
+                // Decay life
+                p.life -= p.decay;
+
+                // 2. DYNAMIC COLOR RAMP (Heat Cooling)
+                // White -> Yellow -> Orange -> Red -> Fade
+                if (p.life > 0.8) p.color = '#ffffff';       // White Hot
+                else if (p.life > 0.5) p.color = '#ffff00';  // Yellow
+                else if (p.life > 0.25) p.color = '#ff9900'; // Orange
+                else p.color = '#660000';                    // Dark Red (Smoke)
+
                 if (p.life <= 0) STATE.particles.splice(i, 1);
             }
         }
@@ -2318,8 +2385,7 @@
         }
 
         function renderGame() {
-            // 1. Draw Background (Instant, using the pre-rendered image)
-            // Note: We REMOVED the nested "for" loops here because they are already in the image!
+            // 1. Draw Background
             if (!isBgRendered) preRenderBackground();
             ctx.drawImage(bgCanvas, 0, 0);
 
@@ -2331,7 +2397,25 @@
             STATE.maze.forEach(c => {
                 let x = c.c * CONFIG.CELL_SIZE + CONFIG.MAZE_OFFSET_X;
                 let y = c.r * CONFIG.CELL_SIZE;
-                drawLED(x, y, wallColor);
+
+                // --- FIX: Remove floating dots in explosions ---
+                // Only draw the corner post if it connects to an existing wall
+                let drawCorner = false;
+
+                // Check if this cell has a Top or Left wall attached to this corner
+                if (c.walls[0] || c.walls[3]) drawCorner = true;
+
+                // Check if neighbors have walls attached to this corner
+                if (!drawCorner) {
+                    let left = gridIndex(c.c - 1, c.r);
+                    let top = gridIndex(c.c, c.r - 1);
+                    if (left && left.walls[0]) drawCorner = true; // Left neighbor has Top wall
+                    if (top && top.walls[3]) drawCorner = true;   // Top neighbor has Left wall
+                }
+
+                if (drawCorner) drawLED(x, y, wallColor);
+                // ----------------------------------------------
+
                 if (c.walls[0]) {
                     drawLED(x + 1, y, wallColor);
                     drawLED(x + 2, y, wallColor);
@@ -2340,21 +2424,28 @@
                     drawLED(x, y + 1, wallColor);
                     drawLED(x, y + 2, wallColor);
                 }
+
+                // Draw Edge Walls (Right/Bottom) for map borders
                 if (c.c === CONFIG.COLS - 1) {
-                    drawLED(x + 3, y, wallColor);
+                    // Check if we need the top-right corner post
+                    if (c.walls[1] || c.walls[0]) drawLED(x + 3, y, wallColor);
                     if (c.walls[1]) {
                         drawLED(x + 3, y + 1, wallColor);
                         drawLED(x + 3, y + 2, wallColor);
                     }
                 }
                 if (c.r === CONFIG.ROWS - 1) {
-                    drawLED(x, y + 3, wallColor);
+                    // Check if we need the bottom-left corner post
+                    if (c.walls[2] || c.walls[3]) drawLED(x, y + 3, wallColor);
                     if (c.walls[2]) {
                         drawLED(x + 1, y + 3, wallColor);
                         drawLED(x + 2, y + 3, wallColor);
                     }
                 }
-                if (c.c === CONFIG.COLS - 1 && c.r === CONFIG.ROWS - 1) drawLED(x + 3, y + 3, wallColor);
+                // Absolute bottom-right corner of the map
+                if (c.c === CONFIG.COLS - 1 && c.r === CONFIG.ROWS - 1) {
+                    drawLED(x + 3, y + 3, wallColor);
+                }
             });
 
             // 3. Draw Goals
@@ -2446,7 +2537,6 @@
             });
 
             // 7. Draw Particles
-            // THIS is what makes the explosion visible!
             STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
 
             // 8. Draw HUD
@@ -2476,17 +2566,13 @@
 
             // 9. OVERLAY TEXT & DIMMER
             if (STATE.isGameOver || STATE.isRoundOver) {
-                //DIM THE BACKGROUND 
-                // This draws a dark, transparent black layer over the entire game
-                // making the text readable while keeping the explosion visible.
                 ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                // -------------------------------
 
                 if (STATE.isGameOver) {
                     if (Math.floor(Date.now() / 300) % 2 === 0)
                         drawText(STATE.messages.win, 38, 15, STATE.messages.winColor);
-                    let msg = `P${STATE.looser} : '${STATE.messages.taunt}'`
+                    let msg = `P${STATE.looser}: '${STATE.messages.taunt}'`
                     drawText(msg, STATE.scrollX, 35, "#ff5555");
                     drawText("PRESS 'R' TO RESET", 30, 52, "#888");
                 } else {
@@ -2496,7 +2582,6 @@
                 }
             }
         }
-
         /** * ==========================================
          * 9. INIT & EVENT LISTENERS
          * ==========================================
