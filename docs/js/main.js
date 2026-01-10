@@ -307,6 +307,7 @@ function resetIdleTimer() {
         document.getElementById('statusText').innerText = "SELECT MODE";
     }
 }
+
 function initTouchControls() {
     const buttons = document.querySelectorAll('.btn');
     buttons.forEach(btn => {
@@ -521,71 +522,68 @@ function findPath(cpu, targetC, targetR, ignoreMines) {
 }
 
 function getCpuInput(cpu, opponent) {
-    let cmd = {
-        up: false,
-        down: false,
-        left: false,
-        right: false,
-        shield: false,
-        beam: false,
-        mine: false,
-        boost: false,
-        boom: false
-    };
+    let cmd = { up: false, down: false, left: false, right: false, shield: false, beam: false, mine: false, boost: false, boom: false };
 
-    // 1. DANGER SENSE
+    // --- 1. SMARTER DANGER SENSE ---
     let threat = null;
     let minDist = 999;
+
     STATE.projectiles.forEach(proj => {
         if (proj.owner !== cpu.id) {
-            let d = Math.hypot(proj.x - cpu.x, proj.y - cpu.y);
-            if (d < 30 && d < minDist) {
+            let dx = cpu.x - proj.x;
+            let dy = cpu.y - proj.y;
+            let dist = Math.hypot(dx, dy);
+
+            // OPTIMIZATION: Only care about bullets moving TOWARDS us
+            // Dot Product: (projVx * dx) + (projVy * dy)
+            // If result > 0, projectile is moving in same direction as vector to player (hitting us)
+            let isIncoming = (proj.vx * dx) + (proj.vy * dy) > 0;
+
+            if (dist < 30 && dist < minDist && isIncoming) {
                 threat = proj;
-                minDist = d;
+                minDist = dist;
             }
         }
     });
+
     let immediateMine = STATE.mines.find(m => m.active && Math.hypot(m.x - cpu.x, m.y - cpu.y) < 6);
 
-    // 2. DEFENSE
-    if (threat && minDist < 6 && cpu.boostEnergy > 20) cmd.shield = true;
-    if (immediateMine && cpu.boostEnergy > 20) cmd.shield = true;
+    // Defense Logic
+    if ((threat && minDist < 8) || (immediateMine)) {
+        if (cpu.boostEnergy > 20) cmd.shield = true;
+    }
 
-    // 3. ATTACK
+    // --- 2. OFFENSIVE LOGIC ---
     let dx = opponent.x - cpu.x;
     let dy = opponent.y - cpu.y;
     let distOpp = Math.hypot(dx, dy);
 
-    if (!cmd.shield && cpu.boostEnergy > 30) {
-        if (Math.abs(dx) < 30 && Math.abs(dy) < 4) cmd.beam = true;
-        else if (Math.abs(dy) < 30 && Math.abs(dx) < 4) cmd.beam = true;
+    // Only attack if we have energy AND opponent is within range (Beam length ~40)
+    if (!cmd.shield && cpu.boostEnergy > 30 && distOpp < 35) {
+        // Alignment check (Are we roughly on the same row/column?)
+        // We relax the precision slightly (4.0 -> 5.0) to account for lag
+        if (Math.abs(dx) < 30 && Math.abs(dy) < 5.0) cmd.beam = true;
+        else if (Math.abs(dy) < 30 && Math.abs(dx) < 5.0) cmd.beam = true;
     }
 
-    // 4. STUCK DETECTION
+    // --- 3. RETREAT MINING ---
+    // If opponent is close (dist < 10) and we are moving away, drop a mine
+    if (distOpp < 10 && cpu.minesLeft > 0) {
+        // Check if opponent is roughly behind us (dot product of our dir vs vector to opp)
+        // Simple heuristic: just drop if they are close, it's chaotic fun
+        if (Math.random() < 0.1) cmd.mine = true;
+    }
+
+    // --- 4. NAVIGATION & UNSTUCK (Unchanged) ---
+    // (Preserve your existing stuck detection and pathfinding logic here)
     let distMoved = Math.hypot(cpu.x - cpu.lastPos.x, cpu.y - cpu.lastPos.y);
-    if (distMoved < 0.1) cpu.stuckCounter++;
-    else cpu.stuckCounter = 0;
-    cpu.lastPos = {
-        x: cpu.x,
-        y: cpu.y
-    };
+    if (distMoved < 0.1) cpu.stuckCounter++; else cpu.stuckCounter = 0;
+    cpu.lastPos = { x: cpu.x, y: cpu.y };
 
     if (cpu.stuckCounter > 20) {
         cpu.forceUnstuckTimer = 15;
         cpu.stuckCounter = 0;
-        let dirs = [{
-            x: 0,
-            y: -1
-        }, {
-            x: 0,
-            y: 1
-        }, {
-            x: -1,
-            y: 0
-        }, {
-            x: 1,
-            y: 0
-        }];
+        let dirs = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
         let validDirs = dirs.filter(d => !isWall(cpu.x + d.x * 2, cpu.y + d.y * 2));
         cpu.unstuckDir = validDirs.length > 0 ? validDirs[Math.floor(Math.random() * validDirs.length)] : dirs[0];
     }
@@ -599,15 +597,12 @@ function getCpuInput(cpu, opponent) {
         return cmd;
     }
 
-    // 5. NAVIGATION
     if (!cpu.botNextCell || cpu.botRetargetTimer <= 0 || threat) {
         let path = findPath(cpu, cpu.goalC, cpu.goalR, false);
         if (!path) path = findPath(cpu, cpu.goalC, cpu.goalR, true);
-
         if (path && path.length > 1) cpu.botNextCell = path[1];
         else if (path && path.length > 0) cpu.botNextCell = path[0];
         else cpu.botNextCell = null;
-
         cpu.botRetargetTimer = 10;
     }
     cpu.botRetargetTimer--;
@@ -616,32 +611,29 @@ function getCpuInput(cpu, opponent) {
         let tx = CONFIG.MAZE_OFFSET_X + cpu.botNextCell.c * CONFIG.CELL_SIZE + 0.5;
         let ty = cpu.botNextCell.r * CONFIG.CELL_SIZE + 0.5;
 
-        let steppingOnMine = STATE.mines.some(m => m.active && Math.abs(m.x - tx) < 3 && Math.abs(m.y - ty) < 3);
+        // Smart Mine Avoidance: Only shield if we are actually about to step on it
+        let steppingOnMine = STATE.mines.some(m => m.active && Math.abs(m.x - tx) < 2.5 && Math.abs(m.y - ty) < 2.5);
         if (steppingOnMine && cpu.boostEnergy > 20) cmd.shield = true;
 
         let diffX = tx - cpu.x;
         let diffY = ty - cpu.y;
-        if (Math.abs(diffX) > 0.1) {
-            if (diffX < 0) cmd.left = true;
-            else cmd.right = true;
-        }
-        if (Math.abs(diffY) > 0.1) {
-            if (diffY < 0) cmd.up = true;
-            else cmd.down = true;
-        }
+        if (Math.abs(diffX) > 0.1) { if (diffX < 0) cmd.left = true; else cmd.right = true; }
+        if (Math.abs(diffY) > 0.1) { if (diffY < 0) cmd.up = true; else cmd.down = true; }
     }
 
-    // 6. UTILITY
-    if (distOpp < 8 && cpu.minesLeft > 0 && Math.random() < 0.05) cmd.mine = true;
-    if (cpu.botNextCell && !threat && cpu.boostEnergy > 80 && Math.random() < 0.05) cmd.boost = true;
+    // --- 5. UTILITY ---
+    // Boost if path is long and clear, to rush the goal
+    if (cpu.botNextCell && !threat && cpu.boostEnergy > 90 && distOpp > 20) {
+        if (Math.random() < 0.05) cmd.boost = true;
+    }
 
+    // Detonate mines if opponent is near one
     STATE.mines.forEach(m => {
         if (m.owner === cpu.id && Math.hypot(m.x - opponent.x, m.y - opponent.y) < 5) cmd.boom = true;
     });
 
     return cmd;
 }
-
 /** * ==========================================
  * 4. CORE GAME LOOP & PHYSICS
  * ==========================================
@@ -668,9 +660,17 @@ function applyPlayerActions(p, input) {
 
     // Shield
     if (input.shield && p.boostEnergy > 0) {
-        if (!p.shieldActive) STATE.sfx.shield();
-        p.shieldActive = true;
+        if (!p.shieldActive) {
+            p.boostEnergy -= CONFIG.SHIELD_ACTIVATION_COST;
+        }
+        if (p.boostEnergy >= 0 && !p.shieldActive) {
+            STATE.sfx.shield();
+            p.shieldActive = true;
+        }
         p.boostEnergy -= CONFIG.SHIELD_DRAIN;
+
+        // Clamp to 0 so we don't go negative
+        if (p.boostEnergy < 0) p.boostEnergy = 0;
     } else {
         p.shieldActive = false;
     }
@@ -842,7 +842,7 @@ function applyPlayerActions(p, input) {
     let gx = CONFIG.MAZE_OFFSET_X + (p.goalC * CONFIG.CELL_SIZE) + 1;
     let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
     if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
-        p.score += 2;
+        p.score += 1;
         if (p.score >= CONFIG.MAX_SCORE) {
             STATE.isGameOver = true;
             STATE.looser = (p.id + 1 == 1) ? 2 : 1;
@@ -1140,7 +1140,6 @@ function finalizeRound() {
     }
 }
 
-// --- Main Update ---
 function update() {
     if (STATE.screen === 'MENU') {
         if (STATE.keys['Digit1']) {
@@ -1469,7 +1468,6 @@ function drawDigit(x, y, num, color, rotateDeg) {
     }
 }
 
-
 function drawPlayerBody(x, y, color) {
     drawLED(Math.floor(x), Math.floor(y), color);
     drawLED(Math.floor(x) + 1, Math.floor(y), color);
@@ -1478,14 +1476,20 @@ function drawPlayerBody(x, y, color) {
 }
 
 function renderMenu() {
+    document.getElementById('p1-header').style.color = CONFIG.P1COLOR;
+    document.getElementById('p2-header').style.color = CONFIG.P2COLOR;
+    document.getElementById('p1-panel').style.border= `1px solid ${CONFIG.P1COLOR.slice(0,7)}63`;
+    document.getElementById('p1-panel').style.boxShadow = `inset 0 0 15px ${CONFIG.P1COLOR.slice(0,7)}23`;
+    document.getElementById('p2-panel').style.border= `1px solid ${CONFIG.P2COLOR.slice(0,7)}63`;
+    document.getElementById('p2-panel').style.boxShadow = `inset 0 0 15px ${CONFIG.P2COLOR.slice(0,7)}23`;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
 
     drawText("SELECT MODE", 42, 10, "#fff");
-    drawText("1. SINGLE PLAYER", 30, 25, Math.floor(Date.now() / 500) % 2 === 0 ? "#0ff" : "#555");
-    drawText("2. MULTIPLAYER", 35, 35, Math.floor(Date.now() / 500) % 2 !== 0 ? "#f0f" : "#555");
+    drawText("1. SINGLE PLAYER", 30, 25, Math.floor(Date.now() / 500) % 2 === 0 ? CONFIG.P1COLOR : "#555");
+    drawText("2. MULTIPLAYER", 35, 35, Math.floor(Date.now() / 500) % 2 !== 0 ? CONFIG.P2COLOR : "#555");
     drawText("CPU: HARD", 45, 55, "#f55");
 }
 
@@ -1615,22 +1619,22 @@ function renderGame() {
             let n = Math.ceil(8 * r);
             for (let i = 0; i < n; i++) drawLED(sx + perim[i].x, sy + perim[i].y, cc);
         }
-        
+
         // --- 3. SHIELD EFFECT (Unchanged) ---
         if (p.shieldActive) {
-             let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
-             let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
-             for (let i = 0; i < 8; i++) drawLED(sx + perim[i].x, sy + perim[i].y, '#88f');
+            let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
+            let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
+            for (let i = 0; i < 8; i++) drawLED(sx + perim[i].x, sy + perim[i].y, '#88f');
         }
 
         // --- 4. TRAIL EFFECT (Unchanged) ---
         if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) {
-             p.trail.forEach((t, i) => {
-                 const alpha = (i / p.trail.length) * 0.5; 
-                 ctx.globalAlpha = alpha;
-                 drawLED(Math.floor(t.x) + 0.5, Math.floor(t.y) + 0.5, p.color); 
-             });
-             ctx.globalAlpha = 1.0;
+            p.trail.forEach((t, i) => {
+                const alpha = (i / p.trail.length) * 0.5;
+                ctx.globalAlpha = alpha;
+                drawLED(Math.floor(t.x) + 0.5, Math.floor(t.y) + 0.5, p.color);
+            });
+            ctx.globalAlpha = 1.0;
         }
 
         // --- 5. NEW: GLITCH & STUN VISUALS ---
@@ -1638,11 +1642,11 @@ function renderGame() {
             // 
             // EFFECT: "RGB Split" (Simulates Broken Controls)
             const shake = 0.6; // Pixel offset amount
-            
+
             // Draw RED Ghost (Offset Randomly)
             let rX = (Math.random() - 0.5) * shake;
             let rY = (Math.random() - 0.5) * shake;
-            drawPlayerBody(p.x + rX, p.y + rY, '#FF0000'); 
+            drawPlayerBody(p.x + rX, p.y + rY, '#FF0000');
 
             // Draw CYAN Ghost (Offset Opposite)
             let cX = (Math.random() - 0.5) * shake;
@@ -1660,7 +1664,7 @@ function renderGame() {
             drawPlayerBody(p.x, p.y, flashColor);
 
             // Draw random "sparks" around the player
-            for(let i=0; i<3; i++) {
+            for (let i = 0; i < 3; i++) {
                 // Pick a random spot near the player
                 let sx = p.x + (Math.random() * 3) - 0.5;
                 let sy = p.y + (Math.random() * 3) - 0.5;
@@ -1685,8 +1689,8 @@ function renderGame() {
     let p1 = STATE.players[0],
         p2 = STATE.players[1],
         s = Math.ceil(STATE.gameTime / 60).toString().padStart(3, '0');
-    drawDigit(0, 0, parseInt(p1.score.toString().padStart(2, '0')[0]), '#0ff', 90);
-    drawDigit(0, 4, parseInt(p1.score.toString().padStart(2, '0')[1]), '#0ff', 90);
+    drawDigit(0, 0, parseInt(p1.score.toString().padStart(2, '0')[0]), p1.color, 90);
+    drawDigit(0, 4, parseInt(p1.score.toString().padStart(2, '0')[1]), p1.color, 90);
     drawDigit(0, 10, p1.minesLeft, `hsl(${p1.minesLeft / 4 * 120},100%,50%)`, 90);
     for (let h = 0; h < Math.floor(p1.boostEnergy / 100 * 38); h++)
         for (let w = 0; w < 5; w++) drawLED(w, 14 + h, `hsl(${p1.boostEnergy / 100 * 120},100%,50%)`);
@@ -1696,8 +1700,8 @@ function renderGame() {
     drawDigit(0, 61, parseInt(s[2]), wallColor, 90);
 
     let rx = 123;
-    drawDigit(rx, 61, parseInt(p2.score.toString().padStart(2, '0')[0]), '#f0f', -90);
-    drawDigit(rx, 57, parseInt(p2.score.toString().padStart(2, '0')[1]), '#f0f', -90);
+    drawDigit(rx, 61, parseInt(p2.score.toString().padStart(2, '0')[0]), p2.color, -90);
+    drawDigit(rx, 57, parseInt(p2.score.toString().padStart(2, '0')[1]), p2.color, -90);
     drawDigit(rx, 51, p2.minesLeft, `hsl(${p2.minesLeft / 4 * 120},100%,50%)`, -90);
     for (let h = 0; h < Math.floor(p2.boostEnergy / 100 * 38); h++)
         for (let w = 0; w < 5; w++) drawLED(rx + w, 49 - h, `hsl(${p2.boostEnergy / 100 * 120},100%,50%)`);
@@ -1761,8 +1765,11 @@ function startGame() {
     if (STATE.sfx) STATE.sfx.init();
     STATE.screen = 'PLAYING';
     STATE.isGameOver = false;
-    STATE.isRoundOver = false;
-    STATE.players = [new Player(0, '#00ffff', CONTROLS_P1), new Player(1, '#ff00ff', CONTROLS_P2)];
+    STATE.isRoundOver = false;1
+    STATE.players = [
+        new Player(0, CONFIG.P1COLOR, CONTROLS_P1),
+        new Player(1, CONFIG.P2COLOR, CONTROLS_P2)
+    ];
     document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
     initMaze();
 }

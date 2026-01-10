@@ -8,12 +8,9 @@ export const CONFIG = {
     ROWS: 21,
     COLS: 37,
     MAZE_OFFSET_X: 8,
-    BASE_SPEED: 0.3,
-    MAX_SPEED: 1.2,
     MAX_SCORE: 5,
     MAX_MINES: 4,
     BOOST_DRAIN: 100 / (5 * 60),
-    SHIELD_DRAIN: (100 / (5 * 60)) * 1.5,
     BOOST_REGEN: (100 / (5 * 60)) * 0.3,
     BOOST_COOLDOWN_FRAMES: 60,
     STUN_DURATION: 360,
@@ -22,12 +19,10 @@ export const CONFIG = {
     MINE_ARM_TIME: 2000,
     MINE_COOLDOWN: 500,
     AMMO_RESPAWN_DELAY: 300,
-    BEAM_ENERGY_COST: 20,
     DETONATE_COST: 30,
     BEAM_LENGTH: 40,
     PARTICLE_COUNT: 40,
     TRAIL_LENGTH: 12,
-    CHARGED_BEAM_COST: 80,
     CHARGE_TIME: 3000,
     GLITCH_TIME: 4000,
     CHARGE_PENALTY: 0.6,
@@ -37,7 +32,15 @@ export const CONFIG = {
     C_BEAM_WIDTH: 2,
     GAMEPAD_THRESH: 0.5,
     IDLE_THRESHOLD: 6000,
-    DEMO_RESET_TIMER: 300
+    DEMO_RESET_TIMER: 300,
+    BASE_SPEED: 0.5,
+    MAX_SPEED: 1.0,
+    BEAM_ENERGY_COST: 35, 
+    CHARGED_BEAM_COST: 90, 
+    SHIELD_DRAIN: (100 / (3 * 60)), // Drains full bar in 3 seconds (was 5)
+    SHIELD_ACTIVATION_COST: 10,
+    P1COLOR:'#d9ff00ff',
+    P2COLOR:'#ff0040ff',
 };
 
 export const CONTROLS_P1 = {
@@ -75,9 +78,6 @@ export const TAUNTS = [
     "MY HOVERCRAFT IS FULL OF EELS!", "YOU EMPTY-HEADED ANIMAL!"
 ];
 
-
-
-// Compact font arrays to save space
 export const BITMAP_FONT = {
     'A': [0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1],
     'B': [1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0],
