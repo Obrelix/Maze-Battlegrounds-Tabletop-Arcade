@@ -1005,7 +1005,7 @@
                 // Start at 60Hz, slide to 100Hz, duration 0.1s
                 // 'sawtooth' gives it a buzzy, mechanical feel
                 
-                this.playTone(140, 'sine', 0.7, 850);
+                this.playTone(60, 'sine', 0.9, 850);
             }
         }
 
@@ -1802,7 +1802,7 @@
                 if (p.boostEnergy <= 0) p.boostEnergy = 0;
 
                 // Play sound every 100ms (prevents stuttering)
-                if (now - p.lastBoostTime > 300) {
+                if (now - p.lastBoostTime > 600) {
                     p.lastBoostTime = now;
                     STATE.sfx.boost();
                 }
