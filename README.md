@@ -62,18 +62,6 @@ The Single Player mode features a fully autonomous bot designed to mimic human p
 * **Self-Preservation:** It scans for incoming projectiles and will attempt to dodge sideways or pop its shield at the last second.
 * **Stuck Detection:** If the AI gets stuck on geometry, it performs a "wiggle" maneuver to free itself.
 
-## 🛠️ Hardware Bill of Materials (BOM)
-
-This project is built using affordable, off-the-shelf components. You can view the [Full BOM Google Sheet here](https://docs.google.com/spreadsheets/d/12uv0eTk2EPSbfXsSc8Y3BzwX-76kk82TglhOV1aZT8A/edit?usp=sharing).
-
-### Core Components
-* **Controller:** Raspberry Pi Zero 2 W
-* **Display:** P2.5 Indoor HUB75 RGB LED Matrix (128x64 px, 320mm x 160mm)
-* **Interface:** RGB Matrix Bonnet for Raspberry Pi
-* **Power:** 5V 10A Power Supply Brick
-* **Controls:** Arcade Buttons or USB Controllers
-* **Audio:** External USB Sound Card
-
 ## 🧩 Gameplay Mechanics
 
 ### 1. The Energy System
@@ -94,11 +82,22 @@ Your lifeblood. You have a single energy bar that recharges slowly. You must man
 
 ---
 
+## 🛠️ Hardware Bill of Materials (BOM)
+
+This project is built using affordable, off-the-shelf components. You can view the [Full BOM Google Sheet here](https://docs.google.com/spreadsheets/d/12uv0eTk2EPSbfXsSc8Y3BzwX-76kk82TglhOV1aZT8A/edit?usp=sharing).
+
+### Core Components
+* **Controller:** Raspberry Pi Zero 2 W
+* **Display:** P2.5 Indoor HUB75 RGB LED Matrix (128x64 px, 320mm x 160mm)
+* **Interface:** RGB Matrix Bonnet for Raspberry Pi
+* **Power:** 5V 10A Power Supply Brick
+* **Controls:** Arcade Buttons or USB Controllers
+* **Audio:** External USB Sound Card
 ## 🚀 Installation (Web Version)
 
 To run the game locally on your computer:
 1.  Clone this repository.
 2.  Open `index.html` in any modern web browser.
-
+---
 ## 📟 Installation (Hardware Version)
 *(Coming Soon: Instructions for setting up the Raspberry Pi environment using rpi-rgb-led-matrix library)*
