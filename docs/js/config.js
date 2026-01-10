@@ -135,4 +135,4 @@ export const DIGIT_MAP = {
     9: [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1]
 };
 
-const GRACE_FRAMES = 10;
+export const GRACE_FRAMES = 10;

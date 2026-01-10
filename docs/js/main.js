@@ -42,7 +42,7 @@ const STATE = {
 };
 
 /** * ==========================================
- * 4. GRID & PHYSICS HELPERS
+ * 1. GRID & PHYSICS HELPERS
  * ==========================================
  */
 function gridIndex(c, r) {
@@ -136,7 +136,7 @@ function destroyWallAt(c, r) {
     }
 }
 /** * ==========================================
- * 5. GAME FLOW & GENERATION
+ * 2. GAME FLOW & GENERATION
  * ==========================================
  */
 function initMaze() {
@@ -292,7 +292,7 @@ function calculateGameTime() {
 }
 
 /** * ==========================================
- * 6. INPUT & AI LOGIC
+ * 3. INPUT & AI LOGIC
  * ==========================================
  */
 function resetIdleTimer() {
@@ -643,7 +643,7 @@ function getCpuInput(cpu, opponent) {
 }
 
 /** * ==========================================
- * 7. CORE GAME LOOP & PHYSICS
+ * 4. CORE GAME LOOP & PHYSICS
  * ==========================================
  */
 
@@ -723,7 +723,18 @@ function applyPlayerActions(p, input) {
                 p.lastBoostTime = now;
                 STATE.sfx.boost();
             }
-
+            if (Math.random() < 0.4) { // 40% chance per frame
+                STATE.particles.push({
+                    x: p.x + 1, // Center of player
+                    y: p.y + 1,
+                    // Velocity: Shoot opposite to player movement
+                    vx: -(p.lastDir.x * (Math.random() * 0.5 + 0.2)),
+                    vy: -(p.lastDir.y * (Math.random() * 0.5 + 0.2)),
+                    life: 0.4, // Short life
+                    decay: 0.08,
+                    color: '#ffffff' // White hot sparks
+                });
+            }
         } else {
             if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
             else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
@@ -834,7 +845,7 @@ function applyPlayerActions(p, input) {
         p.score += 2;
         if (p.score >= CONFIG.MAX_SCORE) {
             STATE.isGameOver = true;
-            STATE.looser = p.id == 0 ? 2 : 1;
+            STATE.looser = (p.id + 1 == 1) ? 2 : 1;
             STATE.messages.win = `PLAYER ${p.id + 1} WINS!`;
             STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
             STATE.messages.winColor = p.color;
@@ -938,6 +949,7 @@ function handleMultiDeath(indices, reason) {
         }
     });
 }
+
 function handlePlayerDeath(victimIdx, reason) {
     if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
 
@@ -1111,7 +1123,7 @@ function finalizeRound() {
     if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
         STATE.sfx.win();
         STATE.isGameOver = true;
-        STATE.looser = victimIdx == 0 ? 2 : 1; // Fixed logic
+        STATE.looser = (winnerIdx + 1 == 1) ? 2 : 1;
         STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
         STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
         STATE.messages.winColor = STATE.players[winnerIdx].color;
@@ -1403,7 +1415,7 @@ function updateProjectiles() {
 }
 
 /** * ==========================================
- * 8. RENDERING
+ * 5. RENDERING
  * ==========================================
  */
 
@@ -1455,6 +1467,14 @@ function drawDigit(x, y, num, color, rotateDeg) {
             drawLED(x + dx, y + dy, color);
         }
     }
+}
+
+
+function drawPlayerBody(x, y, color) {
+    drawLED(Math.floor(x), Math.floor(y), color);
+    drawLED(Math.floor(x) + 1, Math.floor(y), color);
+    drawLED(Math.floor(x), Math.floor(y) + 1, color);
+    drawLED(Math.floor(x) + 1, Math.floor(y) + 1, color);
 }
 
 function renderMenu() {
@@ -1569,62 +1589,89 @@ function renderGame() {
     });
 
     // 6. Draw Players
+    // ... inside renderGame() ...
+
     STATE.players.forEach(p => {
         if (p.isDead) return;
-        let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);
-        if (p.glitchTime > 0) {
-            let gc = Date.now() % 100 < 50 ? '#00FF27' : '#EEFF00';
-            let sx = Math.floor(p.x) - 1,
-                sy = Math.floor(p.y) - 1;
-            let perim = [{ x: 0, y: 0 }, { x: 3, y: 0 }, { x: 3, y: 3 }, { x: 0, y: 3 }];
-            for (let i = 0; i < perim.length; i++)
-                drawLED(sx + perim[i].x, sy + perim[i].y, gc);
-        }
-        // Beam
+
+        // --- 1. BEAM RENDERING (Unchanged) ---
+        // (Keep your existing beam drawing loop here)
         for (let k = 0; k < CONFIG.BEAM_LENGTH; k++) {
             let i = Math.floor(p.beamIdx) - k;
             if (i >= 0 && i < p.beamPixels.length) {
                 ctx.globalAlpha = 1 - (k / CONFIG.BEAM_LENGTH);
-                drawLED(p.beamPixels[i].x, p.beamPixels[i].y, rc);
+                drawLED(p.beamPixels[i].x, p.beamPixels[i].y, p.color);
                 ctx.globalAlpha = 1;
             }
         }
 
-        // Charge
+        // --- 2. CHARGING EFFECT (Unchanged) ---
+        // (Keep your existing charge effect logic here)
         if (p.isCharging) {
-            let r = (Date.now() - p.chargeStartTime) / CONFIG.CHARGE_TIME;
-            if (r > 1) r = 1;
+            let r = (Date.now() - p.chargeStartTime) / CONFIG.CHARGE_TIME; if (r > 1) r = 1;
             let cc = `hsl(${Math.floor((1 - r) * 120)},100%,50%)`;
-            let sx = Math.floor(p.x) - 1,
-                sy = Math.floor(p.y) - 1;
+            let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
             let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
             let n = Math.ceil(8 * r);
-            for (let i = 0; i < n; i++)
-                drawLED(sx + perim[i].x, sy + perim[i].y, cc);
+            for (let i = 0; i < n; i++) drawLED(sx + perim[i].x, sy + perim[i].y, cc);
         }
-
-        // Shield
+        
+        // --- 3. SHIELD EFFECT (Unchanged) ---
         if (p.shieldActive) {
-            let sx = Math.floor(p.x) - 1,
-                sy = Math.floor(p.y) - 1;
-            let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
-            for (let i = 0; i < 8; i++)
-                drawLED(sx + perim[i].x, sy + perim[i].y, '#88f');
+             let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
+             let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
+             for (let i = 0; i < 8; i++) drawLED(sx + perim[i].x, sy + perim[i].y, '#88f');
         }
 
-        // Trail
-        if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED)
-            p.trail.forEach((t, i) => {
-                ctx.globalAlpha = 0.7;
-                drawLED(Math.floor(t.x), Math.floor(t.y), rc);
-                drawLED(Math.floor(t.x) + 1, Math.floor(t.y), rc);
-                ctx.globalAlpha = 1;
-            });
+        // --- 4. TRAIL EFFECT (Unchanged) ---
+        if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) {
+             p.trail.forEach((t, i) => {
+                 const alpha = (i / p.trail.length) * 0.5; 
+                 ctx.globalAlpha = alpha;
+                 drawLED(Math.floor(t.x) + 0.5, Math.floor(t.y) + 0.5, p.color); 
+             });
+             ctx.globalAlpha = 1.0;
+        }
 
-        drawLED(Math.floor(p.x), Math.floor(p.y), rc);
-        drawLED(Math.floor(p.x) + 1, Math.floor(p.y), rc);
-        drawLED(Math.floor(p.x), Math.floor(p.y) + 1, rc);
-        drawLED(Math.floor(p.x) + 1, Math.floor(p.y) + 1, rc);
+        // --- 5. NEW: GLITCH & STUN VISUALS ---
+        if (p.glitchTime > 0) {
+            // 
+            // EFFECT: "RGB Split" (Simulates Broken Controls)
+            const shake = 0.6; // Pixel offset amount
+            
+            // Draw RED Ghost (Offset Randomly)
+            let rX = (Math.random() - 0.5) * shake;
+            let rY = (Math.random() - 0.5) * shake;
+            drawPlayerBody(p.x + rX, p.y + rY, '#FF0000'); 
+
+            // Draw CYAN Ghost (Offset Opposite)
+            let cX = (Math.random() - 0.5) * shake;
+            let cY = (Math.random() - 0.5) * shake;
+            drawPlayerBody(p.x + cX, p.y + cY, '#00FFFF');
+
+            // 20% Chance to draw the real white core on top
+            if (Math.random() > 0.8) drawPlayerBody(p.x, p.y, '#FFFFFF');
+
+        } else if (p.stunTime > 0) {
+            // 
+            // EFFECT: "Static Shock" (Simulates Stun)
+            // Rapidly flash between Dim Grey and Bright White
+            let flashColor = (Math.floor(Date.now() / 40) % 2 === 0) ? '#444444' : '#FFFFFF';
+            drawPlayerBody(p.x, p.y, flashColor);
+
+            // Draw random "sparks" around the player
+            for(let i=0; i<3; i++) {
+                // Pick a random spot near the player
+                let sx = p.x + (Math.random() * 3) - 0.5;
+                let sy = p.y + (Math.random() * 3) - 0.5;
+                // Draw a single yellow/white spark pixel
+                drawLED(Math.floor(sx), Math.floor(sy), Math.random() > 0.5 ? '#FFFF00' : '#FFFFFF');
+            }
+
+        } else {
+            // NORMAL RENDER
+            drawPlayerBody(p.x, p.y, p.color);
+        }
     });
 
     // 7. Draw Particles
@@ -1683,7 +1730,7 @@ function renderGame() {
     }
 }
 /** * ==========================================
- * 9. INIT & EVENT LISTENERS
+ * 6. INIT & EVENT LISTENERS
  * ==========================================
  */
 
@@ -1756,14 +1803,10 @@ window.addEventListener('keydown', (e) => {
         }
     }
 });
+
 window.addEventListener('keyup', (e) => STATE.keys[e.code] = false);
 
 window.addEventListener('load', () => {
-    if (typeof nipplejs === 'undefined') {
-        console.error("Nipple.js failed to load!");
-        alert("Joystick library blocked by browser/network.\nPlease try a different browser or check internet connection.");
-    } else
-        initTouchControls();
-
+    initTouchControls();
     loop();
 });
