@@ -22,7 +22,7 @@ export const CONFIG = {
     DETONATE_COST: 30,
     BEAM_LENGTH: 40,
     PARTICLE_COUNT: 40,
-    TRAIL_LENGTH: 12,
+    TRAIL_LENGTH: 32,
     CHARGE_TIME: 3000,
     GLITCH_TIME: 4000,
     CHARGE_PENALTY: 0.6,
@@ -134,5 +134,3 @@ export const DIGIT_MAP = {
     8: [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
     9: [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1]
 };
-
-export const GRACE_FRAMES = 10;

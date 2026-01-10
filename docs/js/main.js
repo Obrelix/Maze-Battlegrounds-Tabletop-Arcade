@@ -568,12 +568,15 @@ function getCpuInput(cpu, opponent) {
 
     // --- 3. RETREAT MINING ---
     // If opponent is close (dist < 10) and we are moving away, drop a mine
-    if (distOpp < 10 && cpu.minesLeft > 0) {
+    if (distOpp < 15 && cpu.minesLeft > 0) {
         // Check if opponent is roughly behind us (dot product of our dir vs vector to opp)
         // Simple heuristic: just drop if they are close, it's chaotic fun
-        if (Math.random() < 0.1) cmd.mine = true;
+        if (Math.random() < 0.2) cmd.mine = true;
     }
-
+    if (opponent.stunTime > 0 && cpu.boostEnergy > CONFIG.BEAM_ENERGY_COST) {
+        // Rough alignment check
+        if (Math.abs(dx) < 2 || Math.abs(dy) < 2) cmd.beam = true;
+    }
     // --- 4. NAVIGATION & UNSTUCK (Unchanged) ---
     // (Preserve your existing stuck detection and pathfinding logic here)
     let distMoved = Math.hypot(cpu.x - cpu.lastPos.x, cpu.y - cpu.lastPos.y);
@@ -1288,12 +1291,15 @@ function update() {
             if (bIdx >= 0 && bIdx < p.beamPixels.length) {
                 let bp = p.beamPixels[bIdx];
                 if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
-                    triggerExplosion(m.x, m.y, "ATE SHRAPNEL");
-                    STATE.mines.splice(i, 1);
-                    p.beamPixels = [];
-                    p.beamIdx = 9999;
-                    continue;
-                }
+                // Change: Don't trigger full explosion, just "defuse" or small pop
+                triggerExplosion(m.x, m.y, "MINESWEEPER"); 
+                STATE.mines.splice(i, 1);
+                
+                // Stop the beam so you can't snipe through mines
+                p.beamPixels = []; 
+                p.beamIdx = 9999; 
+                continue;
+            }
             }
             if (m.active && p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
                 triggerExplosion(m.x, m.y, "TRIPPED MINE");
@@ -1469,6 +1475,10 @@ function drawDigit(x, y, num, color, rotateDeg) {
 }
 
 function drawPlayerBody(x, y, color) {
+    let p = STATE.players.find(pl => pl.color === color); // Simplified lookup
+    if (p && p.boostEnergy < 25 && Math.floor(Date.now() / 100) % 2 === 0) {
+        color = '#555'; // Flash grey if exhausted
+    }
     drawLED(Math.floor(x), Math.floor(y), color);
     drawLED(Math.floor(x) + 1, Math.floor(y), color);
     drawLED(Math.floor(x), Math.floor(y) + 1, color);
@@ -1478,10 +1488,10 @@ function drawPlayerBody(x, y, color) {
 function renderMenu() {
     document.getElementById('p1-header').style.color = CONFIG.P1COLOR;
     document.getElementById('p2-header').style.color = CONFIG.P2COLOR;
-    document.getElementById('p1-panel').style.border= `1px solid ${CONFIG.P1COLOR.slice(0,7)}63`;
-    document.getElementById('p1-panel').style.boxShadow = `inset 0 0 15px ${CONFIG.P1COLOR.slice(0,7)}23`;
-    document.getElementById('p2-panel').style.border= `1px solid ${CONFIG.P2COLOR.slice(0,7)}63`;
-    document.getElementById('p2-panel').style.boxShadow = `inset 0 0 15px ${CONFIG.P2COLOR.slice(0,7)}23`;
+    document.getElementById('p1-panel').style.border = `1px solid ${CONFIG.P1COLOR.slice(0, 7)}63`;
+    document.getElementById('p1-panel').style.boxShadow = `inset 0 0 15px ${CONFIG.P1COLOR.slice(0, 7)}23`;
+    document.getElementById('p2-panel').style.border = `1px solid ${CONFIG.P2COLOR.slice(0, 7)}63`;
+    document.getElementById('p2-panel').style.boxShadow = `inset 0 0 15px ${CONFIG.P2COLOR.slice(0, 7)}23`;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
@@ -1765,7 +1775,7 @@ function startGame() {
     if (STATE.sfx) STATE.sfx.init();
     STATE.screen = 'PLAYING';
     STATE.isGameOver = false;
-    STATE.isRoundOver = false;1
+    STATE.isRoundOver = false; 1
     STATE.players = [
         new Player(0, CONFIG.P1COLOR, CONTROLS_P1),
         new Player(1, CONFIG.P2COLOR, CONTROLS_P2)
