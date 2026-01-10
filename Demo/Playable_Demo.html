@@ -757,9 +757,11 @@
             C_BEAM_RANGE: 10,
             C_BEAM_LENGTH: 5,
             C_BEAM_WIDTH: 2,
-            GAMEPAD_THRESH: 0.5
+            GAMEPAD_THRESH: 0.5,
+            IDLE_THRESHOLD: 6000,
+            DEMO_RESET_TIMER: 300
         };
-
+        let lastInputTime = Date.now();
         const CONTROLS_P1 = {
             select: 'KeySelect',
             start: 'KeyStart',
@@ -953,7 +955,7 @@
                 this.playTone(800, 'square', 0.1, 100);
             } // "Pew"
             chargedShoot() {
-                this.playTone(400, 'sawtooth', 0.4, 50);
+                this.playTone(400, 'sawtooth', 0.4, 500);
             } // deep "Zap"
             charge() {
                 this.playTone(200, 'sine', 0.1, 600);
@@ -999,6 +1001,12 @@
                     }, index * 120);
                 });
             }
+            boost() {
+                // Start at 60Hz, slide to 100Hz, duration 0.1s
+                // 'sawtooth' gives it a buzzy, mechanical feel
+                
+                this.playTone(140, 'sine', 0.7, 850);
+            }
         }
 
         class Cell {
@@ -1043,6 +1051,7 @@
             resetState() {
                 this.minesLeft = CONFIG.MAX_MINES;
                 this.lastMineTime = 0;
+                this.lastBoostTime = 0;
                 this.trail = [];
                 this.boostEnergy = 100;
                 this.boostCooldown = 0;
@@ -1083,6 +1092,8 @@
         const STATE = {
             screen: 'MENU',
             gameMode: 'SINGLE',
+            isAttractMode: false,
+            demoResetTimer: 0,
             maze: [],
             players: [],
             mines: [],
@@ -1367,11 +1378,23 @@
          * 6. INPUT & AI LOGIC
          * ==========================================
          */
+        function resetIdleTimer() {
+            lastInputTime = Date.now();
 
+            // If we are in Demo Mode and someone touches a button, QUIT immediately
+            if (STATE.isAttractMode) {
+                STATE.isAttractMode = false;
+                STATE.screen = 'MENU';
+                STATE.gameMode = 'SINGLE';
+                // Reset brightness or other arcade specific hardware flags here later
+                document.getElementById('statusText').innerText = "SELECT MODE";
+            }
+        }
         function initTouchControls() {
             const buttons = document.querySelectorAll('.btn');
             buttons.forEach(btn => {
                 btn.addEventListener('touchstart', (e) => {
+                    resetIdleTimer();
                     e.preventDefault();
                     if (STATE.sfx) STATE.sfx.init();
                     const code = btn.getAttribute('data-key');
@@ -1414,6 +1437,7 @@
             });
 
             manager.on('move', (evt, data) => {
+                resetIdleTimer();
                 resetMoveKeys();
                 if (data.direction) {
                     const dir = data.direction;
@@ -1461,9 +1485,20 @@
                 }
             };
 
+            let activityDetected = false; // <--- Flag for activity
             for (let i = 0; i < gamepads.length; i++) {
                 const gp = gamepads[i];
                 if (!gp) continue;
+
+                // CHECK FOR ANY INPUT TO RESET TIMER
+                // Check axes
+                if (Math.abs(gp.axes[0]) > CONFIG.GAMEPAD_THRESH || Math.abs(gp.axes[1]) > CONFIG.GAMEPAD_THRESH) {
+                    activityDetected = true;
+                }
+                // Check all buttons
+                for (let b = 0; b < gp.buttons.length; b++) {
+                    if (gp.buttons[b].pressed) activityDetected = true;
+                }
 
                 // make the assamption that the 1st gamepad belong to  Player 1
                 let target = (i === 0) ? gpInput.p1 : gpInput.p2;
@@ -1490,6 +1525,9 @@
                     if (STATE.isGameOver || STATE.isRoundOver) startGame();
                 }
             }
+
+
+            if (activityDetected) resetIdleTimer(); // <--- Reset timer if active
             return gpInput;
         }
 
@@ -1701,7 +1739,7 @@
                     let minesFound = false;
                     for (let i = STATE.mines.length - 1; i >= 0; i--) {
                         if (STATE.mines[i].owner === p.id) {
-                            triggerExplosion(STATE.mines[i].x, STATE.mines[i].y, "KILLED BY REMOTE DETONATION");
+                            triggerExplosion(STATE.mines[i].x, STATE.mines[i].y, "WAS FRAGGED");
                             STATE.mines.splice(i, 1);
                             minesFound = true;
                         }
@@ -1759,10 +1797,17 @@
                     p.boostCooldown--;
                     if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
                 } else if (input.boost && p.boostEnergy > 0) {
-                    p.boostEnergy -= CONFIG.BOOST_DRAIN;
-                    speed = CONFIG.MAX_SPEED;
-                    if (p.boostEnergy <= 0) p.boostEnergy = 0;
-                } else {
+                p.boostEnergy -= CONFIG.BOOST_DRAIN;
+                speed = CONFIG.MAX_SPEED;
+                if (p.boostEnergy <= 0) p.boostEnergy = 0;
+
+                // Play sound every 100ms (prevents stuttering)
+                if (now - p.lastBoostTime > 300) {
+                    p.lastBoostTime = now;
+                    STATE.sfx.boost();
+                }
+
+            } else {
                     if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
                     else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
                 }
@@ -1836,6 +1881,7 @@
                     STATE.messages.roundColor = p.color;
                     STATE.scrollX = CONFIG.LOGICAL_W + 5;
                 }
+                if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
             }
         }
 
@@ -2067,7 +2113,7 @@
                 STATE.sfx.roundOver(); // Play generic sound
                 STATE.isRoundOver = true;
                 STATE.scrollX = CONFIG.LOGICAL_W + 5;
-
+                if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
                 // Reset Logic
                 STATE.deathTimer = 0;
                 STATE.isDraw = false;
@@ -2097,6 +2143,9 @@
             }
 
             STATE.deathTimer = 0;
+            if (STATE.isAttractMode) {
+                STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER; // Wait ~3 seconds (60 frames/sec * 3)
+            }
         }
 
         // --- Main Update ---
@@ -2109,6 +2158,12 @@
                 if (STATE.keys['Digit2']) {
                     STATE.gameMode = 'MULTI';
                     startGame();
+                }
+                if (Date.now() - lastInputTime > CONFIG.IDLE_THRESHOLD) {// CHECK IDLE TIMER
+                    STATE.isAttractMode = true;
+                    STATE.gameMode = 'MULTI'; // Doesn't matter, but keeps logic clean
+                    startGame();
+                    document.getElementById('statusText').innerText = "DEMO MODE";
                 }
                 updateParticles();
                 return;
@@ -2131,6 +2186,17 @@
                 STATE.scrollX -= 0.5;
                 let msgLen = (STATE.isGameOver ? STATE.messages.taunt.length : STATE.messages.round.length);
                 if (STATE.scrollX < -(msgLen * 4.5)) STATE.scrollX = CONFIG.LOGICAL_W;
+                if (STATE.isAttractMode && STATE.demoResetTimer > 0) {
+                    STATE.demoResetTimer--;
+                    if (STATE.demoResetTimer <= 0) {
+                        // Determine action: Restart Game (if Game Over) or Next Round (if Round Over)
+                        if (STATE.isGameOver) {
+                            startGame();
+                        } else {
+                            initMaze();
+                        }
+                    }
+                }
                 return;
             }
             updateProjectiles();
@@ -2139,6 +2205,7 @@
                 STATE.messages.round = "TIME OUT!";
                 STATE.messages.roundColor = "#ffff00";
                 STATE.scrollX = CONFIG.LOGICAL_W + 5;
+                if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
                 return;
             }
             STATE.gameTime -= 1;
@@ -2164,7 +2231,7 @@
                     let h1 = p1.beamPixels[b1];
                     let h2 = p2.beamPixels[b2];
                     if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < 4) {
-                        triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2, "KILLED BY CHAIN REACTION");
+                        triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2, "ANNIHILATED");
                         p1.beamPixels = [];
                         p1.beamIdx = 9999;
                         p2.beamPixels = [];
@@ -2230,7 +2297,7 @@
                     if (bIdx >= 0 && bIdx < p.beamPixels.length) {
                         let bp = p.beamPixels[bIdx];
                         if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
-                            triggerExplosion(m.x, m.y, "BAD LUCK");
+                            triggerExplosion(m.x, m.y, "ATE SHRAPNEL");
                             STATE.mines.splice(i, 1);
                             p.beamPixels = [];
                             p.beamIdx = 9999;
@@ -2238,17 +2305,24 @@
                         }
                     }
                     if (m.active && p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
-                        triggerExplosion(m.x, m.y, "STEPPED ON MINE");
+                        triggerExplosion(m.x, m.y, "TRIPPED MINE");
                         STATE.mines.splice(i, 1);
                     }
                 }
 
+                // --- INPUT LOGIC  ---
                 let cmd = {};
-                if (idx === 0) {
-                    cmd = getHumanInput(idx, CONTROLS_P1);
-                } else {
-                    if (STATE.gameMode === 'SINGLE') cmd = getCpuInput(p, STATE.players[0]);
-                    else cmd = getHumanInput(idx, CONTROLS_P2);
+
+                // If in Attract Mode, BOTH players use AI
+                if (STATE.isAttractMode) { // Player 1 targets Player 2, Player 2 targets Player 1
+                    cmd = getCpuInput(p, STATE.players[(idx + 1) % 2]);
+                } else {// Normal Gameplay
+                    if (idx === 0) {
+                        cmd = getHumanInput(idx, CONTROLS_P1);
+                    } else {
+                        if (STATE.gameMode === 'SINGLE') cmd = getCpuInput(p, STATE.players[0]);
+                        else cmd = getHumanInput(idx, CONTROLS_P2);
+                    }
                 }
                 applyPlayerActions(p, cmd);
             });
@@ -2318,7 +2392,7 @@
                 for (let mIdx = STATE.mines.length - 1; mIdx >= 0; mIdx--) {
                     let m = STATE.mines[mIdx];
                     if (Math.abs(proj.x - m.x) < hw + 1 && Math.abs(proj.y - m.y) < hh + 1) {
-                        triggerExplosion(m.x, m.y, "GOT CAUGHT");
+                        triggerExplosion(m.x, m.y, "SHOCKWAVE");
                         STATE.mines.splice(mIdx, 1);
                     }
                 }
@@ -2336,7 +2410,7 @@
 
                 if (bLeft < pRight && bRight > pLeft && bTop < pBot && bBot > pTop) {
                     if (!opp.shieldActive) {
-                        handlePlayerDeath(oppId, "TOOK CHARGED SHOT");
+                        handlePlayerDeath(oppId, "WAS VAPORIZED");
                         STATE.projectiles.splice(i, 1);
                         return;
                     } else {
@@ -2517,7 +2591,7 @@
             // 6. Draw Players
             STATE.players.forEach(p => {
                 if (p.isDead) return;
-                let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);                
+                let rc = p.stunTime > 0 ? (Date.now() % 100 < 50 ? '#808' : p.color) : (p.glitchTime > 0 ? (Date.now() % 100 < 50 ? '#0f0' : p.color) : p.color);
                 if (p.glitchTime > 0) {
                     let gc = Date.now() % 100 < 50 ? '#00FF27' : '#EEFF00';
                     let sx = Math.floor(p.x) - 1,
@@ -2604,7 +2678,12 @@
             drawDigit(rx, 8, parseInt(s[0]), wallColor, -90);
             drawDigit(rx, 4, parseInt(s[1]), wallColor, -90);
             drawDigit(rx, 0, parseInt(s[2]), wallColor, -90);
-
+            if (STATE.isAttractMode) {
+                if (Math.floor(Date.now() / 800) % 2 === 0) { // Blink slowly
+                    drawText("DEMO MODE", 46, 25, "#ff0000");
+                    drawText("PRESS ANY BUTTON", 32, 35, "#ffff00");
+                }
+            }
             // 9. OVERLAY TEXT & DIMMER
             if (STATE.isGameOver || STATE.isRoundOver) {
                 ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
@@ -2678,6 +2757,7 @@
         }
 
         window.addEventListener('keydown', (e) => {
+            resetIdleTimer();
             if (STATE.sfx) STATE.sfx.init();
             let k = e.code;
             if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(k)) e.preventDefault();
