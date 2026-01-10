@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze Battleground: Pixel Perfect</title>
+    <script src="libs/nipplejs.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body tabindex="0" onclick="this.focus()">
+
+    <div class="arcade-header">
+        <div class="header-bar">
+            <div class="game-title">MAZE BATTLEGROUND <span
+                    style="font-size:0.5em; opacity:0.5; vertical-align: middle;">MAYHEM</span></div>
+            <div class="round-info" id="statusText">SELECT MODE</div>
+        </div>
+
+        <div class="dashboard">
+            <div class="panel p1-panel">
+                <div class="panel-header" style="color: #00ffff;">PLAYER 1</div>
+                <div class="control-group">
+                    <div class="c-row">
+                        <span class="action-name act-mov">MOVE</span>
+                        <div><span class="key-cap">W</span><span class="key-cap">A</span><span
+                                class="key-cap">S</span><span class="key-cap">D</span></div>
+                    </div>
+                    <div class="c-row">
+                        <span class="action-name act-atk">MINE/BOOM</span>
+                        <div><span class="key-cap">E</span>+<span class="key-cap">SPC</span></div>
+                    </div>
+                    <div class="c-row">
+                        <span class="action-name act-def">SHIELD</span><span class="key-cap">R</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="action-name act-def">BEAM</span><span class="key-cap">F</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="action-name act-mov">BOOST</span><span class="key-cap">G</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel rules-panel">
+                <div class="panel-header" style="color: #aaa; font-size: 0.75em; letter-spacing: 4px;">SYSTEM MECHANICS
+                </div>
+                <div class="legend-grid">
+                    <div class="legend-item">
+                        <span class="l-icon">☠</span>
+                        <div class="l-text"><span class="l-title hl-red">MINES</span><span class="l-desc">Lethal. 1
+                                Pt.</span></div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="l-icon">🛡</span>
+                        <div class="l-text"><span class="l-title hl-blue">SHIELD</span><span class="l-desc">Blocks
+                                All.</span></div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="l-icon">⚡</span>
+                        <div class="l-text"><span class="l-title hl-gold">TAP BEAM</span><span class="l-desc">Stuns
+                                Enemy.</span></div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="l-icon">💥</span>
+                        <div class="l-text"><span class="l-title hl-gold">HOLD BEAM</span><span class="l-desc">Break
+                                Wall/Kill.</span></div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="l-icon">🌀</span>
+                        <div class="l-text"><span class="l-title hl-purple">PORTAL</span><span
+                                class="l-desc">Teleport.</span></div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="l-icon">⚠</span>
+                        <div class="l-text"><span class="l-title hl-red">GLITCH</span><span class="l-desc">Invert
+                                Ctrl.</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel p2-panel">
+                <div class="panel-header" style="color: #ff00ff;">PLAYER 2 / CPU</div>
+                <div class="control-group">
+                    <div class="c-row">
+                        <div><span class="key-cap">^</span><span class="key-cap">&lt;</span><span
+                                class="key-cap">v</span><span class="key-cap">&gt;</span></div><span
+                            class="action-name act-mov">MOVE</span>
+                    </div>
+                    <div class="c-row">
+                        <div><span class="key-cap">O</span>+<span class="key-cap">ENT</span></div><span
+                            class="action-name act-atk">MINE/BOOM</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="key-cap">I</span><span class="action-name act-def">SHIELD</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="key-cap">K</span><span class="action-name act-def">BEAM</span>
+                    </div>
+                    <div class="c-row">
+                        <span class="key-cap">L</span><span class="action-name act-mov">BOOST</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="console-case">
+        <div class="screen-bezel">
+            <canvas id="ledMatrix" width="1280" height="640"></canvas>
+        </div>
+        <div class="panel-id">P2.5 RGB LED panel 128px x 64px - 320mm x 160mm</div>
+    </div>
+    <div class="info">MENU: '1'/'2' | GAME: 'R' NEXT ROUND/RESET | 'ESC' MENU |
+        <span style="color: #ffaa00;">⚠ ANTI-GHOSTING KEYBOARD REQUIRED</span>
+    </div>
+
+    <div id="mobile-rules-modal">
+        <div class="modal-content">
+            <h3 style="border-bottom: 1px solid #333; padding-bottom: 5px;">SYSTEM MECHANICS</h3>
+
+            <div class="m-rule"><span class="icon">☠</span> <span style="color:#ff5555">MINES</span>: Lethal (1 Pt)
+            </div>
+            <div class="m-rule"><span class="icon">🛡</span> <span style="color:#55ffff">SHIELD</span>: Blocks All</div>
+            <div class="m-rule"><span class="icon">⚡</span> <span style="color:#ffd700">TAP BEAM</span>: Stuns Enemy
+            </div>
+            <div class="m-rule"><span class="icon">💥</span> <span style="color:#ffd700">HOLD BEAM</span>: Break/Kill
+            </div>
+            <div class="m-rule"><span class="icon">🌀</span> <span style="color:#ff55ff">PORTAL</span>: Teleport</div>
+            <div class="m-rule"><span class="icon">⚠</span> <span style="color:#ff5555">GLITCH</span>: Invert Controls
+            </div>
+
+            <div class="close-btn" onclick="toggleRules()">CLOSE</div>
+        </div>
+    </div>
+    <div id="mobile-config">
+        <div class="touch-area config">
+            <div class="btnInfo" style="border-color: #00b7ff; color: #00b7ff;" onclick="toggleRules()">?</div>
+            <div class="btn" style="border-color: #00ff00; color: #00ff00;" data-key="KeyStart">Start</div>
+            <!-- <div class="btn" style="border-color: #ffd700; color: #ffd700;" data-key="KeySelect">Select</div> -->
+        </div>
+    </div>
+    <div id="mobile-controls">
+        <div id="joystick-zone"></div>
+        <div class="touch-area actions">
+            <div class="btn" style="border-color: #55ffff; color: #55ffff;" data-key="KeyR">SHLD</div>
+            <div class="btn" style="border-color: #00ff00; color: #00ff00;" data-key="KeyG">BOOST</div>
+            <div class="btn" style="border-color: #ffd700; color: #ffd700;" data-key="KeyF">BEAM</div>
+            <div class="btn" style="border-color: #ff5555; color: #ff5555;" data-key="Space">BOOM</div>
+            <div class="btn" style="border-color: #ff55ff; color: #ff55ff;" data-key="KeyE">MINE</div>
+        </div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
