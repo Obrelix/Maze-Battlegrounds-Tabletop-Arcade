@@ -1004,7 +1004,7 @@
             boost() {
                 // Start at 60Hz, slide to 100Hz, duration 0.1s
                 // 'sawtooth' gives it a buzzy, mechanical feel
-                
+
                 this.playTone(60, 'sine', 0.9, 850);
             }
         }
@@ -1797,17 +1797,17 @@
                     p.boostCooldown--;
                     if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
                 } else if (input.boost && p.boostEnergy > 0) {
-                p.boostEnergy -= CONFIG.BOOST_DRAIN;
-                speed = CONFIG.MAX_SPEED;
-                if (p.boostEnergy <= 0) p.boostEnergy = 0;
+                    p.boostEnergy -= CONFIG.BOOST_DRAIN;
+                    speed = CONFIG.MAX_SPEED;
+                    if (p.boostEnergy <= 0) p.boostEnergy = 0;
 
-                // Play sound every 100ms (prevents stuttering)
-                if (now - p.lastBoostTime > 600) {
-                    p.lastBoostTime = now;
-                    STATE.sfx.boost();
-                }
+                    // Play sound every 100ms (prevents stuttering)
+                    if (now - p.lastBoostTime > 600) {
+                        p.lastBoostTime = now;
+                        STATE.sfx.boost();
+                    }
 
-            } else {
+                } else {
                     if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
                     else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
                 }
@@ -1842,9 +1842,56 @@
             let sx = dx / steps;
             let sy = dy / steps;
 
+            // --- CORNER ASSIST CONSTANTS ---
+            // How far to "look ahead" for an open space (approx 1/3 of player size)
+            const ASSIST_OFFSET = 0.6;
+            // How fast to push the player into alignment (smoothness)
+            const NUDGE_SPEED = 0.15;
+
             for (let i = 0; i < steps; i++) {
-                if (sx !== 0 && !checkPlayerCollision(p, sx, 0)) p.x += sx;
-                if (sy !== 0 && !checkPlayerCollision(p, 0, sy)) p.y += sy;
+                // ----------------------
+                // X-AXIS MOVEMENT
+                // ----------------------
+                if (sx !== 0) {
+                    if (!checkPlayerCollision(p, sx, 0)) {
+                        // Path is clear, move normally
+                        p.x += sx;
+                    } else {
+                        // BLOCKED! Check for a corner to slide around.
+                        // We "look" slightly Up and Down to see if the path is clear there.
+
+                        // Check UP (Negative Y)
+                        // If we shifted the player UP by ASSIST_OFFSET, could they move?
+                        if (!checkPlayerCollision(p, sx, -ASSIST_OFFSET)) {
+                            p.y -= NUDGE_SPEED; // Yes! Nudge them Up
+                        }
+                        // Check DOWN (Positive Y)
+                        else if (!checkPlayerCollision(p, sx, ASSIST_OFFSET)) {
+                            p.y += NUDGE_SPEED; // Yes! Nudge them Down
+                        }
+                    }
+                }
+
+                // ----------------------
+                // Y-AXIS MOVEMENT
+                // ----------------------
+                if (sy !== 0) {
+                    if (!checkPlayerCollision(p, 0, sy)) {
+                        // Path is clear, move normally
+                        p.y += sy;
+                    } else {
+                        // BLOCKED! Check for a corner.
+
+                        // Check LEFT (Negative X)
+                        if (!checkPlayerCollision(p, -ASSIST_OFFSET, sy)) {
+                            p.x -= NUDGE_SPEED; // Nudge Left
+                        }
+                        // Check RIGHT (Positive X)
+                        else if (!checkPlayerCollision(p, ASSIST_OFFSET, sy)) {
+                            p.x += NUDGE_SPEED; // Nudge Right
+                        }
+                    }
+                }
             }
 
             // Mine Drop
