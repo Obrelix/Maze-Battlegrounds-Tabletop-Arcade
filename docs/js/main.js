@@ -1203,8 +1203,8 @@ function update() {
         return;
     }
     STATE.gameTime -= 1;
-    // NEW: Sudden Death - Every second after time runs low (e.g. < 30 seconds left)
-    if (STATE.gameTime < 220 && STATE.gameTime % 60 === 0) {
+    // NEW: Sudden Death - Every second after time runs low (e.g. < 55 seconds left)
+    if (STATE.gameTime < 4020 && STATE.gameTime % 120 === 0) {
         STATE.messages.round = "SUDDEN DEATH!";
         STATE.scrollX = CONFIG.LOGICAL_W; // Flash warning
 
