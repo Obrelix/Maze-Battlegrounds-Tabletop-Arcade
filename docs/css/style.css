@@ -209,6 +209,7 @@ body {
         grid-template-columns: 55px 55px;
         grid-template-rows: 55px 55px 55px;
         margin-right: 10px;
+        margin-bottom: 10px;
     }
 
     #mobile-controls {
@@ -242,55 +243,126 @@ body {
     }
 
     .btn {
-        width: 55px;
-        height: 55px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 2px solid rgba(255, 255, 255, 0.4);
-        border-radius: 30%;
-        color: #fff;
+        /* Layout */
+        width: 100%;
+        height: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-weight: bold;
-        font-size: 11px;
+
+        /* Typography */
+        font-family: 'Courier New', monospace;
+        font-weight: 900;
+        font-size: 14px;
+        /* Larger text */
+        letter-spacing: 1px;
+        text-shadow: 0 0 5px currentColor;
+        /* Text glows with its own color */
+
+        /* Glassmorphism & Shape */
+        background: rgba(20, 20, 20, 0.4);
+        /* Dark semi-transparent background */
+        backdrop-filter: blur(4px);
+        border-radius: 50%;
+        /* Make them perfectly round for an arcade feel */
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        /* Subtle base border */
+
+        /* Effects */
+        box-shadow:
+            0 4px 10px rgba(0, 0, 0, 0.6),
+            /* Drop shadow */
+            inset 0 0 15px rgba(255, 255, 255, 0.05);
+        /* Inner metallic shine */
+        transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        /* Bouncy transition */
         user-select: none;
-        backdrop-filter: blur(2px);
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
     }
 
     .btn:active {
-        background: rgba(255, 255, 255, 0.3);
-        transform: scale(0.95);
+        transform: scale(0.9);
+        /* Physically shrink */
+        background: rgba(255, 255, 255, 0.1);
+        /* Flash white */
+        box-shadow:
+            0 0 25px currentColor,
+            /* Intense outer glow matching button color */
+            inset 0 0 10px currentColor;
+        /* Inner glow */
+        border-color: #fff !important;
     }
 
-    .btn[data-key="KeyG"] {
-        grid-column: 1;
-        grid-row: 3;
-    }
-
+    /* SHIELD (Cyan) */
     .btn[data-key="KeyR"] {
         grid-column: 2;
         grid-row: 3;
+        border-color: #55ffff !important;
+        color: #55ffff !important;
+        box-shadow: 0 0 10px rgba(85, 255, 255, 0.2), inset 0 0 10px rgba(85, 255, 255, 0.1);
     }
 
+    /* BOOST (Green) */
+    .btn[data-key="KeyG"] {
+        grid-column: 1;
+        grid-row: 3;
+        border-color: #00ff00 !important;
+        color: #00ff00 !important;
+        box-shadow: 0 0 10px rgba(0, 255, 0, 0.2), inset 0 0 10px rgba(0, 255, 0, 0.1);
+    }
+
+    /* BEAM (Gold) - The Long Button */
     .btn[data-key="KeyF"] {
-        border-radius: 10px;
-        width: 115px;
         grid-column-start: 1;
         grid-column-end: 2;
+        /* Keep it 1x1 if you want circle, or span 2 for pill */
         grid-row: 2;
+
+        /* Let's make the beam button unique (Pill shape) to stand out */
+        width: 125px;
+        /* Spanning width */
+        border-radius: 30px;
+        border-color: #ffd700 !important;
+        color: #ffd700 !important;
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.2), inset 0 0 10px rgba(255, 215, 0, 0.1);
     }
 
+    /* MINE (Magenta) */
     .btn[data-key="KeyE"] {
         grid-column: 1;
         grid-row: 1;
+        border-color: #ff55ff !important;
+        color: #ff55ff !important;
+        box-shadow: 0 0 10px rgba(255, 85, 255, 0.2), inset 0 0 10px rgba(255, 85, 255, 0.1);
     }
 
+    /* BOOM (Red) - The Big Danger Button */
     .btn[data-key="Space"] {
         grid-column: 2;
         grid-row: 1;
-        /* border-width: 3px; */
-        background: rgba(255, 0, 0, 0.3);
+        border-color: #ff5555 !important;
+        color: #ff5555 !important;
+        background: rgba(255, 85, 85, 0.1);
+        /* Slight red tint always */
+        box-shadow: 0 0 15px rgba(255, 85, 85, 0.3), inset 0 0 10px rgba(255, 85, 85, 0.1);
+        animation: pulse-red 2s infinite;
+        /* Subtle danger pulse */
+    }
+
+    @keyframes pulse-red {
+        0% {
+            box-shadow: 0 0 10px rgba(255, 85, 85, 0.3);
+        }
+
+        50% {
+            box-shadow: 0 0 20px rgba(255, 85, 85, 0.6);
+        }
+
+        100% {
+            box-shadow: 0 0 10px rgba(255, 85, 85, 0.3);
+        }
     }
 }
 

@@ -1203,7 +1203,23 @@ function update() {
         return;
     }
     STATE.gameTime -= 1;
+    // NEW: Sudden Death - Every second after time runs low (e.g. < 30 seconds left)
+    if (STATE.gameTime < 220 && STATE.gameTime % 60 === 0) {
+        STATE.messages.round = "SUDDEN DEATH!";
+        STATE.scrollX = CONFIG.LOGICAL_W; // Flash warning
 
+        // Spawn a neutral mine in a random spot to increase panic
+        let rx = Math.floor(Math.random() * CONFIG.COLS);
+        let ry = Math.floor(Math.random() * CONFIG.ROWS);
+        STATE.mines.push({
+            x: CONFIG.MAZE_OFFSET_X + rx * CONFIG.CELL_SIZE,
+            y: ry * CONFIG.CELL_SIZE,
+            active: true, // Instantly active
+            droppedAt: Date.now(),
+            visX: 0, visY: 0,
+            owner: -1 // Neutral owner (hurts everyone)
+        });
+    }
     let now = Date.now();
     STATE.mines.forEach(m => {
         if (!m.active && now - m.droppedAt > CONFIG.MINE_ARM_TIME) m.active = true;
@@ -1282,6 +1298,8 @@ function update() {
                 }
                 opponent.beamPixels = [];
                 opponent.beamIdx = 9999;
+                opponent.boostEnergy = Math.min(100, opponent.boostEnergy + 15); // Attacker gains
+                p.boostEnergy = Math.max(0, p.boostEnergy - 15);                 // Victim loses
             }
         }
 
@@ -1291,15 +1309,15 @@ function update() {
             if (bIdx >= 0 && bIdx < p.beamPixels.length) {
                 let bp = p.beamPixels[bIdx];
                 if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
-                // Change: Don't trigger full explosion, just "defuse" or small pop
-                triggerExplosion(m.x, m.y, "MINESWEEPER"); 
-                STATE.mines.splice(i, 1);
-                
-                // Stop the beam so you can't snipe through mines
-                p.beamPixels = []; 
-                p.beamIdx = 9999; 
-                continue;
-            }
+                    // Change: Don't trigger full explosion, just "defuse" or small pop
+                    triggerExplosion(m.x, m.y, "MINESWEEPER");
+                    STATE.mines.splice(i, 1);
+
+                    // Stop the beam so you can't snipe through mines
+                    p.beamPixels = [];
+                    p.beamIdx = 9999;
+                    continue;
+                }
             }
             if (m.active && p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
                 triggerExplosion(m.x, m.y, "TRIPPED MINE");
@@ -1791,14 +1809,6 @@ function loop() {
     requestAnimationFrame(loop);
 }
 
-function toggleRules() {
-    const modal = document.getElementById('mobile-rules-modal');
-    if (modal.style.display === 'flex') {
-        modal.style.display = 'none';
-    } else {
-        modal.style.display = 'flex';
-    }
-}
 
 window.addEventListener('keydown', (e) => {
     resetIdleTimer();

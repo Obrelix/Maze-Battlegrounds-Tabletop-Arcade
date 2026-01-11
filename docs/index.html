@@ -152,6 +152,16 @@
         </div>
     </div>
     <script type="module" src="js/main.js"></script>
+    <script>
+        function toggleRules() {
+            const modal = document.getElementById('mobile-rules-modal');
+            if (modal.style.display === 'flex') {
+                modal.style.display = 'none';
+            } else {
+                modal.style.display = 'flex';
+            }
+        }
+    </script>
 </body>
 
 </html>
