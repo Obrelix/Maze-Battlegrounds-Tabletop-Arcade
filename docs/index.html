@@ -161,6 +161,28 @@
                 modal.style.display = 'flex';
             }
         }
+        const buttons = document.querySelectorAll('.btn, .btnInfo');
+
+        buttons.forEach(btn => {
+            // When finger touches screen
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault(); // Prevents double-firing on some devices
+                btn.classList.add('active-state');
+
+                // Simulate the key press logic here if needed, 
+                // or let your existing click/touch logic handle the game action
+            }, { passive: false });
+
+            // When finger leaves screen
+            btn.addEventListener('touchend', () => {
+                btn.classList.remove('active-state');
+            });
+
+            // If finger slides off the button
+            btn.addEventListener('touchcancel', () => {
+                btn.classList.remove('active-state');
+            });
+        });
     </script>
 </body>
 
