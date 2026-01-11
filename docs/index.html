@@ -161,26 +161,38 @@
                 modal.style.display = 'flex';
             }
         }
-        const buttons = document.querySelectorAll('.btn, .btnInfo');
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Select all game buttons
+            const gameButtons = document.querySelectorAll('.btn, .btnInfo');
 
-        buttons.forEach(btn => {
-            // When finger touches screen
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault(); // Prevents double-firing on some devices
-                btn.classList.add('active-state');
+            gameButtons.forEach(btn => {
+                // Function to Turn ON the glow
+                const activate = (e) => {
+                    // Prevent browser zooming/scrolling on the button
+                    if (e.cancelable) e.preventDefault();
 
-                // Simulate the key press logic here if needed, 
-                // or let your existing click/touch logic handle the game action
-            }, { passive: false });
+                    btn.classList.add('manual-active');
 
-            // When finger leaves screen
-            btn.addEventListener('touchend', () => {
-                btn.classList.remove('active-state');
-            });
+                    // OPTIONAL: Trigger your game key press here if it wasn't working
+                    // triggerKey(btn.getAttribute('data-key')); 
+                };
 
-            // If finger slides off the button
-            btn.addEventListener('touchcancel', () => {
-                btn.classList.remove('active-state');
+                // Function to Turn OFF the glow
+                const deactivate = (e) => {
+                    btn.classList.remove('manual-active');
+                };
+
+                // Touch Events (Mobile)
+                btn.addEventListener('touchstart', activate, { passive: false });
+                btn.addEventListener('touchend', deactivate);
+                btn.addEventListener('touchcancel', deactivate);
+
+                // Mouse Events (PC testing)
+                btn.addEventListener('mousedown', activate);
+                btn.addEventListener('mouseup', deactivate);
+                btn.addEventListener('mouseleave', deactivate);
             });
         });
     </script>

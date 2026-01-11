@@ -280,18 +280,18 @@ body {
         cursor: pointer;
         position: relative;
         overflow: hidden;
-        -webkit-tap-highlight-color: transparent;
+        -webkit-tap-highlight-color: transparent !important;
         /* iOS/Android removal of grey box */
-        touch-action: manipulation;
+        touch-action: manipulation !important;
         /* Improves tap response time */
     }
 
-    .btn:active, .btn.active-state {
-        transform: scale(0.9);
+    .btn:active, .btn.manual-active {
+        transform: scale(0.9) !important;
         /* Physically shrink */
-        background: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.1) !important;
         /* Flash white */
-        box-shadow:0 0 25px currentColor, inset 0 0 10px currentColor;
+        box-shadow:0 0 25px currentColor, inset 0 0 10px currentColor !important;
         /* Inner glow */
         border-color: #fff !important;
     }
