@@ -39,6 +39,7 @@ const STATE = {
     scrollX: 0,
     sfx: new SoundFX(),
     camera: new Camera(),
+    gpData: null,
 };
 
 /** * ==========================================
@@ -340,7 +341,7 @@ function initTouchControls() {
         mode: 'static',
         position: { left: '50%', top: '50%' },
         color: 'white',
-        size: 100
+        size: 85
     });
 
     function resetMoveKeys() {
@@ -373,85 +374,95 @@ function initTouchControls() {
     });
 }
 /** * ==========================================
- * NATIVE GAMEPAD POLLING (NEW)
+ * NATIVE GAMEPAD POLLING 
+ * ==========================================
+ */
+/** * ==========================================
+ * NATIVE GAMEPAD POLLING (Refactored)
  * ==========================================
  */
 function pollGamepads() {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-    const gpInput = {
-        p1: {
-            up: false,
-            down: false,
-            left: false,
-            right: false,
-            shield: false,
-            beam: false,
-            mine: false,
-            boost: false,
-            boom: false
-        },
-        p2: {
-            up: false,
-            down: false,
-            left: false,
-            right: false,
-            shield: false,
-            beam: false,
-            mine: false,
-            boost: false,
-            boom: false
-        }
+
+    // We will populate this "Input Snapshot" to merge with Keyboard later
+    const gpState = {
+        p1: { up: false, down: false, left: false, right: false, shield: false, beam: false, mine: false, boost: false, boom: false, start: false },
+        p2: { up: false, down: false, left: false, right: false, shield: false, beam: false, mine: false, boost: false, boom: false, start: false }
     };
 
-    let activityDetected = false; // <--- Flag for activity
+    let activityDetected = false;
+
     for (let i = 0; i < gamepads.length; i++) {
         const gp = gamepads[i];
         if (!gp) continue;
 
-        // CHECK FOR ANY INPUT TO RESET TIMER
-        // Check axes
-        if (Math.abs(gp.axes[0]) > CONFIG.GAMEPAD_THRESH || Math.abs(gp.axes[1]) > CONFIG.GAMEPAD_THRESH) {
-            activityDetected = true;
+        // 1. DETECT ACTIVITY (Reset Demo Timer)
+        // Check axes (Stick movement)
+        if (Math.abs(gp.axes[0]) > CONFIG.GAMEPAD_THRESH || Math.abs(gp.axes[1]) > CONFIG.GAMEPAD_THRESH) activityDetected = true;
+        // Check buttons
+        if (gp.buttons.some(b => b.pressed)) activityDetected = true;
+
+        // 2. IDENTIFY PLAYER & MAPPING
+        // If it's Gamepad 0, it controls P1. Gamepad 1 controls P2.
+        let targetState = (i === 0) ? gpState.p1 : gpState.p2;
+
+        // 3. READ INPUTS (Standard Mapping)
+        // Axes (Analog Stick)
+        if (gp.axes[1] < -CONFIG.GAMEPAD_THRESH) targetState.up = true;
+        if (gp.axes[1] > CONFIG.GAMEPAD_THRESH) targetState.down = true;
+        if (gp.axes[0] < -CONFIG.GAMEPAD_THRESH) targetState.left = true;
+        if (gp.axes[0] > CONFIG.GAMEPAD_THRESH) targetState.right = true;
+
+        // D-PAD (Standard Layout: 12=Up, 13=Down, 14=Left, 15=Right)
+        if (gp.buttons[12]?.pressed) targetState.up = true;
+        if (gp.buttons[13]?.pressed) targetState.down = true;
+        if (gp.buttons[14]?.pressed) targetState.left = true;
+        if (gp.buttons[15]?.pressed) targetState.right = true;
+
+        // ACTION BUTTONS (SNES/Xbox Layout)
+        if (gp.buttons[0]?.pressed) targetState.beam = true;   // B / A
+        if (gp.buttons[1]?.pressed) targetState.boom = true;   // A / B
+        if (gp.buttons[2]?.pressed) targetState.mine = true;   // Y / X
+        if (gp.buttons[3]?.pressed) targetState.shield = true; // X / Y
+        if (gp.buttons[4]?.pressed) targetState.shield = true;  // L1
+        if (gp.buttons[5]?.pressed) targetState.boost = true;  // R1
+
+        // 4. SYSTEM ACTIONS (The "InitTouchControls" Logic)
+        // This makes the gamepad feel like a full citizen of the UI
+        const isStart = gp.buttons[9]?.pressed;  // Start
+        const isSelect = gp.buttons[8]?.pressed; // Select
+        const isAnyButton = gp.buttons.some(b => b.pressed);
+
+        // MENU -> START GAME
+        if (STATE.screen === 'MENU') {
+            if (isAnyButton || targetState.up || targetState.down) {
+                // If P2 presses a button, start MULTI, otherwise SINGLE
+                STATE.gameMode = (i === 1) ? 'MULTI' : 'SINGLE';
+                startGame();
+                return gpState; // Exit early to prevent "holding" button issues
+            }
         }
-        // Check all buttons
-        for (let b = 0; b < gp.buttons.length; b++) {
-            if (gp.buttons[b].pressed) activityDetected = true;
-        }
 
-        // make the assamption that the 1st gamepad belong to  Player 1
-        let target = (i === 0) ? gpInput.p1 : gpInput.p2;
-
-        // D-PAD / AXES  (Analog Stick)
-        if (gp.axes[1] < -CONFIG.GAMEPAD_THRESH) target.up = true;
-        if (gp.axes[1] > CONFIG.GAMEPAD_THRESH) target.down = true;
-        if (gp.axes[0] < -CONFIG.GAMEPAD_THRESH) target.left = true;
-        if (gp.axes[0] > CONFIG.GAMEPAD_THRESH) target.right = true;
-
-        // SNES Style mapping (Standard HTML5 Gamepad Layout) B=0, A=1, Y=2, X=3, L=4, R=5
-        if (gp.buttons[12]?.pressed) target.up = true; // D-Pad Up
-        if (gp.buttons[13]?.pressed) target.down = true; // D-Pad Down
-        if (gp.buttons[14]?.pressed) target.left = true; // D-Pad Left
-        if (gp.buttons[15]?.pressed) target.right = true; // D-Pad Right
-
-        if (gp.buttons[0]?.pressed) target.mine = true; // Button B (Bottom)
-        if (gp.buttons[1]?.pressed) target.boom = true; // Button A (Right)
-        if (gp.buttons[2]?.pressed) target.beam = true; // Button Y (Left)
-        if (gp.buttons[3]?.pressed) target.shield = true; // Button X (Top)
-        if (gp.buttons[4]?.pressed) target.boost = true; // L Shoulder
-        if (gp.buttons[5]?.pressed) target.boost = true; // R Shoulder
-        if (gp.buttons[9]?.pressed) { // Start Button -> Reset
-            if (STATE.isGameOver || STATE.isRoundOver) startGame();
+        // GAME OVER / ROUND OVER -> RESET
+        if (STATE.isGameOver || STATE.isRoundOver) {
+            if (isStart || isSelect || targetState.shield) { // 'Shield' is often top button (Restart)
+                if (STATE.isGameOver) startGame();
+                else initMaze();
+                return gpState;
+            }
         }
     }
 
+    if (activityDetected) resetIdleTimer();
 
-    if (activityDetected) resetIdleTimer(); // <--- Reset timer if active
-    return gpInput;
+    return gpState;
 }
 
 function getHumanInput(playerIdx, controls) {
-    const gpData = pollGamepads();
-    const gp = (playerIdx === 0) ? gpData.p1 : gpData.p2;
+    const gp = (playerIdx === 0) ? STATE.gpData.p1 : STATE.gpData.p2;
+
+    // 2. Merge Keyboard (STATE.keys) + Gamepad (gp)
+    // This allows you to use BOTH simultaneously without conflict
     return {
         up: STATE.keys[controls.up] || gp.up,
         down: STATE.keys[controls.down] || gp.down,
@@ -461,7 +472,8 @@ function getHumanInput(playerIdx, controls) {
         beam: STATE.keys[controls.beam] || gp.beam,
         mine: STATE.keys[controls.mine] || gp.mine,
         boost: STATE.keys[controls.boost] || gp.boost,
-        boom: STATE.keys[controls.boom] || gp.boom
+        boom: STATE.keys[controls.boom] || gp.boom,
+        start: STATE.keys[controls.start] || gp.start
     };
 }
 
@@ -522,63 +534,158 @@ function findPath(cpu, targetC, targetR, ignoreMines) {
 }
 
 function getCpuInput(cpu, opponent) {
-    let cmd = { up: false, down: false, left: false, right: false, shield: false, beam: false, mine: false, boost: false, boom: false };
+    // --- 0. INIT MEMORY (Simplified) ---
+    if (!cpu.ai) {
+        cpu.ai = {
+            mode: 'ATTACK', // ATTACK or FLEE
+            modeTimer: 0,
+            chargeTimer: 0
+        };
+    }
 
-    // --- 1. SMARTER DANGER SENSE ---
-    let threat = null;
-    let minDist = 999;
+    let cmd = {
+        up: false, down: false, left: false, right: false,
+        shield: false, beam: false, mine: false, boost: false, boom: false
+    };
 
+    let distOpp = Math.hypot(opponent.x - cpu.x, opponent.y - cpu.y);
+    let myHealth = cpu.boostEnergy;
+
+    // =============================================
+    // 1. REFLEXES (Always Active)
+    // =============================================
+
+    // A. Shielding (Only if projectile is VERY close and lethal)
     STATE.projectiles.forEach(proj => {
         if (proj.owner !== cpu.id) {
-            let dx = cpu.x - proj.x;
-            let dy = cpu.y - proj.y;
-            let dist = Math.hypot(dx, dy);
-
-            // OPTIMIZATION: Only care about bullets moving TOWARDS us
-            // Dot Product: (projVx * dx) + (projVy * dy)
-            // If result > 0, projectile is moving in same direction as vector to player (hitting us)
-            let isIncoming = (proj.vx * dx) + (proj.vy * dy) > 0;
-
-            if (dist < 30 && dist < minDist && isIncoming) {
-                threat = proj;
-                minDist = dist;
+            let d = Math.hypot(cpu.x - proj.x, cpu.y - proj.y);
+            // Simple check: Is it close and are we low on health or stuck?
+            if (d < 20 && cpu.boostEnergy > 15) {
+                // Vector dot product to see if it's moving towards us
+                let dot = (proj.vx * (cpu.x - proj.x)) + (proj.vy * (cpu.y - proj.y));
+                if (dot > 0) cmd.shield = true;
             }
         }
     });
 
-    let immediateMine = STATE.mines.find(m => m.active && Math.hypot(m.x - cpu.x, m.y - cpu.y) < 6);
-
-    // Defense Logic
-    if ((threat && minDist < 8) || (immediateMine)) {
-        if (cpu.boostEnergy > 20) cmd.shield = true;
+    // B. Mine Avoidance
+    if (!cmd.shield) {
+        let nearMine = STATE.mines.some(m => m.active && Math.abs(m.x - cpu.x) < 3 && Math.abs(m.y - cpu.y) < 3);
+        if (nearMine && cpu.boostEnergy > 10) cmd.shield = true;
     }
 
-    // --- 2. OFFENSIVE LOGIC ---
+    // =============================================
+    // 2. STRATEGY (Update Mode occasionally)
+    // =============================================
+    cpu.ai.modeTimer--;
+    if (cpu.ai.modeTimer <= 0) {
+        cpu.ai.modeTimer = 30; // Re-evaluate every 0.5s
+
+        // Simple Logic: Flee if low health, otherwise Hunt
+        if (myHealth < 25 && opponent.boostEnergy > 40) cpu.ai.mode = 'FLEE';
+        else cpu.ai.mode = 'ATTACK';
+
+        // Reset Charge if we were charging but lost target
+        if (cpu.isCharging && distOpp < 15) cpu.ai.chargeTimer = 0;
+    }
+
+    // =============================================
+    // 3. COMBAT (Shooting)
+    // =============================================
+
+    // A. CHARGED SHOT LOGIC
+    // Condition: Long range, lots of energy, and roughly aligned
     let dx = opponent.x - cpu.x;
     let dy = opponent.y - cpu.y;
-    let distOpp = Math.hypot(dx, dy);
+    let isAligned = Math.abs(dx) < 8 || Math.abs(dy) < 8; // Roughly in same row/col
 
-    // Only attack if we have energy AND opponent is within range (Beam length ~40)
-    if (!cmd.shield && cpu.boostEnergy > 30 && distOpp < 35) {
-        // Alignment check (Are we roughly on the same row/column?)
-        // We relax the precision slightly (4.0 -> 5.0) to account for lag
-        if (Math.abs(dx) < 30 && Math.abs(dy) < 5.0) cmd.beam = true;
-        else if (Math.abs(dy) < 30 && Math.abs(dx) < 5.0) cmd.beam = true;
+    if (cpu.isCharging) {
+        // We are already charging, HOLD THE BUTTON
+        cmd.beam = true;
+
+        // Cancel if threatened
+        if (distOpp < 12 || cpu.stunTime > 0) {
+            cmd.beam = false; // Release to move faster
+        }
+    } else {
+        // Start Charging?
+        if (cpu.boostEnergy > 90 && distOpp > 25 && isAligned && Math.random() < 0.05) {
+            cmd.beam = true; // Start the charge
+        }
+        // Standard Shot?
+        else if (!cmd.shield && cpu.boostEnergy > 30 && distOpp < 35) {
+            // PREDICTIVE AIM: Aim where they are GOING
+            let lead = 5.0;
+            let pX = opponent.x + (opponent.lastDir.x * lead);
+            let pY = opponent.y + (opponent.lastDir.y * lead);
+            let aimDx = pX - cpu.x;
+            let aimDy = pY - cpu.y;
+
+            // Fire if aligned with predicted position
+            if (Math.abs(aimDx) < 20 && Math.abs(aimDy) < 4) cmd.beam = true;
+            else if (Math.abs(aimDy) < 20 && Math.abs(aimDx) < 4) cmd.beam = true;
+        }
     }
 
-    // --- 3. RETREAT MINING ---
-    // If opponent is close (dist < 10) and we are moving away, drop a mine
-    if (distOpp < 15 && cpu.minesLeft > 0) {
-        // Check if opponent is roughly behind us (dot product of our dir vs vector to opp)
-        // Simple heuristic: just drop if they are close, it's chaotic fun
-        if (Math.random() < 0.2) cmd.mine = true;
+    // =============================================
+    // 4. MOVEMENT (Frame-by-Frame Precision)
+    // =============================================
+    // Reverted to standard pathfinding to prevent getting stuck
+
+    // Determine Goal
+    let targetC, targetR;
+    if (cpu.ai.mode === 'FLEE') {
+        // Go to Ammo if it exists, otherwise corners
+        if (STATE.ammoCrate) {
+            targetC = STATE.ammoCrate.c;
+            targetR = STATE.ammoCrate.r;
+        } else {
+            // Run away from opponent
+            targetC = (opponent.c < CONFIG.COLS / 2) ? CONFIG.COLS - 1 : 0;
+            targetR = (opponent.r < CONFIG.ROWS / 2) ? CONFIG.ROWS - 1 : 0;
+        }
+        // Drop mines while fleeing
+        if (cpu.minesLeft > 0 && distOpp < 15 && Math.random() < 0.1) cmd.mine = true;
+    } else {
+        // ATTACK MODE: Go to opponent
+        targetC = (opponent.x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE;
+        targetR = opponent.y / CONFIG.CELL_SIZE;
+        // Clamp to integer grid
+        targetC = Math.floor(Math.max(0, Math.min(CONFIG.COLS - 1, targetC)));
+        targetR = Math.floor(Math.max(0, Math.min(CONFIG.ROWS - 1, targetR)));
     }
-    if (opponent.stunTime > 0 && cpu.boostEnergy > CONFIG.BEAM_ENERGY_COST) {
-        // Rough alignment check
-        if (Math.abs(dx) < 2 || Math.abs(dy) < 2) cmd.beam = true;
+
+    // Calculate Path (Every few frames to save CPU, but execute movement every frame)
+    if (!cpu.botNextCell || cpu.botRetargetTimer <= 0) {
+        // Try safe path first
+        let path = findPath(cpu, targetC, targetR, false);
+        // If no safe path (stuck by mines), force path through mines
+        if (!path) path = findPath(cpu, targetC, targetR, true);
+
+        if (path && path.length > 0) {
+            // Target the next cell in the chain
+            cpu.botNextCell = path.length > 1 ? path[1] : path[0];
+        } else {
+            cpu.botNextCell = null;
+        }
+        cpu.botRetargetTimer = 6; // Fast updates (100ms)
     }
-    // --- 4. NAVIGATION & UNSTUCK (Unchanged) ---
-    // (Preserve your existing stuck detection and pathfinding logic here)
+    cpu.botRetargetTimer--;
+
+    // Execute Movement to Next Cell
+    if (cpu.botNextCell) {
+        let tx = CONFIG.MAZE_OFFSET_X + cpu.botNextCell.c * CONFIG.CELL_SIZE + 0.5;
+        let ty = cpu.botNextCell.r * CONFIG.CELL_SIZE + 0.5;
+
+        let diffX = tx - cpu.x;
+        let diffY = ty - cpu.y;
+
+        // Precise Movement (No Jiggle)
+        if (Math.abs(diffX) > 0.15) { if (diffX < 0) cmd.left = true; else cmd.right = true; }
+        if (Math.abs(diffY) > 0.15) { if (diffY < 0) cmd.up = true; else cmd.down = true; }
+    }
+
+    // Unstuck Logic (Keep this, it's vital)
     let distMoved = Math.hypot(cpu.x - cpu.lastPos.x, cpu.y - cpu.lastPos.y);
     if (distMoved < 0.1) cpu.stuckCounter++; else cpu.stuckCounter = 0;
     cpu.lastPos = { x: cpu.x, y: cpu.y };
@@ -590,47 +697,15 @@ function getCpuInput(cpu, opponent) {
         let validDirs = dirs.filter(d => !isWall(cpu.x + d.x * 2, cpu.y + d.y * 2));
         cpu.unstuckDir = validDirs.length > 0 ? validDirs[Math.floor(Math.random() * validDirs.length)] : dirs[0];
     }
-
     if (cpu.forceUnstuckTimer > 0) {
         cpu.forceUnstuckTimer--;
         if (cpu.unstuckDir.y < 0) cmd.up = true;
         if (cpu.unstuckDir.y > 0) cmd.down = true;
         if (cpu.unstuckDir.x < 0) cmd.left = true;
         if (cpu.unstuckDir.x > 0) cmd.right = true;
-        return cmd;
     }
 
-    if (!cpu.botNextCell || cpu.botRetargetTimer <= 0 || threat) {
-        let path = findPath(cpu, cpu.goalC, cpu.goalR, false);
-        if (!path) path = findPath(cpu, cpu.goalC, cpu.goalR, true);
-        if (path && path.length > 1) cpu.botNextCell = path[1];
-        else if (path && path.length > 0) cpu.botNextCell = path[0];
-        else cpu.botNextCell = null;
-        cpu.botRetargetTimer = 10;
-    }
-    cpu.botRetargetTimer--;
-
-    if (cpu.botNextCell) {
-        let tx = CONFIG.MAZE_OFFSET_X + cpu.botNextCell.c * CONFIG.CELL_SIZE + 0.5;
-        let ty = cpu.botNextCell.r * CONFIG.CELL_SIZE + 0.5;
-
-        // Smart Mine Avoidance: Only shield if we are actually about to step on it
-        let steppingOnMine = STATE.mines.some(m => m.active && Math.abs(m.x - tx) < 2.5 && Math.abs(m.y - ty) < 2.5);
-        if (steppingOnMine && cpu.boostEnergy > 20) cmd.shield = true;
-
-        let diffX = tx - cpu.x;
-        let diffY = ty - cpu.y;
-        if (Math.abs(diffX) > 0.1) { if (diffX < 0) cmd.left = true; else cmd.right = true; }
-        if (Math.abs(diffY) > 0.1) { if (diffY < 0) cmd.up = true; else cmd.down = true; }
-    }
-
-    // --- 5. UTILITY ---
-    // Boost if path is long and clear, to rush the goal
-    if (cpu.botNextCell && !threat && cpu.boostEnergy > 90 && distOpp > 20) {
-        if (Math.random() < 0.05) cmd.boost = true;
-    }
-
-    // Detonate mines if opponent is near one
+    // Detonate Mines
     STATE.mines.forEach(m => {
         if (m.owner === cpu.id && Math.hypot(m.x - opponent.x, m.y - opponent.y) < 5) cmd.boom = true;
     });
@@ -982,23 +1057,50 @@ function handlePlayerDeath(victimIdx, reason) {
 
 function fireChargedBeam(p) {
     if (p.boostEnergy < CONFIG.CHARGED_BEAM_COST) return;
+
+    // 1. Identify Opponent
+    let opponent = STATE.players[(p.id + 1) % 2];
+
+    // 2. Calculate Vector to Opponent (Center to Center)
+    let startX = p.x + (p.size / 2);
+    let startY = p.y + (p.size / 2);
+
+    let targetX = opponent.x + (opponent.size / 2);
+    let targetY = opponent.y + (opponent.size / 2);
+
+    let dx = targetX - startX;
+    let dy = targetY - startY;
+    let dist = Math.hypot(dx, dy);
+
+    // 3. Normalize & Scale by C_BEAM_SPEED
+    // Prevent division by zero if players are overlapping
+    if (dist < 0.1) { dx = 1; dy = 0; dist = 1; }
+
+    let vx = (dx / dist) * CONFIG.C_BEAM_SPEED;
+    let vy = (dy / dist) * CONFIG.C_BEAM_SPEED;
+
+    // 4. Fire!
     p.boostEnergy -= CONFIG.CHARGED_BEAM_COST;
     STATE.sfx.chargedShoot();
 
     STATE.projectiles.push({
-        x: p.x + (p.size / 2),
-        y: p.y + (p.size / 2),
-        vx: p.lastDir.x * CONFIG.C_BEAM_SPEED,
-        vy: p.lastDir.y * CONFIG.C_BEAM_SPEED,
+        x: startX,
+        y: startY,
+        vx: vx,  // Now moving towards enemy
+        vy: vy,
         distTraveled: 0,
         owner: p.id,
         color: p.color
     });
 
+    // Recoil / Kickback (Optional: pushes player back slightly)
+    // p.x -= vx * 2;
+    // p.y -= vy * 2;
+
     for (let i = 0; i < 10; i++) {
         STATE.particles.push({
-            x: p.x + 1,
-            y: p.y + 1,
+            x: startX,
+            y: startY,
             vx: (Math.random() - 0.5),
             vy: (Math.random() - 0.5),
             life: 0.8,
@@ -1144,6 +1246,8 @@ function finalizeRound() {
 }
 
 function update() {
+    if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
+        STATE.gpData = pollGamepads();
     if (STATE.screen === 'MENU') {
         if (STATE.keys['Digit1']) {
             STATE.gameMode = 'SINGLE';
@@ -1203,8 +1307,8 @@ function update() {
         return;
     }
     STATE.gameTime -= 1;
-    // NEW: Sudden Death - Every second after time runs low (e.g. < 55 seconds left)
-    if (STATE.gameTime < 4020 && STATE.gameTime % 120 === 0) {
+    // NEW: Sudden Death - Every second after time runs low (e.g. < 30 seconds left)
+    if (STATE.gameTime < 1800 && STATE.gameTime % 50 === 0) {
         STATE.messages.round = "SUDDEN DEATH!";
         STATE.scrollX = CONFIG.LOGICAL_W; // Flash warning
 
@@ -1527,7 +1631,8 @@ function renderGame() {
 
     // 1. Draw Background
     if (!isBgRendered) preRenderBackground();
-
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     // SAVE CONTEXT BEFORE SHAKING
     ctx.save();
     ctx.translate(STATE.camera.x, STATE.camera.y); // Apply Shake
@@ -1611,13 +1716,54 @@ function renderGame() {
 
     // 5. Draw Mines & Projectiles
     STATE.mines.forEach(m => drawLED(m.x + m.visX, m.y + m.visY, m.active ? (Date.now() % 200 < 100 ? '#f00' : '#800') : '#444'));
+    // ... Mines drawing code above ...
+
+    // --- 5b. PROJECTILE RENDER (Rasterized Rotated Rectangle) ---
     STATE.projectiles.forEach(p => {
-        let hw = (Math.abs(p.vx) > 0) ? CONFIG.C_BEAM_LENGTH / 2 : CONFIG.C_BEAM_WIDTH / 2;
-        let hh = (Math.abs(p.vx) > 0) ? CONFIG.C_BEAM_WIDTH / 2 : CONFIG.C_BEAM_LENGTH / 2;
-        let c = (Date.now() % 50 === 0) ? '#fff' : p.color;
-        for (let py = Math.floor(p.y - hh); py <= Math.floor(p.y + hh); py++)
-            for (let px = Math.floor(p.x - hw); px <= Math.floor(p.x + hw); px++)
-                drawLED(px, py, c);
+        // 1. Calculate Basis Vectors
+        let mag = Math.hypot(p.vx, p.vy);
+        if (mag === 0) return;
+
+        let nx = p.vx / mag; // Direction Vector (Length)
+        let ny = p.vy / mag;
+
+        let px = -ny;        // Perpendicular Vector (Width)
+        let py = nx;
+
+        let halfLen = CONFIG.C_BEAM_LENGTH / 2;
+        let halfWidth = CONFIG.C_BEAM_WIDTH / 2;
+
+        // 2. Define Scan Area (Bounding Box)
+        // We only check LEDs close to the projectile to save CPU
+        let scanRadius = halfLen + 2;
+        let minX = Math.floor(p.x - scanRadius);
+        let maxX = Math.ceil(p.x + scanRadius);
+        let minY = Math.floor(p.y - scanRadius);
+        let maxY = Math.ceil(p.y + scanRadius);
+
+        let color = (Date.now() % 60 < 30) ? '#ffffff' : p.color; // Strobe effect
+
+        // 3. Scan the Grid
+        for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+
+                // Vector from Projectile Center to this LED
+                let dx = x - p.x;
+                let dy = y - p.y;
+
+                // 4. Dot Product Projection
+                // "How far is this LED along the length?"
+                let distLength = Math.abs((dx * nx) + (dy * ny));
+
+                // "How far is this LED along the width?"
+                let distWidth = Math.abs((dx * px) + (dy * py));
+
+                // 5. Check if inside the rotated rectangle
+                if (distLength <= halfLen && distWidth <= halfWidth) {
+                    drawLED(x, y, color);
+                }
+            }
+        }
     });
 
     // 6. Draw Players
@@ -1658,47 +1804,48 @@ function renderGame() {
         // --- 4. TRAIL EFFECT (Unchanged) ---
         if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) {
             p.trail.forEach((t, i) => {
-                const alpha = (i / p.trail.length) * 0.5;
+                const alpha = (i / p.trail.length) * 0.4;
                 ctx.globalAlpha = alpha;
-                drawLED(Math.floor(t.x) + 0.5, Math.floor(t.y) + 0.5, p.color);
+                drawLED(Math.floor(t.x), Math.floor(t.y), p.color);
+                drawLED(Math.floor(t.x) + 1, Math.floor(t.y) + 1, p.color); 11
             });
             ctx.globalAlpha = 1.0;
         }
 
         // --- 5. NEW: GLITCH & STUN VISUALS ---
-        if (p.glitchTime > 0) {
+        if (p.glitchTime > 0 || p.stunTime > 0) {
             // 
             // EFFECT: "RGB Split" (Simulates Broken Controls)
-            const shake = 0.6; // Pixel offset amount
-
+            // const shake = Math.random(-3,1); // Pixel offset amount
+            const min = -1, max = 1;
             // Draw RED Ghost (Offset Randomly)
-            let rX = (Math.random() - 0.5) * shake;
-            let rY = (Math.random() - 0.5) * shake;
+            let rX = (Math.floor(Math.random() * (max - min + 1) + min));
+            let rY = (Math.floor(Math.random() * (max - min + 1) + min));
             drawPlayerBody(p.x + rX, p.y + rY, '#FF0000');
 
             // Draw CYAN Ghost (Offset Opposite)
-            let cX = (Math.random() - 0.5) * shake;
-            let cY = (Math.random() - 0.5) * shake;
+            let cX = Math.floor(Math.random() * (max - min + 1) + min);
+            let cY = Math.floor(Math.random() * (max - min + 1) + min);
             drawPlayerBody(p.x + cX, p.y + cY, '#00FFFF');
 
             // 20% Chance to draw the real white core on top
             if (Math.random() > 0.8) drawPlayerBody(p.x, p.y, '#FFFFFF');
 
-        } else if (p.stunTime > 0) {
-            // 
-            // EFFECT: "Static Shock" (Simulates Stun)
-            // Rapidly flash between Dim Grey and Bright White
-            let flashColor = (Math.floor(Date.now() / 40) % 2 === 0) ? '#444444' : '#FFFFFF';
-            drawPlayerBody(p.x, p.y, flashColor);
-
-            // Draw random "sparks" around the player
-            for (let i = 0; i < 3; i++) {
-                // Pick a random spot near the player
-                let sx = p.x + (Math.random() * 3) - 0.5;
-                let sy = p.y + (Math.random() * 3) - 0.5;
-                // Draw a single yellow/white spark pixel
-                drawLED(Math.floor(sx), Math.floor(sy), Math.random() > 0.5 ? '#FFFF00' : '#FFFFFF');
+            if (p.stunTime > 0) {
+                // 
+                // EFFECT: "Static Shock" (Simulates Stun)
+                // Rapidly flash between Dim Grey and Bright White
+                let flashColor = (Math.floor(Date.now() / 40) % 2 === 0) ? '#444444' : '#FFFFFF';
+                drawPlayerBody(p.x, p.y, flashColor);
             }
+            // Draw random "sparks" around the player
+            // for (let i = 0; i < 3; i++) {
+            //     // Pick a random spot near the player
+            //     let sx = p.x + (Math.random() * 3) ;
+            //     let sy = p.y + (Math.random() * 3) - 0.5;
+            //     // Draw a single yellow/white spark pixel
+            //     drawLED(Math.floor(sx), Math.floor(sy), Math.random() > 0.5 ? '#FFFF00' : '#FFFFFF');
+            // }
 
         } else {
             // NORMAL RENDER
@@ -1749,10 +1896,12 @@ function renderGame() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (STATE.isGameOver) {
+            const winColor = STATE.looser == 1 ? CONFIG.P2COLOR : CONFIG.P1COLOR;
+            const tauntColor = STATE.looser == 2 ? CONFIG.P2COLOR : CONFIG.P1COLOR;
             if (Math.floor(Date.now() / 300) % 2 === 0)
-                drawText(STATE.messages.win, 38, 15, STATE.messages.winColor);
+                drawText(STATE.messages.win, 38, 15, winColor);
             let msg = `P${STATE.looser}: '${STATE.messages.taunt}'`
-            drawText(msg, STATE.scrollX, 35, "#ff5555");
+            drawText(msg, STATE.scrollX, 35, tauntColor);
             drawText("PRESS 'R' TO RESET", 30, 52, "#888");
         } else {
             drawText("ROUND OVER", 46, 20, "#fff");

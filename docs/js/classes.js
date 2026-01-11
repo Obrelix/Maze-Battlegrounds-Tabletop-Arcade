@@ -213,5 +213,6 @@ export class Player {
         this.stuckCounter = 0;
         this.forceUnstuckTimer = 0;
         this.isDead = false;
+        this.ai = null;
     }
 }
