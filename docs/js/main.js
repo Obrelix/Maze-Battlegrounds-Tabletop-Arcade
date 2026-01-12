@@ -1,10 +1,11 @@
 import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS  } from './config.js';
 import { STATE, resetStateForMatch } from './state.js';
 import { initMaze, spawnAmmoCrate} from './grid.js';
-import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
+import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';1
 import { getCpuInput } from './ai.js';
 import { renderGame, renderMenu } from './renderer.js';
-import { applyPlayerActions, updateProjectiles, updateParticles, triggerExplosion } from './mechanics.js';
+import { applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail, 
+    checkBeamCollisions, checkArmorCrate, checkPortalActions, chekcBeamActions, checkMinesActions } from './mechanics.js';
 
 export function startGame() {
     if (STATE.sfx) STATE.sfx.init();
@@ -59,7 +60,7 @@ function finalizeRound() {
 
 function update() {
     if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
-        STATE.gpData = pollGamepads();
+        STATE.gpData = pollGamepads(startGame);
     if (STATE.screen === 'MENU') {
         if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startGame(); }
         if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startGame(); }
@@ -141,98 +142,18 @@ function update() {
         }
     }
 
-    let p1 = STATE.players[0];
-    let p2 = STATE.players[1];
-    if (p1.beamPixels.length > 0 && p2.beamPixels.length > 0) {
-        let b1 = Math.floor(p1.beamIdx);
-        let b2 = Math.floor(p2.beamIdx);
-        if (b1 < p1.beamPixels.length && b2 < p2.beamPixels.length) {
-            let h1 = p1.beamPixels[b1];
-            let h2 = p2.beamPixels[b2];
-            if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < 4) {
-                triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2, "ANNIHILATED");
-                p1.beamPixels = [];
-                p1.beamIdx = 9999;
-                p2.beamPixels = [];
-                p2.beamIdx = 9999;
-            }
-        }
-    }
+    checkBeamCollisions();
 
     STATE.players.forEach((p, idx) => {
-        if (STATE.ammoCrate && Math.abs((p.x + 1) - (STATE.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (STATE.ammoCrate.y + 1)) < 2) {
-            p.minesLeft = CONFIG.MAX_MINES;
-            STATE.sfx.powerup();
-            STATE.ammoCrate = null;
-            STATE.ammoRespawnTimer = 0;
-        }
+        checkArmorCrate(p);
 
         if (p.stunTime > 0) p.stunTime--;
         if (p.glitchTime > 0) p.glitchTime--;
-        if (p.portalCooldown > 0) p.portalCooldown--;
-        else {
-            let pc = Math.floor((p.x + p.size / 2 - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
-            let pr = Math.floor((p.y + p.size / 2) / CONFIG.CELL_SIZE);
-            let portal = STATE.portals.find(pt => pt.c === pc && pt.r === pr);
-            if (portal) {
-                let dest = STATE.portals.find(pt => pt !== portal);
-                if (dest) {
-                    p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5;
-                    p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
-                    p.portalCooldown = 60;
-                    if (Math.random() < CONFIG.GLITCH_CHANCE) {
-                        p.glitchStartTime = Date.now();
-                        p.glitchTime = CONFIG.GLITCH_DURATION;
-                    }
-                }
-            }
-        }
-        p.trail.push({
-            x: p.x,
-            y: p.y
-        });
-        if (p.trail.length > CONFIG.TRAIL_LENGTH) p.trail.shift();
-
-        if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) p.beamIdx += 0.8;
-        let opponent = STATE.players[(idx + 1) % 2];
-        let tipIdx = Math.floor(opponent.beamIdx);
-        if (tipIdx >= 0 && tipIdx < opponent.beamPixels.length) {
-            let tip = opponent.beamPixels[tipIdx];
-            if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
-                if (!p.shieldActive) {
-                    p.stunTime = CONFIG.STUN_DURATION;
-                    p.glitchStartTime = Date.now();
-                    p.glitchTime = CONFIG.STUN_DURATION;
-                    STATE.sfx.charge();
-                }
-                opponent.beamPixels = [];
-                opponent.beamIdx = 9999;
-                opponent.boostEnergy = Math.min(100, opponent.boostEnergy + 15); // Attacker gains
-                p.boostEnergy = Math.max(0, p.boostEnergy - 15);                 // Victim loses
-            }
-        }
-
-        for (let i = STATE.mines.length - 1; i >= 0; i--) {
-            let m = STATE.mines[i];
-            let bIdx = Math.floor(p.beamIdx);
-            if (bIdx >= 0 && bIdx < p.beamPixels.length) {
-                let bp = p.beamPixels[bIdx];
-                if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
-                    // Change: Don't trigger full explosion, just "defuse" or small pop
-                    triggerExplosion(m.x, m.y, "MINESWEEPER");
-                    STATE.mines.splice(i, 1);
-
-                    // Stop the beam so you can't snipe through mines
-                    p.beamPixels = [];
-                    p.beamIdx = 9999;
-                    continue;
-                }
-            }
-            if (m.active && p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
-                triggerExplosion(m.x, m.y, "TRIPPED MINE");
-                STATE.mines.splice(i, 1);
-            }
-        }
+        
+        checkPortalActions(p);
+        checkBoostTrail(p);
+        chekcBeamActions(p, idx);
+        checkMinesActions(p);
 
         // --- INPUT LOGIC  ---
         let cmd = {};
@@ -261,6 +182,6 @@ function loop() {
 }
 
 window.addEventListener('load', () => {
-    setupInputs();
+    setupInputs(startGame);
     loop();
 });

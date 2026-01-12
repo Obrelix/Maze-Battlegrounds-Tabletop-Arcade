@@ -1,6 +1,6 @@
-import { CONFIG, TAUNTS  } from './config.js';
+import { CONFIG, TAUNTS } from './config.js';
 import { STATE } from './state.js';
-import { isWall, destroyWallAt,gridIndex  } from './grid.js';
+import { isWall, destroyWallAt, gridIndex } from './grid.js';
 
 export function triggerExplosion(x, y, reason = "EXPLODED") {
     STATE.sfx.explosion();
@@ -515,6 +515,106 @@ export function fireChargedBeam(p) {
             life: 0.8,
             color: '#fff'
         });
+    }
+}
+
+export function checkBoostTrail(p) {
+    if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) {
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > CONFIG.TRAIL_LENGTH) p.trail.shift();
+    } else p.trail = [{ x: p.x, y: p.y }]
+}
+
+export function checkBeamCollisions() {
+    let p1 = STATE.players[0];
+    let p2 = STATE.players[1];
+    if (p1.beamPixels.length > 0 && p2.beamPixels.length > 0) {
+        let b1 = Math.floor(p1.beamIdx);
+        let b2 = Math.floor(p2.beamIdx);
+        if (b1 < p1.beamPixels.length && b2 < p2.beamPixels.length) {
+            let h1 = p1.beamPixels[b1];
+            let h2 = p2.beamPixels[b2];
+            if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < 4) {
+                triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2, "ANNIHILATED");
+                p1.beamPixels = [];
+                p1.beamIdx = 9999;
+                p2.beamPixels = [];
+                p2.beamIdx = 9999;
+            }
+        }
+    }
+}
+
+export function chekcBeamActions(p, idx) {
+    if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) p.beamIdx += 0.8;
+    let opponent = STATE.players[(idx + 1) % 2];
+    let tipIdx = Math.floor(opponent.beamIdx);
+    if (tipIdx >= 0 && tipIdx < opponent.beamPixels.length) {
+        let tip = opponent.beamPixels[tipIdx];
+        if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
+            if (!p.shieldActive) {
+                p.stunTime = CONFIG.STUN_DURATION;
+                p.glitchStartTime = Date.now();
+                p.glitchTime = CONFIG.STUN_DURATION;
+                STATE.sfx.charge();
+            }
+            opponent.beamPixels = [];
+            opponent.beamIdx = 9999;
+            opponent.boostEnergy = Math.min(100, opponent.boostEnergy + 15); // Attacker gains
+            p.boostEnergy = Math.max(0, p.boostEnergy - 15);                 // Victim loses
+        }
+    }
+}
+
+export function checkMinesActions(p) {
+    for (let i = STATE.mines.length - 1; i >= 0; i--) {
+        let m = STATE.mines[i];
+        let bIdx = Math.floor(p.beamIdx);
+        if (bIdx >= 0 && bIdx < p.beamPixels.length) {
+            let bp = p.beamPixels[bIdx];
+            if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
+                triggerExplosion(m.x, m.y, "MINESWEEPER");
+                STATE.mines.splice(i, 1);
+
+                p.beamPixels = [];
+                p.beamIdx = 9999;
+                continue;
+            }
+        }
+        if (m.active && p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
+            triggerExplosion(m.x, m.y, "TRIPPED MINE");
+            STATE.mines.splice(i, 1);
+        }
+    }
+}
+
+export function checkPortalActions(p) {
+    if (p.portalCooldown > 0) p.portalCooldown--;
+    else {
+        let pc = Math.floor((p.x + p.size / 2 - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+        let pr = Math.floor((p.y + p.size / 2) / CONFIG.CELL_SIZE);
+        let portal = STATE.portals.find(pt => pt.c === pc && pt.r === pr);
+        if (portal) {
+            let dest = STATE.portals.find(pt => pt !== portal);
+            if (dest) {
+                p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5;
+                p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
+                p.portalCooldown = 60;
+                if (Math.random() < CONFIG.GLITCH_CHANCE) {
+                    p.glitchStartTime = Date.now();
+                    p.glitchTime = CONFIG.GLITCH_DURATION;
+                }
+            }
+        }
+    }
+}
+
+export function checkArmorCrate(p) {
+    if (STATE.ammoCrate && Math.abs((p.x + 1) - (STATE.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (STATE.ammoCrate.y + 1)) < 2) {
+        p.minesLeft = CONFIG.MAX_MINES;
+        STATE.sfx.powerup();
+        STATE.ammoCrate = null;
+        STATE.ammoRespawnTimer = 0;
     }
 }
 

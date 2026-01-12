@@ -1,7 +1,6 @@
 import { CONFIG} from './config.js';
 import { STATE } from './state.js';
 import { initMaze} from './grid.js';
-import { startGame } from './main.js';
 
 export let lastInputTime = Date.now();
 
@@ -18,7 +17,7 @@ export function checkIdle() {
     return Date.now() - lastInputTime > CONFIG.IDLE_THRESHOLD;
 }
 
-export function setupInputs() {
+export function setupInputs(startGame) {
 
     window.addEventListener('keydown', (e) => {
         resetIdleTimer();
@@ -43,12 +42,11 @@ export function setupInputs() {
 
     window.addEventListener('keyup', (e) => STATE.keys[e.code] = false);
 
-    // ... (Move initTouchControls logic here)
-    initTouchControls();
+    initTouchControls(startGame);
 
 }
 
-export function pollGamepads() {
+export function pollGamepads(startGame) {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
 
     // We will populate this "Input Snapshot" to merge with Keyboard later
@@ -144,7 +142,7 @@ export function getHumanInput(playerIdx, controls) {
     };
 }
 
-function initTouchControls() {
+function initTouchControls(startGame) {
     const buttons = document.querySelectorAll('.btn');
     buttons.forEach(btn => {
         btn.addEventListener('touchstart', (e) => {
