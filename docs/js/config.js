@@ -17,7 +17,7 @@ export const CONFIG = {
     AMMO_RESPAWN_DELAY: 300,
     DETONATE_COST: 30,
     BEAM_LENGTH: 20,
-    PARTICLE_COUNT: 70,
+    PARTICLE_COUNT: 20,
     TRAIL_LENGTH: 15,
     GLITCH_TIME: 4000,
     STUN_DURATION: 300,
@@ -26,7 +26,7 @@ export const CONFIG = {
     C_BEAM_SPEED: 0.6,
     C_BEAM_RANGE: 15,
     C_BEAM_LENGTH: 5,
-    C_BEAM_WIDTH: 2,
+    C_BEAM_WIDTH: 1,
     GAMEPAD_THRESH: 0.5,
     IDLE_THRESHOLD: 8000,
     DEMO_RESET_TIMER: 500,
@@ -41,6 +41,8 @@ export const CONFIG = {
     BOOST_COOLDOWN_FRAMES: 120,
     P1COLOR:'#d9ff00ff',
     P2COLOR:'#ff0040ff',
+    PORTAL1_COLOR:'#0000ffff',
+    PORTAL2_COLOR:'#00aaffff'
 };
 
 export const CONTROLS_P1 = {
