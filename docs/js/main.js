@@ -1,11 +1,13 @@
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS  } from './config.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS } from './config.js';
 import { STATE, resetStateForMatch } from './state.js';
-import { initMaze, spawnAmmoCrate} from './grid.js';
-import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';1
+import { initMaze, spawnAmmoCrate } from './grid.js';
+import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js'; 1
 import { getCpuInput } from './ai.js';
 import { renderGame, renderMenu } from './renderer.js';
-import { applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail, 
-    checkBeamCollisions, checkArmorCrate, checkPortalActions, chekcBeamActions, checkMinesActions } from './mechanics.js';
+import {
+    applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,
+    checkBeamCollisions, checkArmorCrate, checkPortalActions, chekcBeamActions, checkMinesActions
+} from './mechanics.js';
 
 export function startGame() {
     if (STATE.sfx) STATE.sfx.init();
@@ -149,7 +151,7 @@ function update() {
 
         if (p.stunTime > 0) p.stunTime--;
         if (p.glitchTime > 0) p.glitchTime--;
-        
+
         checkPortalActions(p);
         checkBoostTrail(p);
         chekcBeamActions(p, idx);

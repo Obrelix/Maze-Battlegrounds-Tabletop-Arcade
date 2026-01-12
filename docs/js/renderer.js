@@ -183,8 +183,8 @@ export function renderGame() {
         let outColor = CONFIG.PORTAL2_COLOR;
         let effectColor = '#ffffffaa';
         const inOpacityHex = '60';
-        outColor = (idx === 0) ? ( STATE.portalReverseColors ? CONFIG.PORTAL1_COLOR : CONFIG.PORTAL2_COLOR ) : (STATE.portalReverseColors ? CONFIG.PORTAL2_COLOR : CONFIG.PORTAL1_COLOR);
-        
+        outColor = (idx === 0) ? (STATE.portalReverseColors ? CONFIG.PORTAL1_COLOR : CONFIG.PORTAL2_COLOR) : (STATE.portalReverseColors ? CONFIG.PORTAL2_COLOR : CONFIG.PORTAL1_COLOR);
+
         // --- A. Draw Perimeter (Static Color) ---
         // Indices relative to tx, ty:
         // (0,0) (1,0) (2,0) (3,0)
@@ -343,7 +343,6 @@ export function renderGame() {
         if (p.isDead) return;
 
         // --- 1. BEAM RENDERING (Unchanged) ---
-        // (Keep your existing beam drawing loop here)
         for (let k = 0; k < CONFIG.BEAM_LENGTH; k++) {
             let i = Math.floor(p.beamIdx) - k;
             if (i >= 0 && i < p.beamPixels.length) {
@@ -354,7 +353,6 @@ export function renderGame() {
         }
 
         // --- 2. CHARGING EFFECT (Unchanged) ---
-        // (Keep your existing charge effect logic here)
         if (p.isCharging) {
             let r = (Date.now() - p.chargeStartTime) / CONFIG.CHARGE_TIME; if (r > 1) r = 1;
             let cc = `hsl(${Math.floor((1 - r) * 120)},100%,50%)`;

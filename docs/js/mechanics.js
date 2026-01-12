@@ -32,7 +32,7 @@ export function triggerExplosion(x, y, reason = "EXPLODED") {
             y: y + 1,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            decay: 0.03 + Math.random() * 0.04,
+            decay: 0.02 + Math.random() * 0.03,
             life: 1.0,
             color: '#ffffff'
         });
@@ -234,18 +234,18 @@ export function applyPlayerActions(p, input) {
                 p.lastBoostTime = now;
                 STATE.sfx.boost();
             }
-            if (Math.random() < 0.4) { // 40% chance per frame
-                STATE.particles.push({
-                    x: p.x + 1, // Center of player
-                    y: p.y + 1,
-                    // Velocity: Shoot opposite to player movement
-                    vx: -(p.lastDir.x * (Math.random() * 0.5 + 0.2)),
-                    vy: -(p.lastDir.y * (Math.random() * 0.5 + 0.2)),
-                    life: 0.4, // Short life
-                    decay: 0.08,
-                    color: '#ffffff' // White hot sparks
-                });
-            }
+            // if (Math.random() < 0.4) { // 40% chance per frame
+            //     STATE.particles.push({
+            //         x: p.x + 1, // Center of player
+            //         y: p.y + 1,
+            //         // Velocity: Shoot opposite to player movement
+            //         vx: -(p.lastDir.x * (Math.random() * 0.5 + 0.2)),
+            //         vy: -(p.lastDir.y * (Math.random() * 0.5 + 0.2)),
+            //         life: 0.4, // Short life
+            //         decay: 0.08,
+            //         color: '#ffffff' // White hot sparks
+            //     });
+            // }
         } else {
             if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
             else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
@@ -399,7 +399,8 @@ export function updateProjectiles() {
                 y: tipY,
                 vx: proj.vx * 0.5,
                 vy: proj.vy * 0.5,
-                life: 0.5,
+                decay: 0.02 + Math.random() * 0.04,
+                life: 0.8,
                 color: '#555'
             });
         }
@@ -471,8 +472,8 @@ export function fireChargedBeam(p) {
     let opponent = STATE.players[(p.id + 1) % 2];
 
     // 2. Calculate Vector to Opponent (Center to Center)
-    let startX = p.x + (p.size / 2);
-    let startY = p.y + (p.size / 2);
+    let startX = p.x;
+    let startY = p.y;
 
     let targetX = opponent.x + (opponent.size / 2);
     let targetY = opponent.y + (opponent.size / 2);
@@ -510,9 +511,10 @@ export function fireChargedBeam(p) {
         STATE.particles.push({
             x: startX,
             y: startY,
-            vx: (Math.random() - 0.5),
-            vy: (Math.random() - 0.5),
-            life: 0.8,
+            vx: (Math.random() - 0.5)*3,
+            vy: (Math.random() - 0.5)*3,
+            life: 2,
+            decay: 0.02 + Math.random() * 0.03,
             color: '#fff'
         });
     }

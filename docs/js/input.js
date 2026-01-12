@@ -1,6 +1,6 @@
-import { CONFIG} from './config.js';
+import { CONFIG } from './config.js';
 import { STATE } from './state.js';
-import { initMaze} from './grid.js';
+import { initMaze } from './grid.js';
 
 export let lastInputTime = Date.now();
 

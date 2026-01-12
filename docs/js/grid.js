@@ -25,6 +25,29 @@ export function isWall(pixelX, pixelY) {
     return false;
 }
 
+export function removeWall(c, r, wallIdx) {
+    let cell = gridIndex(c, r);
+    if (!cell) return;
+
+    // 0: Top, 1: Right, 2: Bottom, 3: Left
+    cell.walls[wallIdx] = false;
+
+    // Update the neighbor to match
+    if (wallIdx === 0) { // Top -> Update neighbor's Bottom
+        let n = gridIndex(c, r - 1);
+        if (n) n.walls[2] = false;
+    } else if (wallIdx === 1) { // Right -> Update neighbor's Left
+        let n = gridIndex(c + 1, r);
+        if (n) n.walls[3] = false;
+    } else if (wallIdx === 2) { // Bottom -> Update neighbor's Top
+        let n = gridIndex(c, r + 1);
+        if (n) n.walls[0] = false;
+    } else if (wallIdx === 3) { // Left -> Update neighbor's Right
+        let n = gridIndex(c - 1, r);
+        if (n) n.walls[1] = false;
+    }
+}
+
 export function destroyWallAt(c, r) {
     // FIX: Removed the restrictive line that returned early for edge cells
     let cell = gridIndex(c, r);
@@ -123,74 +146,15 @@ function resetRoundEntities() {
     STATE.players[1].goalC = 0;
     STATE.players[1].goalR = 0;
     STATE.players[1].resetState();
-
     STATE.mines = [];
     STATE.particles = [];
     STATE.projectiles = [];
-
     STATE.portals = [];
-    let attempts = 0;
-    while (STATE.portals.length < 2 && attempts < 100) {
-        attempts++;
-        let c = Math.floor(Math.random() * (CONFIG.COLS - 2)) + 1;
-        let r = Math.floor(Math.random() * (CONFIG.ROWS - 2)) + 1;
-        if ((c < 5 && r < 5) || (c > CONFIG.COLS - 5 && r > CONFIG.ROWS - 5)) continue;
-        let tooClose = false;
-        for (let p of STATE.portals) {
-            if (Math.abs(p.c - c) + Math.abs(p.r - r) < 10) tooClose = true;
-        }
-        if (tooClose) continue;
-        STATE.portals.push({
-            c: c,
-            r: r,
-            x: CONFIG.MAZE_OFFSET_X + c * CONFIG.CELL_SIZE + 1.5,
-            y: r * CONFIG.CELL_SIZE + 1.5,
-            color: STATE.portals.length === 0 ? CONFIG.PORTAL1_COLOR : CONFIG.PORTAL2_COLOR
-        });
-    }
-    if (STATE.portals.length < 2) {
-        STATE.portals = [{
-            c: 10,
-            r: 10,
-            x: CONFIG.MAZE_OFFSET_X + 10 * CONFIG.CELL_SIZE + 1.5,
-            y: 10 * CONFIG.CELL_SIZE + 1.5,
-            color: CONFIG.PORTAL1_COLOR
-        },
-        {
-            c: 20,
-            r: 10,
-            x: CONFIG.MAZE_OFFSET_X + 20 * CONFIG.CELL_SIZE + 1.5,
-            y: 10 * CONFIG.CELL_SIZE + 1.5,
-            color: CONFIG.PORTAL2_COLOR
-        }
-        ];
-    }
-
     STATE.ammoCrate = null;
+    spawnPortals();
     spawnAmmoCrate();
     calculateGameTime();
     STATE.isRoundOver = false;
-}
-
-function removeWalls(a, b) {
-    let x = a.c - b.c;
-    if (x === 1) {
-        a.walls[3] = false;
-        b.walls[1] = false;
-    }
-    if (x === -1) {
-        a.walls[1] = false;
-        b.walls[3] = false;
-    }
-    let y = a.r - b.r;
-    if (y === 1) {
-        a.walls[0] = false;
-        b.walls[2] = false;
-    }
-    if (y === -1) {
-        a.walls[2] = false;
-        b.walls[0] = false;
-    }
 }
 
 function calculateGameTime() {
@@ -230,5 +194,107 @@ function calculateGameTime() {
     }
     STATE.gameTime = Math.floor((len * CONFIG.CELL_SIZE / ((CONFIG.BASE_SPEED + CONFIG.MAX_SPEED) / 2)) * 6);
     STATE.maxGameTime = STATE.gameTime;
+}
+
+function spawnPortals() {
+    // We want 2 portals: 
+    // Portal 1: Near Player 1 spawn (0,0) [CONFIG.PORTAL1_COLOR]
+    // Portal 2: Near Player 2 spawn (COLS-1, ROWS-1) [CONFIG.PORTAL2_COLOR]
+
+    // Constraints: Distance between 5 and 7 cells from spawn.
+    const MIN_DIST = 14;
+    const MAX_DIST = 15;
+
+    STATE.portals = [];
+
+    // --- 1. Find Location for Portal 1 (Near Top-Left) ---
+    let p1 = { c: 0, r: 0 };
+    let attempts = 0;
+    while (attempts < 1000) {
+        attempts++;
+        // Random spot in the top-left quadrant mostly
+        let c = Math.floor(4 + Math.random() * ((CONFIG.COLS - 4) / 2));
+        let r = Math.floor(4 + Math.random() * ((CONFIG.ROWS - 4) / 2));
+
+        // Calculate distance from P1 Spawn (0,0)
+        let dist = Math.hypot(c - 0, r - 0);
+
+        if (dist >= MIN_DIST && dist <= MAX_DIST) {
+            p1 = { c, r };
+            break;
+        }
+    }
+
+    // --- 2. Find Location for Portal 2 (Near Bottom-Right) ---
+    let p2 = { c: CONFIG.COLS - 1, r: CONFIG.ROWS - 1 };
+    attempts = 0;
+    while (attempts < 1000) {
+        attempts++;
+        // Random spot in the bottom-right quadrant mostly
+        let c = Math.floor(Math.random() * (CONFIG.COLS / 2)) + Math.floor(CONFIG.COLS / 2);
+        let r = Math.floor(Math.random() * (CONFIG.ROWS / 2)) + Math.floor(CONFIG.ROWS / 2);
+
+        if (c >= CONFIG.COLS || r >= CONFIG.ROWS) continue;
+
+        // Calculate distance from P2 Spawn (COLS-1, ROWS-1)
+        let dist = Math.hypot(c - (CONFIG.COLS - 1), r - (CONFIG.ROWS - 1));
+
+        if (dist >= MIN_DIST && dist <= MAX_DIST) {
+            p2 = { c, r };
+            break;
+        }
+    }
+
+    // Push Portal 1
+    STATE.portals.push({
+        c: p1.c,
+        r: p1.r,
+        x: CONFIG.MAZE_OFFSET_X + p1.c * CONFIG.CELL_SIZE + 1.5,
+        y: p1.r * CONFIG.CELL_SIZE + 1.5,
+        color: CONFIG.PORTAL1_COLOR
+    });
+
+    // Push Portal 2
+    STATE.portals.push({
+        c: p2.c,
+        r: p2.r,
+        x: CONFIG.MAZE_OFFSET_X + p2.c * CONFIG.CELL_SIZE + 1.5,
+        y: p2.r * CONFIG.CELL_SIZE + 1.5,
+        color: CONFIG.PORTAL2_COLOR
+    });
+
+    // --- 3. Apply Wall Clearing (Your requested fix) ---
+    STATE.portals.forEach(p => {
+        // Clear 3x3 area around portal center
+        for (let y = -1; y <= 1; y++) {
+            for (let x = -1; x <= 1; x++) {
+                removeWall(p.c + x, p.r + y, 0); // Top
+                removeWall(p.c + x, p.r + y, 1); // Right
+                removeWall(p.c + x, p.r + y, 2); // Bottom
+                removeWall(p.c + x, p.r + y, 3); // Left
+            }
+        }
+    });
+}
+
+function removeWalls(a, b) {
+    let x = a.c - b.c;
+    if (x === 1) {
+        a.walls[3] = false;
+        b.walls[1] = false;
+    }
+    if (x === -1) {
+        a.walls[1] = false;
+        b.walls[3] = false;
+    }
+    let y = a.r - b.r;
+    if (y === 1) {
+        a.walls[0] = false;
+        b.walls[2] = false;
+    }
+    if (y === -1) {
+        a.walls[2] = false;
+        b.walls[0] = false;
+    }
 }
 

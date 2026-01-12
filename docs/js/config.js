@@ -24,25 +24,25 @@ export const CONFIG = {
     CHARGE_TIME: 3000,
     CHARGE_PENALTY: 0.6,
     C_BEAM_SPEED: 0.6,
-    C_BEAM_RANGE: 15,
-    C_BEAM_LENGTH: 5,
-    C_BEAM_WIDTH: 1,
+    C_BEAM_RANGE: 16,
+    C_BEAM_LENGTH: 6,
+    C_BEAM_WIDTH: 2,
     GAMEPAD_THRESH: 0.5,
     IDLE_THRESHOLD: 8000,
     DEMO_RESET_TIMER: 500,
     BASE_SPEED: 0.5,
     MAX_SPEED: 1.2,
-    BEAM_ENERGY_COST: 30, 
-    CHARGED_BEAM_COST: 65, 
+    BEAM_ENERGY_COST: 30,
+    CHARGED_BEAM_COST: 65,
     SHIELD_DRAIN: (100 / (3 * 60)), // Drains full bar in 3 seconds (was 5)
     SHIELD_ACTIVATION_COST: 10,
     BOOST_DRAIN: 100 / (5 * 60),
     BOOST_REGEN: (100 / (8 * 60)) * 0.3,
     BOOST_COOLDOWN_FRAMES: 120,
-    P1COLOR:'#d9ff00ff',
-    P2COLOR:'#ff0040ff',
-    PORTAL1_COLOR:'#0000ffff',
-    PORTAL2_COLOR:'#00aaffff'
+    P1COLOR: '#d9ff00ff',
+    P2COLOR: '#ff0040ff',
+    PORTAL1_COLOR: '#0000ffff',
+    PORTAL2_COLOR: '#00aaffff'
 };
 
 export const CONTROLS_P1 = {
