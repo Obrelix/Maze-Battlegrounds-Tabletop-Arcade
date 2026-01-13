@@ -39,10 +39,18 @@ export const CONFIG = {
     BOOST_DRAIN: 100 / (5 * 60),
     BOOST_REGEN: (100 / (8 * 60)) * 0.3,
     BOOST_COOLDOWN_FRAMES: 120,
-    P1COLOR: '#d9ff00ff',
-    P2COLOR: '#ff0040ff',
     PORTAL1_COLOR: '#0000ffff',
     PORTAL2_COLOR: '#00aaffff',
+    PLAYER_COLORS: [
+        { name: 'YELLOW', hex: '#d9ff00ff' },
+        { name: 'MAGENTA', hex: '#ff0040ff' },
+        { name: 'CYAN', hex: '#00aaffff' },
+        { name: 'LIME', hex: '#00ff00ff' },
+        { name: 'ORANGE', hex: '#ff8800ff' },
+        { name: 'PURPLE', hex: '#aa00ffff' },
+        { name: 'WHITE', hex: '#ffffffff' },
+        { name: 'RED', hex: '#ff0000ff' }
+    ],
     STORAGE_KEY: 'LED_MAZE_HIGHSCORES',
     DEFAULT_NAMES: ['P-1', 'P-2'],
 };

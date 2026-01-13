@@ -21,7 +21,6 @@ export const STATE = {
     isRoundOver: false,
     deathTimer: 0,
     victimIdx: -1,
-    looser: -1,
     isDraw: false,
     messages: {
         deathReason: "",
@@ -41,14 +40,14 @@ export const STATE = {
         { name: "ARES", wins: 5 },
         { name: "HERA", wins: 3 }
     ],
-    nameEntry: {
-        activePlayer: 0, // 0 for P1, 1 for P2
-        charIdx: 0,      // Which letter (0, 1, 2)
-        chars: [65, 65, 65], // ASCII codes for 'A'
-        p1Name: "AAA",
-        p2Name: "BBB",
+    playerSetup: {
+        activePlayer: 0,      // 0 for P1, 1 for P2
+        colorIdx: 0,          // Which color selected
+        nameCharIdx: 0,       // Which character in name (0, 1, 2)
+        nameChars: [65, 65, 65],  // ASCII codes
+        phase: 'COLOR',       // 'COLOR' or 'NAME'
         isDone: false
-    }
+    },
 };
 
 export function saveHighScore(name) {
@@ -61,16 +60,50 @@ export function saveHighScore(name) {
     // Sort by wins (descending) and keep top 5
     STATE.highScores.sort((a, b) => b.wins - a.wins);
     STATE.highScores = STATE.highScores.slice(0, 5);
-    
+
     localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(STATE.highScores));
 }
 
 export function resetStateForMatch() {
+    // Store current names if they exist
+    let p1Name = STATE.players[0]?.name || "CPU";
+    let p1Color = STATE.players[0]?.color ?? CONFIG.PLAYER_COLORS[5]?.hex;
+    let p2Name = STATE.players[1]?.name || "CPU";
+    let p2Color = STATE.players[1]?.color ?? CONFIG.PLAYER_COLORS[1]?.hex;
+
+    // Create fresh players
     STATE.players = [
-        new Player(0, CONFIG.P1COLOR, CONTROLS_P1),
-        new Player(1, CONFIG.P2COLOR, CONTROLS_P2)
+        new Player(0, p1Color, CONTROLS_P1),
+        new Player(1, p2Color, CONTROLS_P2)
     ];
+
+    // ✅ Restore names
+    STATE.players[0].name = p1Name;
+    STATE.players[1].name = p2Name;
+
     // Reset other match-level variables
     STATE.isGameOver = false;
     STATE.isRoundOver = false;
+    STATE.maze = [];
+    STATE.mines = [];
+    STATE.particles = [];
+    STATE.portals = [];
+    STATE.projectiles = [];
+    STATE.ammoCrate = null;
+    STATE.ammoRespawnTimer = 0;
+    STATE.gameTime = CONFIG.GAME_TIME;
+    STATE.maxGameTime = CONFIG.GAME_TIME;
+    STATE.deathTimer = 0;
+    STATE.victimIdx = -1;
+    STATE.isDraw = false;
+    STATE.messages = {
+        deathReason: "",
+        win: "",
+        taunt: "",
+        round: "",
+        winColor: "#fff",
+        roundColor: "#fff"
+    };
+    STATE.scrollX = 0;
+    STATE.portalReverseColors = false;
 }

@@ -356,7 +356,7 @@ export function applyPlayerActions(p, input) {
         p.score += 1;
         if (p.score >= CONFIG.MAX_SCORE) {
             STATE.isGameOver = true;
-            STATE.looser = (p.id + 1 == 1) ? 2 : 1;
+            STATE.victimIdx = (p.id == 1) ? 2 : 1;
             STATE.messages.win = `PLAYER ${p.id + 1} WINS!`;
             STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
             STATE.messages.winColor = p.color;

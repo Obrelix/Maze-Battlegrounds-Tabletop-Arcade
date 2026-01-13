@@ -1,39 +1,32 @@
 import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS } from './config.js';
-import { STATE, resetStateForMatch,saveHighScore } from './state.js';
+import { STATE, resetStateForMatch, saveHighScore } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js'; 1
 import { getCpuInput } from './ai.js';
-import { renderGame, renderMenu, renderNameEntry} from './renderer.js';
+import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import {
     applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,
     checkBeamCollisions, checkArmorCrate, checkPortalActions, chekcBeamActions, checkMinesActions
 } from './mechanics.js';
 
 export function startMatchSetup() {
-    // FIX 1: Initialize the players array so it exists for Name Entry
-    resetStateForMatch(); 
-
-    if (STATE.gameMode === 'SINGLE') {
-        STATE.players[0].name = "YOU";
-        STATE.players[1].name = "CPU";
-        startGame(true); // Pass true to keep these names
-    } else {
-        STATE.screen = 'NAME_ENTRY';
-        STATE.nameEntry = {
-            activePlayer: 0,
-            charIdx: 0,
-            chars: [65, 65, 65],
-            p1Name: "",
-            p2Name: "",
-            isDone: false
-        };
-    }
+    resetStateForMatch();
+    STATE.screen = 'PLAYER_SETUP';
+    STATE.playerSetup = {
+        activePlayer: 0,
+        colorIdx: 0,
+        nameCharIdx: 0,
+        nameChars: [65, 65, 65],
+        phase: 'COLOR',
+        isDone: false
+    };
 }
 
 export function startGame() {
     if (STATE.sfx) STATE.sfx.init();
     STATE.screen = 'PLAYING';
     resetStateForMatch();
+    updateHtmlUI();
     document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
     initMaze();
 }
@@ -61,7 +54,7 @@ function finalizeRound() {
     // CHECK FOR MATCH WIN
     if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
         // ... (Existing Win Sound/Message) ...
-        
+
         // SAVE HIGH SCORE
         let winnerName = STATE.players[winnerIdx].name;
         if (winnerName !== "CPU") {
@@ -69,12 +62,11 @@ function finalizeRound() {
         }
     }
     STATE.messages.round = `P${victimIdx + 1} ${STATE.deathReason}!`;
-    STATE.messages.roundColor = "#ff0000";
+    STATE.messages.roundColor = STATE.players[victimIdx].color;
 
     if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
         STATE.sfx.win();
         STATE.isGameOver = true;
-        STATE.looser = (winnerIdx + 1 == 1) ? 2 : 1;
         STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
         STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
         STATE.messages.winColor = STATE.players[winnerIdx].color;
@@ -95,22 +87,22 @@ function update() {
     if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
         STATE.gpData = pollGamepads(startGame);
     if (STATE.screen === 'HIGHSCORES') {
-         // Allow exiting high scores
-         if (STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
-             STATE.screen = 'MENU';
-         }
-         return;
+        // Allow exiting high scores
+        if (STATE.keys['Digit1'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
+            STATE.screen = 'MENU';
+        }
+        return;
     }
-
-    if (STATE.screen === 'NAME_ENTRY') {
-        handleNameEntryInput();
+    if (STATE.screen === 'PLAYER_SETUP') {
+        handlePlayerSetupInput();
         return;
     }
     if (STATE.screen === 'MENU') {
         if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
         if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startMatchSetup(); }
-        if (STATE.keys['Digit3']) { 
-            STATE.gameMode = 'HIGHSCORES'; 
+        if (STATE.keys['Digit3']) {
+            STATE.screen = 'HIGHSCORES';
+            STATE.gameMode = 'HIGHSCORES';
         }
         if (checkIdle()) {
             STATE.isAttractMode = true;
@@ -225,58 +217,158 @@ function update() {
 function loop() {
     update();
     if (STATE.screen === 'MENU') renderMenu();
-    else if (STATE.screen === 'NAME_ENTRY') renderNameEntry(); // New
+    else if (STATE.screen === 'PLAYER_SETUP') renderPlayerSetup();
     else if (STATE.screen === 'HIGHSCORES') renderHighScores(); // New
     else renderGame();
     requestAnimationFrame(loop);
 }
-// Simple delay to prevent scrolling too fast
-let inputDelay = 0; 
-function handleNameEntryInput() {
-    if (inputDelay > 0) { inputDelay--; return; }
+let setupInputDelay = 0;
 
-    const ne = STATE.nameEntry;
-    const controls = ne.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
-    // Get merged input (keyboard + gamepad)
-    const input = getHumanInput(ne.activePlayer, controls);
+function handlePlayerSetupInput() {
+    if (setupInputDelay > 0) {
+        setupInputDelay--;
+        return;
+    }
 
-    if (input.up) {
-        ne.chars[ne.charIdx]++;
-        if(ne.chars[ne.charIdx] > 90) ne.chars[ne.charIdx] = 65; // Wrap Z -> A
-        inputDelay = 10;
-    }
-    if (input.down) {
-        ne.chars[ne.charIdx]--;
-        if(ne.chars[ne.charIdx] < 65) ne.chars[ne.charIdx] = 90; // Wrap A -> Z
-        inputDelay = 10;
-    }
-    if (input.right || input.boom || input.beam || input.start) {
-        if(ne.charIdx < 2) {
-            ne.charIdx++;
-            inputDelay = 15;
-        } else {
-            // Player Finished Name
-            let finalName = String.fromCharCode(...ne.chars);
-            if(ne.activePlayer === 0) {
-                STATE.players[0].name = finalName;
-                ne.activePlayer = 1;
-                ne.charIdx = 0;
-                ne.chars = [65,65,65];
-                inputDelay = 20;
-            } else {
-                STATE.players[1].name = finalName;
-                startGame(); // Start the actual game now
+    const ps = STATE.playerSetup;
+    const controls = ps.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
+    const input = getHumanInput(ps.activePlayer, controls);
+
+    // ===== COLOR PHASE =====
+    if (ps.phase === 'COLOR') {
+        // UP: Previous color
+        if (input.up) {
+            ps.colorIdx = (ps.colorIdx - 1 + CONFIG.PLAYER_COLORS.length) % CONFIG.PLAYER_COLORS.length;
+            setupInputDelay = 8;
+        }
+
+        // DOWN: Next color
+        if (input.down) {
+            ps.colorIdx = (ps.colorIdx + 1) % CONFIG.PLAYER_COLORS.length;
+            setupInputDelay = 8;
+        }
+
+        // RIGHT or ACTION: Confirm color, move to name entry
+        if (input.right || input.boom || input.beam || input.start) {
+            // Store color for this player
+            STATE.players[ps.activePlayer].color = CONFIG.PLAYER_COLORS[ps.colorIdx].hex;
+
+            // Move to NAME phase
+            ps.phase = 'NAME';
+            ps.nameCharIdx = 0;
+            ps.nameChars = [65, 65, 65];
+            setupInputDelay = 15;
+        }
+
+        // LEFT: Go back to previous player (if not first player)
+        if (input.left) {
+            if (ps.activePlayer === 1) {
+                ps.activePlayer = 0;
+                ps.colorIdx = 0;  // Reset to default
+                ps.phase = 'COLOR';
+                setupInputDelay = 15;
             }
         }
     }
-    if (input.left) {
-        if(ne.charIdx > 0) {
-            ne.charIdx--;
-            inputDelay = 15;
+
+    // ===== NAME PHASE =====
+    else if (ps.phase === 'NAME') {
+        // UP: Change character forward
+        if (input.up) {
+            ps.nameChars[ps.nameCharIdx]++;
+            if (ps.nameChars[ps.nameCharIdx] > 90) ps.nameChars[ps.nameCharIdx] = 65;
+            setupInputDelay = 10;
+        }
+
+        // DOWN: Change character backward
+        if (input.down) {
+            ps.nameChars[ps.nameCharIdx]--;
+            if (ps.nameChars[ps.nameCharIdx] < 65) ps.nameChars[ps.nameCharIdx] = 90;
+            setupInputDelay = 10;
+        }
+
+        // RIGHT: Next character position or submit
+        if (input.right || input.boom || input.beam || input.start) {
+            if (ps.nameCharIdx < 2) {
+                // Move to next character
+                ps.nameCharIdx++;
+                setupInputDelay = 15;
+            } else {
+                // Finished with name, check if more players
+                let finalName = String.fromCharCode(...ps.nameChars);
+                finalName = finalName.trim();
+                if (!finalName || finalName.length === 0) {
+                    finalName = "AAA";
+                }
+                STATE.players[ps.activePlayer].name = finalName;
+
+                // Check if we need to set up next player
+                if (ps.activePlayer === 0 && STATE.gameMode === 'MULTI') {
+                    // Move to Player 2
+                    ps.activePlayer = 1;
+                    ps.colorIdx = 1;  // Default to different color
+                    ps.nameCharIdx = 0;
+                    ps.nameChars = [65, 65, 65];
+                    ps.phase = 'COLOR';  // Start with color selection for P2
+                    setupInputDelay = 20;
+                } else {
+                    // All players done, start game
+                    startGame();
+                }
+            }
+        }
+
+        // LEFT: Previous character or go back to color selection
+        if (input.left) {
+            if (ps.nameCharIdx > 0) {
+                ps.nameCharIdx--;
+                setupInputDelay = 15;
+            } else {
+                // Go back to color selection
+                ps.phase = 'COLOR';
+                ps.colorIdx = ps.activePlayer === 0 ? 0 : 1;
+                setupInputDelay = 15;
+            }
         }
     }
 }
+
+function updateHtmlUI() {
+    
+    let p1Name = STATE.players[0]?.name || "CPU";
+    let p1Color = STATE.players[0]?.color ?? CONFIG.PLAYER_COLORS[5]?.hex;
+    let p2Name = STATE.players[1]?.name || "CPU";
+    let p2Color = STATE.players[1]?.color ?? CONFIG.PLAYER_COLORS[1]?.hex;
+    document.getElementById('p1-header').style.color = p1Color;
+    document.getElementById('p1-header').innerHTML = p1Name;
+    document.getElementById('p2-header').style.color = p2Color;
+    document.getElementById('p2-header').innerHTML = p2Name;
+    document.getElementById('p1-panel').style.border = `1px solid ${p1Color.slice(0, 7)}63`;
+    document.getElementById('p1-panel').style.boxShadow = `inset 0 0 15px ${p1Color.slice(0, 7)}23`;
+    document.getElementById('p2-panel').style.border = `1px solid ${p2Color.slice(0, 7)}63`;
+    document.getElementById('p2-panel').style.boxShadow = `inset 0 0 15px ${p2Color.slice(0, 7)}23`;
+}
+
+// ✅ NEW HELPER FUNCTION - ADD THIS TO main.js
+function validateAndTrimName(name) {
+    // Remove whitespace
+    name = name.trim();
+
+    // If empty, default to AAA
+    if (!name || name.length === 0) {
+        return "AAA";
+    }
+
+    // Limit to 3 characters max
+    if (name.length > 3) {
+        name = name.substring(0, 3);
+    }
+
+    return name;
+}
+
 window.addEventListener('load', () => {
     setupInputs(startGame);
     loop();
+    updateHtmlUI();
 });

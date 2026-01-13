@@ -85,10 +85,6 @@ function drawChar(x, y, char, color, rotateDeg) {
 }
 
 function drawPlayerBody(x, y, color) {
-    let p = STATE.players.find(pl => pl.color === color); // Simplified lookup
-    if (p && p.boostEnergy < 25 && Math.floor(Date.now() / 100) % 2 === 0) {
-        color = '#555'; // Flash grey if exhausted
-    }
     drawLED(Math.floor(x), Math.floor(y), color);
     drawLED(Math.floor(x) + 1, Math.floor(y), color);
     drawLED(Math.floor(x), Math.floor(y) + 1, color);
@@ -282,8 +278,8 @@ export function renderGame() {
         cellCeq.forEach((pos, idx) => {
             if (idx === activeIdx) {
                 drawLED(tx + pos.dx, ty + pos.dy, moveColor);
-            }  else {
-                drawLED(tx + pos.dx, ty + pos.dy, effectColor); 
+            } else {
+                drawLED(tx + pos.dx, ty + pos.dy, effectColor);
             }
         });
         // // Indices relative to tx, ty:
@@ -309,7 +305,7 @@ export function renderGame() {
         // activeIdx += 3;
         // pos = perimeter[activeIdx];
         // drawLED(tx + pos.dx, ty + pos.dy, perimColor);
-        
+
     }
 
     // 5. Draw Mines & Projectiles
@@ -439,7 +435,11 @@ export function renderGame() {
 
         } else {
             // NORMAL RENDER
-            drawPlayerBody(p.x, p.y, p.color);
+            let color = p.color; // Simplified lookup
+            if (p && p.boostEnergy < 25 && Math.floor(Date.now() / 100) % 2 === 0) {
+                color = '#555'; // Flash grey if exhaustedx
+            }
+            drawPlayerBody(p.x, p.y, color);
         }
     });
 
@@ -464,11 +464,11 @@ export function renderGame() {
     drawDigit(0, 44, parseInt(s[1]), wallColor, 90);
     drawDigit(0, 48, parseInt(s[2]), wallColor, 90);
 
-    if(p1.name){
+    if (p1.name) {
         drawChar(0, 53, p1.name[0], p1.color, 90);
         drawChar(0, 57, p1.name[1], p1.color, 90);
         drawChar(0, 61, p1.name[2], p1.color, 90);
-    }  
+    }
 
     let rx = 123;
     drawDigit(rx, 61, parseInt(p2.score.toString().padStart(2, '0')[0]), p2.color, -90);
@@ -480,10 +480,10 @@ export function renderGame() {
     drawDigit(rx, 21, parseInt(s[0]), wallColor, -90);
     drawDigit(rx, 17, parseInt(s[1]), wallColor, -90);
     drawDigit(rx, 13, parseInt(s[2]), wallColor, -90);
-    if(p2.name){
-        drawChar(rx, 8 , p2.name[0], p2.color, -90);
-        drawChar(rx, 4 , p2.name[1], p2.color, -90);
-        drawChar(rx, 0 , p2.name[2], p2.color, -90);
+    if (p2.name) {
+        drawChar(rx, 8, p2.name[0], p2.color, -90);
+        drawChar(rx, 4, p2.name[1], p2.color, -90);
+        drawChar(rx, 0, p2.name[2], p2.color, -90);
     }
     if (STATE.isAttractMode) {
         if (Math.floor(Date.now() / 800) % 2 === 0) { // Blink slowly
@@ -497,93 +497,136 @@ export function renderGame() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (STATE.isGameOver) {
-            const winColor = STATE.looser == 1 ? CONFIG.P2COLOR : CONFIG.P1COLOR;
-            const tauntColor = STATE.looser == 2 ? CONFIG.P2COLOR : CONFIG.P1COLOR;
+            const winColor = STATE.victimIdx == 0 ? STATE.players[1]?.color : STATE.players[0]?.color;
+            const tauntColor = STATE.victimIdx == 1 ? STATE.players[1]?.color : STATE.players[0]?.color;
             if (Math.floor(Date.now() / 300) % 2 === 0)
-                drawText(STATE.messages.win, 38, 15, winColor);
-            let msg = `P${STATE.looser}: '${STATE.messages.taunt}'`
-            drawText(msg, STATE.scrollX, 35, tauntColor);
+                drawText(STATE.messages.win, 38, 8, winColor);
+            let msg = `P${STATE.victimIdx + 1}: '${STATE.messages.taunt}'`
+            drawText(msg, STATE.scrollX, 29, tauntColor);
             drawText("PRESS 'R' TO RESET", 30, 52, "#888");
         } else {
-            drawText("ROUND OVER", 46, 20, "#fff");
-            drawText(STATE.messages.round, STATE.scrollX, 40, STATE.messages.roundColor);
-            if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS 'START'", 42, 55, "#ffff00");
+            drawText("ROUND OVER", 46, 8, "#fff");
+            drawText(STATE.messages.round, STATE.scrollX, 29, STATE.messages.roundColor);
+            if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS 'START'", 42, 52, "#ffff00");
         }
     }
-}
-
-export function renderNameEntry() {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw grid background
-    for (let y = 0; y < CONFIG.LOGICAL_H; y++)
-        for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
-
-    drawText("ENTER INITIALS", 35, 10, "#fff");
-
-    const ne = STATE.nameEntry;
-    const pId = ne.activePlayer;
-    const color = pId === 0 ? CONFIG.P1COLOR : CONFIG.P2COLOR;
-
-    drawText(`PLAYER ${pId + 1}`, 45, 25, color);
-
-    // Draw the 3 letters being edited
-    let startX = 52;
-    for(let i=0; i<3; i++) {
-        let char = String.fromCharCode(ne.chars[i]);
-        let c = (i === ne.charIdx) ? (Math.floor(Date.now()/200)%2===0 ? "#fff" : color) : color; 
-        drawText(char, startX + (i*10), 40, c);
-        
-        // Draw underline for active char
-        if(i === ne.charIdx) {
-             drawLED(startX + (i*10), 46, c);
-             drawLED(startX + (i*10)+1, 46, c);
-             drawLED(startX + (i*10)+2, 46, c);
-        }
-    }
-
-    drawText("PRESS UP/DOWN", 35, 55, "#555");
 }
 
 export function renderHighScores() {
+    // Clear screen
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    drawText("LEADERBOARD", 40, 5, "#ffff00");
 
-    STATE.highScores.forEach((entry, idx) => {
-        let y = 18 + (idx * 9);
-        let color = idx === 0 ? "#00ff00" : (idx === 1 ? "#ffff00" : "#fff");
-        
-        // Rank
-        drawText(`${idx+1}.`, 20, y, "#555");
-        // Name
-        drawText(entry.name, 40, y, color);
-        // Wins
-        drawText(`${entry.wins}`, 100, y, color);
-    });
+    // Draw grid background
+    for (let y = 0; y < CONFIG.LOGICAL_H; y++) {
+        for (let x = 0; x < CONFIG.LOGICAL_W; x++) {
+            drawLED(x, y, '#111');
+        }
+    }
 
-    if(Math.floor(Date.now()/500)%2===0) {
-        drawText("PRESS START", 40, 58, "#888");
+    // Title
+    drawText("LEADERBOARD", 40, 3, "#ffff00");
+
+    // High scores list
+    if (!STATE.highScores || STATE.highScores.length === 0) {
+        drawText("NO SCORES YET", 35, 20, "#888");
+        drawText("PLAY A GAME", 42, 30, "#666");
+    } else {
+        STATE.highScores.forEach((entry, idx) => {
+            // Calculate Y position based on rank
+            let yPos = 12 + (idx * 8);
+
+            // Color based on rank (gold, silver, bronze)
+            let rankColor = idx === 0 ? "#ffff00" : (idx === 1 ? "#ff8800" : "#888");
+            let nameColor = idx === 0 ? "#ffff00" : (idx === 1 ? "#ff8800" : "#aaa");
+
+            // Rank number
+            drawText(`${idx + 1}.`, 5, yPos, rankColor);
+
+            // Player name (max 3 chars)
+            let displayName = entry.name.substring(0, 3).toUpperCase();
+            drawText(displayName, 20, yPos, nameColor);
+
+            // Wins count
+            let winsStr = entry.wins.toString();
+            drawText(`W:${winsStr}`, 45, yPos, nameColor);
+        });
+    }
+
+    // Instructions
+    if (Math.floor(Date.now() / 500) % 2 === 0) {
+        drawText("PRESS '1' TO BACK", 30, 58, "#666");
     }
 }
 
+export function renderPlayerSetup() {
+    // Clear screen
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid background
+    for (let y = 0; y < CONFIG.LOGICAL_H; y++) {
+        for (let x = 0; x < CONFIG.LOGICAL_W; x++) {
+            drawLED(x, y, '#111');
+        }
+    }
+
+    const ps = STATE.playerSetup;
+    const pId = ps.activePlayer + 1;
+    const playerLabel = `PLAYER ${pId}`;
+    const playerColor = CONFIG.PLAYER_COLORS[ps.colorIdx].hex;
+
+    // ===== PHASE 1: COLOR SELECTION =====
+
+    let progressText = STATE.gameMode === 'MULTI' ? "MULTI PLAYERS" : "SINGLE PLAYER";
+    drawText(progressText, 40, 3, "#888");
+
+    if (ps.phase === 'COLOR') {
+        drawText("CHOOSE COLOR", 42, 15, "#888");
+        let previewX = 65;
+        let previewY = 27;
+        for (let x = 0; x < 8; x++) {
+            for (let y = 0; y < 8; y++) {
+                drawLED(previewX + x, previewY + y, playerColor);
+            }
+        }
+        drawText(playerLabel, 30, 28, playerColor);
+        drawText(CONFIG.PLAYER_COLORS[ps.colorIdx].name, 77, 28, playerColor);
+
+    } else if (ps.phase === 'NAME') {
+        drawText("ENTER NAME", 46, 15, "#888");
+        let startX = 53;
+        let charSpacing = 10;
+        for (let i = 0; i < 3; i++) {
+            let char = String.fromCharCode(ps.nameChars[i]);
+            let isActive = (i === ps.nameCharIdx);
+            let displayColor = isActive ? playerColor : "#555";
+            drawText(char, startX + (i * charSpacing), 27, displayColor);
+            // Draw underline for active character
+            if (isActive) {
+                let underlineX = startX + (i * charSpacing);
+                let underlineY = 32;
+                if (Math.floor(Date.now() / 200) % 2 === 0) {
+                    drawLED(underlineX, underlineY, playerColor);
+                    drawLED(underlineX + 1, underlineY, playerColor);
+                    drawLED(underlineX + 2, underlineY, playerColor);
+                }
+            }
+        }
+    }
+    drawText("UP/DOWN: CHANGE ", 5, 45, "#61ca5d");
+    drawText("RIGHT: NEXT", 80, 45, "#bb4e4e");
+}
+
 export function renderMenu() {
-    document.getElementById('p1-header').style.color = CONFIG.P1COLOR;
-    document.getElementById('p2-header').style.color = CONFIG.P2COLOR;
-    document.getElementById('p1-panel').style.border = `1px solid ${CONFIG.P1COLOR.slice(0, 7)}63`;
-    document.getElementById('p1-panel').style.boxShadow = `inset 0 0 15px ${CONFIG.P1COLOR.slice(0, 7)}23`;
-    document.getElementById('p2-panel').style.border = `1px solid ${CONFIG.P2COLOR.slice(0, 7)}63`;
-    document.getElementById('p2-panel').style.boxShadow = `inset 0 0 15px ${CONFIG.P2COLOR.slice(0, 7)}23`;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
 
     drawText("SELECT MODE", 42, 5, "#fff");
-    drawText("1. SINGLE PLAYER", 32, 20, Math.floor(Date.now() / 500) % 3 === 0 ? CONFIG.P1COLOR : "#555");
-    drawText("2. MULTIPLAYER", 35, 30, Math.floor(Date.now() / 500) % 3 === 1 ? CONFIG.P2COLOR : "#555");
-    drawText("3. HIGH SCORES", 35, 40,  Math.floor(Date.now() / 500) % 3 === 2 ? "#88f" : "#555" );
+    drawText("1. SINGLE PLAYER", 32, 20, Math.floor(Date.now() / 500) % 3 === 0 ? "#08ffffff" : "#555");
+    drawText("2. MULTIPLAYER", 35, 30, Math.floor(Date.now() / 500) % 3 === 1 ? "#ff00ffff" : "#555");
+    drawText("3. HIGH SCORES", 35, 40, Math.floor(Date.now() / 500) % 3 === 2 ? "#88f" : "#555");
     drawText("CPU: HARD", 45, 50, "#f55");
 }
