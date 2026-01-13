@@ -1,13 +1,34 @@
 import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS } from './config.js';
-import { STATE, resetStateForMatch } from './state.js';
+import { STATE, resetStateForMatch,saveHighScore } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js'; 1
 import { getCpuInput } from './ai.js';
-import { renderGame, renderMenu } from './renderer.js';
+import { renderGame, renderMenu, renderNameEntry} from './renderer.js';
 import {
     applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,
     checkBeamCollisions, checkArmorCrate, checkPortalActions, chekcBeamActions, checkMinesActions
 } from './mechanics.js';
+
+export function startMatchSetup() {
+    // FIX 1: Initialize the players array so it exists for Name Entry
+    resetStateForMatch(); 
+
+    if (STATE.gameMode === 'SINGLE') {
+        STATE.players[0].name = "YOU";
+        STATE.players[1].name = "CPU";
+        startGame(true); // Pass true to keep these names
+    } else {
+        STATE.screen = 'NAME_ENTRY';
+        STATE.nameEntry = {
+            activePlayer: 0,
+            charIdx: 0,
+            chars: [65, 65, 65],
+            p1Name: "",
+            p2Name: "",
+            isDone: false
+        };
+    }
+}
 
 export function startGame() {
     if (STATE.sfx) STATE.sfx.init();
@@ -37,6 +58,16 @@ function finalizeRound() {
     let winnerIdx = (victimIdx === 0) ? 1 : 0;
 
     STATE.players[winnerIdx].score++;
+    // CHECK FOR MATCH WIN
+    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
+        // ... (Existing Win Sound/Message) ...
+        
+        // SAVE HIGH SCORE
+        let winnerName = STATE.players[winnerIdx].name;
+        if (winnerName !== "CPU") {
+            saveHighScore(winnerName);
+        }
+    }
     STATE.messages.round = `P${victimIdx + 1} ${STATE.deathReason}!`;
     STATE.messages.roundColor = "#ff0000";
 
@@ -63,9 +94,24 @@ function finalizeRound() {
 function update() {
     if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
         STATE.gpData = pollGamepads(startGame);
+    if (STATE.screen === 'HIGHSCORES') {
+         // Allow exiting high scores
+         if (STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
+             STATE.screen = 'MENU';
+         }
+         return;
+    }
+
+    if (STATE.screen === 'NAME_ENTRY') {
+        handleNameEntryInput();
+        return;
+    }
     if (STATE.screen === 'MENU') {
-        if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startGame(); }
-        if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startGame(); }
+        if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
+        if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startMatchSetup(); }
+        if (STATE.keys['Digit3']) { 
+            STATE.gameMode = 'HIGHSCORES'; 
+        }
         if (checkIdle()) {
             STATE.isAttractMode = true;
             STATE.gameMode = 'MULTI';
@@ -179,10 +225,57 @@ function update() {
 function loop() {
     update();
     if (STATE.screen === 'MENU') renderMenu();
+    else if (STATE.screen === 'NAME_ENTRY') renderNameEntry(); // New
+    else if (STATE.screen === 'HIGHSCORES') renderHighScores(); // New
     else renderGame();
     requestAnimationFrame(loop);
 }
+// Simple delay to prevent scrolling too fast
+let inputDelay = 0; 
+function handleNameEntryInput() {
+    if (inputDelay > 0) { inputDelay--; return; }
 
+    const ne = STATE.nameEntry;
+    const controls = ne.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
+    // Get merged input (keyboard + gamepad)
+    const input = getHumanInput(ne.activePlayer, controls);
+
+    if (input.up) {
+        ne.chars[ne.charIdx]++;
+        if(ne.chars[ne.charIdx] > 90) ne.chars[ne.charIdx] = 65; // Wrap Z -> A
+        inputDelay = 10;
+    }
+    if (input.down) {
+        ne.chars[ne.charIdx]--;
+        if(ne.chars[ne.charIdx] < 65) ne.chars[ne.charIdx] = 90; // Wrap A -> Z
+        inputDelay = 10;
+    }
+    if (input.right || input.boom || input.beam || input.start) {
+        if(ne.charIdx < 2) {
+            ne.charIdx++;
+            inputDelay = 15;
+        } else {
+            // Player Finished Name
+            let finalName = String.fromCharCode(...ne.chars);
+            if(ne.activePlayer === 0) {
+                STATE.players[0].name = finalName;
+                ne.activePlayer = 1;
+                ne.charIdx = 0;
+                ne.chars = [65,65,65];
+                inputDelay = 20;
+            } else {
+                STATE.players[1].name = finalName;
+                startGame(); // Start the actual game now
+            }
+        }
+    }
+    if (input.left) {
+        if(ne.charIdx > 0) {
+            ne.charIdx--;
+            inputDelay = 15;
+        }
+    }
+}
 window.addEventListener('load', () => {
     setupInputs(startGame);
     loop();

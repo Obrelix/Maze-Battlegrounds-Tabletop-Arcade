@@ -35,8 +35,35 @@ export const STATE = {
     sfx: new SoundFX(),
     camera: new Camera(),
     gpData: null,
-    portalReverseColors: false
+    portalReverseColors: false,
+    highScores: JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY)) || [
+        { name: "ZEUS", wins: 10 },
+        { name: "ARES", wins: 5 },
+        { name: "HERA", wins: 3 }
+    ],
+    nameEntry: {
+        activePlayer: 0, // 0 for P1, 1 for P2
+        charIdx: 0,      // Which letter (0, 1, 2)
+        chars: [65, 65, 65], // ASCII codes for 'A'
+        p1Name: "AAA",
+        p2Name: "BBB",
+        isDone: false
+    }
 };
+
+export function saveHighScore(name) {
+    let entry = STATE.highScores.find(e => e.name === name);
+    if (entry) {
+        entry.wins++;
+    } else {
+        STATE.highScores.push({ name: name, wins: 1 });
+    }
+    // Sort by wins (descending) and keep top 5
+    STATE.highScores.sort((a, b) => b.wins - a.wins);
+    STATE.highScores = STATE.highScores.slice(0, 5);
+    
+    localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(STATE.highScores));
+}
 
 export function resetStateForMatch() {
     STATE.players = [

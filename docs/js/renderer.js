@@ -62,6 +62,28 @@ function drawDigit(x, y, num, color, rotateDeg) {
     }
 }
 
+function drawChar(x, y, char, color, rotateDeg) {
+    const map = BITMAP_FONT[char.toUpperCase()];
+    for (let i = 0; i < 15; i++) {
+        if (map[i]) {
+            let c = i % 3;
+            let r = Math.floor(i / 3);
+            let dx, dy;
+            if (rotateDeg === -90) {
+                dx = r;
+                dy = (2 - c);
+            } else if (rotateDeg === 90) {
+                dx = (4 - r);
+                dy = c;
+            } else {
+                dx = c;
+                dy = r;
+            }
+            drawLED(x + dx, y + dy, color);
+        }
+    }
+}
+
 function drawPlayerBody(x, y, color) {
     let p = STATE.players.find(pl => pl.color === color); // Simplified lookup
     if (p && p.boostEnergy < 25 && Math.floor(Date.now() / 100) % 2 === 0) {
@@ -427,7 +449,7 @@ export function renderGame() {
     // --- FIX 2: Restore Context BEFORE Drawing HUD ---
     // This ensures the HUD doesn't shake with the world
     ctx.restore();
-
+    // Draw Names (New)
     // 8. Draw HUD
     let p1 = STATE.players[0],
         p2 = STATE.players[1],
@@ -435,23 +457,34 @@ export function renderGame() {
     drawDigit(0, 0, parseInt(p1.score.toString().padStart(2, '0')[0]), p1.color, 90);
     drawDigit(0, 4, parseInt(p1.score.toString().padStart(2, '0')[1]), p1.color, 90);
     drawDigit(0, 10, p1.minesLeft, `hsl(${p1.minesLeft / 4 * 120},100%,50%)`, 90);
-    for (let h = 0; h < Math.floor(p1.boostEnergy / 100 * 38); h++)
+    for (let h = 0; h < Math.floor(p1.boostEnergy / 100 * 25); h++)
         for (let w = 0; w < 5; w++) drawLED(w, 14 + h, `hsl(${p1.boostEnergy / 100 * 120},100%,50%)`);
 
-    drawDigit(0, 53, parseInt(s[0]), wallColor, 90);
-    drawDigit(0, 57, parseInt(s[1]), wallColor, 90);
-    drawDigit(0, 61, parseInt(s[2]), wallColor, 90);
+    drawDigit(0, 40, parseInt(s[0]), wallColor, 90);
+    drawDigit(0, 44, parseInt(s[1]), wallColor, 90);
+    drawDigit(0, 48, parseInt(s[2]), wallColor, 90);
+
+    if(p1.name){
+        drawChar(0, 53, p1.name[0], p1.color, 90);
+        drawChar(0, 57, p1.name[1], p1.color, 90);
+        drawChar(0, 61, p1.name[2], p1.color, 90);
+    }  
 
     let rx = 123;
     drawDigit(rx, 61, parseInt(p2.score.toString().padStart(2, '0')[0]), p2.color, -90);
     drawDigit(rx, 57, parseInt(p2.score.toString().padStart(2, '0')[1]), p2.color, -90);
     drawDigit(rx, 51, p2.minesLeft, `hsl(${p2.minesLeft / 4 * 120},100%,50%)`, -90);
-    for (let h = 0; h < Math.floor(p2.boostEnergy / 100 * 38); h++)
+    for (let h = 0; h < Math.floor(p2.boostEnergy / 100 * 25); h++)
         for (let w = 0; w < 5; w++) drawLED(rx + w, 49 - h, `hsl(${p2.boostEnergy / 100 * 120},100%,50%)`);
 
-    drawDigit(rx, 8, parseInt(s[0]), wallColor, -90);
-    drawDigit(rx, 4, parseInt(s[1]), wallColor, -90);
-    drawDigit(rx, 0, parseInt(s[2]), wallColor, -90);
+    drawDigit(rx, 21, parseInt(s[0]), wallColor, -90);
+    drawDigit(rx, 17, parseInt(s[1]), wallColor, -90);
+    drawDigit(rx, 13, parseInt(s[2]), wallColor, -90);
+    if(p2.name){
+        drawChar(rx, 8 , p2.name[0], p2.color, -90);
+        drawChar(rx, 4 , p2.name[1], p2.color, -90);
+        drawChar(rx, 0 , p2.name[2], p2.color, -90);
+    }
     if (STATE.isAttractMode) {
         if (Math.floor(Date.now() / 800) % 2 === 0) { // Blink slowly
             drawText("DEMO MODE", 46, 25, "#ff0000");
@@ -479,6 +512,63 @@ export function renderGame() {
     }
 }
 
+export function renderNameEntry() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw grid background
+    for (let y = 0; y < CONFIG.LOGICAL_H; y++)
+        for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
+
+    drawText("ENTER INITIALS", 35, 10, "#fff");
+
+    const ne = STATE.nameEntry;
+    const pId = ne.activePlayer;
+    const color = pId === 0 ? CONFIG.P1COLOR : CONFIG.P2COLOR;
+
+    drawText(`PLAYER ${pId + 1}`, 45, 25, color);
+
+    // Draw the 3 letters being edited
+    let startX = 52;
+    for(let i=0; i<3; i++) {
+        let char = String.fromCharCode(ne.chars[i]);
+        let c = (i === ne.charIdx) ? (Math.floor(Date.now()/200)%2===0 ? "#fff" : color) : color; 
+        drawText(char, startX + (i*10), 40, c);
+        
+        // Draw underline for active char
+        if(i === ne.charIdx) {
+             drawLED(startX + (i*10), 46, c);
+             drawLED(startX + (i*10)+1, 46, c);
+             drawLED(startX + (i*10)+2, 46, c);
+        }
+    }
+
+    drawText("PRESS UP/DOWN", 35, 55, "#555");
+}
+
+export function renderHighScores() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    drawText("LEADERBOARD", 40, 5, "#ffff00");
+
+    STATE.highScores.forEach((entry, idx) => {
+        let y = 18 + (idx * 9);
+        let color = idx === 0 ? "#00ff00" : (idx === 1 ? "#ffff00" : "#fff");
+        
+        // Rank
+        drawText(`${idx+1}.`, 20, y, "#555");
+        // Name
+        drawText(entry.name, 40, y, color);
+        // Wins
+        drawText(`${entry.wins}`, 100, y, color);
+    });
+
+    if(Math.floor(Date.now()/500)%2===0) {
+        drawText("PRESS START", 40, 58, "#888");
+    }
+}
+
 export function renderMenu() {
     document.getElementById('p1-header').style.color = CONFIG.P1COLOR;
     document.getElementById('p2-header').style.color = CONFIG.P2COLOR;
@@ -491,8 +581,9 @@ export function renderMenu() {
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
 
-    drawText("SELECT MODE", 42, 10, "#fff");
-    drawText("1. SINGLE PLAYER", 30, 25, Math.floor(Date.now() / 500) % 2 === 0 ? CONFIG.P1COLOR : "#555");
-    drawText("2. MULTIPLAYER", 35, 35, Math.floor(Date.now() / 500) % 2 !== 0 ? CONFIG.P2COLOR : "#555");
-    drawText("CPU: HARD", 45, 55, "#f55");
+    drawText("SELECT MODE", 42, 5, "#fff");
+    drawText("1. SINGLE PLAYER", 32, 20, Math.floor(Date.now() / 500) % 3 === 0 ? CONFIG.P1COLOR : "#555");
+    drawText("2. MULTIPLAYER", 35, 30, Math.floor(Date.now() / 500) % 3 === 1 ? CONFIG.P2COLOR : "#555");
+    drawText("3. HIGH SCORES", 35, 40,  Math.floor(Date.now() / 500) % 3 === 2 ? "#88f" : "#555" );
+    drawText("CPU: HARD", 45, 50, "#f55");
 }
