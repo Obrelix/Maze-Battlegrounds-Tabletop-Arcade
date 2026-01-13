@@ -1,103 +1,178 @@
-# 🕹️ Maze Battlegrounds: Tabletop Arcade (Pre-Alpha)
+# Maze Battlegrounds – Tabletop Arcade (Pre‑Alpha)
 
-A DIY head-to-head tabletop arcade console powered by a **Raspberry Pi Zero 2 W** and a **P2.5 128x64 RGB LED Matrix**.
+A DIY head‑to‑head tabletop arcade console powered by a Raspberry Pi Zero 2 W and a P2.5 128×64 RGB LED Matrix.
+This repository contains the source code for **Maze** Battlegrounds—a fast‑paced tactical shooter designed specifically for low‑resolution LED displays—along with the hardware specifications to build the physical machine.
 
-This repository contains the source code for the game *Maze Battleground*—a fast-paced tactical shooter designed specifically for low-resolution LED displays—along with the hardware specifications to build the physical machine.
-
-**Status:** Pre-Alpha. Features and mechanics are currently in active development and testing.
-
----
-
-### 🌐 [**PLAY ONLINE DEMO**](https://obrelix.github.io/Maze-Battlegrounds-Tabletop-Arcade/)
-*(Test the current mechanics directly in your browser!)*
+Status: Pre‑Alpha – mechanics, balance, and UX are under active development and testing.
 
 ---
 
-## 📖 About The Game
+## Play the browser demo
 
-**Maze Battleground** is a 1v1 top-down shooter designed for a digital tabletop experience. The goal is to be the first to reach **5 Points**.
+You can test the current mechanics directly in your browser in a pixel‑perfect mockup of the 128×64 LED matrix.
 
-Points are awarded for:
-1.  **Reaching the Goal:** Navigating to the opponent's spawn zone.
-2.  **Elimination:** Killing the opponent with a Mine, Explosion, or Charged Beam.
-
-The battlefield is dynamic. Players can destroy walls, set traps, teleport, and utilize a charging mechanic to break through defenses.
-
-### Key Features
-* **Two Game Modes:** Choose between **Single Player (vs CPU)** or **Multiplayer (PvP)** via the start menu.
-* **Smart AI:** The CPU opponent uses advanced pathfinding to dodge shots, avoid mines, use shields strategically, and aggressively hunt the player.
-* **Destructible Environment:** Use mines or the **Charged Beam** to blast through walls and create shortcuts.
-* **Tactical Physics:** Movement is momentum-based. Managing your **Boost Energy** is key to survival.
-* **Tabletop HUD:** The interface is split and oriented for players sitting opposite each other.
-
-## 🎮 Controls & Menu
-
-The game starts with a mode selection menu.
-
-### Menu Navigation
-| Key | Action |
-| :---: | :--- |
-| `1` | Start **Single Player** (vs CPU Hard) |
-| `2` | Start **Multiplayer** (1v1) |
-| `ESC` | Return to Main Menu at any time |
-
-### Gameplay Controls
-
-| Action | **Player 1 (Left/Blue)** | **Player 2 / CPU (Right/Pink)** | Description |
-| :--- | :---: | :---: | :--- |
-| **Move** | `W` `A` `S` `D` | `Arrow Keys` | Navigate the maze. |
-| **Beam (Tap)** | `F` | `K` | Fires a quick beam. **Stuns** enemies (Slows them). Costs Energy. |
-| **Beam (Hold)** | `F` (Hold 3s) | `K` (Hold 3s) | Charges a massive shot. **Breaks Walls & Kills**. Slows you while charging. |
-| **Boost** | `G` | `L` | Hold to move faster. Drains Energy. |
-| **Shield** | `R` | `I` | Blocks Stuns and Lethal damage. Drains Energy rapidly. |
-| **Drop Mine** | `E` | `O` | Place a lethal mine. Max 4 mines. |
-| **Detonate** | `SPACE` | `ENTER` | Explode all your active mines remotely. Costs Energy. |
-| **Reset** | `R` | `R` | **Round Over:** Starts next round.<br>**Game Over:** Resets entire match. |
-
-## 🧠 The "Aggressive" AI
-
-The Single Player mode features a fully autonomous bot designed to mimic human play:
-* **Pathfinding:** It calculates the shortest path to your base but will dynamically reroute if it detects mines in its way.
-* **Battering Ram:** If the path is blocked by too many mines, it may activate its shield and intentionally detonate them to clear a path.
-* **Self-Preservation:** It scans for incoming projectiles and will attempt to dodge sideways or pop its shield at the last second.
-* **Stuck Detection:** If the AI gets stuck on geometry, it performs a "wiggle" maneuver to free itself.
-
-## 🧩 Gameplay Mechanics
-
-### 1. The Energy System
-Your lifeblood. You have a single energy bar that recharges slowly. You must manage it between:
-* **Boosting:** Sprinting to chase or escape.
-* **Beams:** Firing offensive shots.
-* **Shielding:** Blocking damage (Prevents death, but drains energy fast).
-* **Detonating:** Triggering your traps manually.
-
-### 2. Offensive Capabilities
-* **Tap Beam (Stun):** A quick laser that slows the enemy to 80% speed for 6 seconds.
-* **Charged Beam (Lethal):** Hold the beam button for 3 seconds. Your player slows down, flashes white, and releases a high-velocity projectile that destroys walls and instantly kills the opponent.
-* **Mines:** You start with **4 Mines**. Stealing or stepping on a mine causes a massive explosion. This destroys nearby walls and kills anyone caught in the blast radius.
-
-### 3. Pickups & Environment
-* **Ammo Crates:** Green boxes spawn randomly on the map. Collecting one refills your mine inventory to max (4).
-* **Portals:** Two teleporters spawn on the map (Orange/Blue). Entering one instantly moves you to the other, but be careful—entering a portal has a 30% chance to **Glitch** your controls (invert them) for a few seconds.
+- Online demo: 🕹️ [**PLAY ONLINE DEMO**](https://obrelix.github.io/Maze-Battlegrounds-Tabletop-Arcade/)
+- Works in any modern desktop browser (Chrome, Firefox, Edge, Safari).
+- Mobile is supported with on‑screen joystick and buttons, but a keyboard or gamepad on desktop gives the best experience.
 
 ---
 
-## 🛠️ Hardware Bill of Materials (BOM)
+## About the game
 
-This project is built using affordable, off-the-shelf components. You can view the [Full BOM Google Sheet here](https://docs.google.com/spreadsheets/d/12uv0eTk2EPSbfXsSc8Y3BzwX-76kk82TglhOV1aZT8A/edit?usp=sharing).
+Maze Battlegrounds is a 1v1 top‑down shooter designed for a digital tabletop experience where both players sit on opposite sides of the same display.
 
-### Core Components
-* **Controller:** Raspberry Pi Zero 2 W
-* **Display:** P2.5 Indoor HUB75 RGB LED Matrix (128x64 px, 320mm x 160mm)
-* **Interface:** RGB Matrix Bonnet for Raspberry Pi
-* **Power:** 5V 10A Power Supply Brick
-* **Controls:** Arcade Buttons or USB Controllers
-* **Audio:** External USB Sound Card
-## 🚀 Installation (Web Version)
+- Goal: Be the first to reach 5 points. 
+- Score is awarded by:
+  - Reaching the opponent’s spawn zone (the “Goal”).
+  - Eliminating the opponent with a mine, explosion, or charged beam.
+- The battlefield is dynamic: walls can be destroyed, traps can be placed, portals used, and a shared energy resource must be managed carefully.
 
-To run the game locally on your computer:
-1.  Clone this repository.
-2.  Open `index.html` in any modern web browser.
+Two game modes are currently available:
+
+- Single Player vs CPU (hard AI using pathfinding, dodging, shielding, and “battering ram” mine‑clearing behavior).
+- Multiplayer PvP (local head‑to‑head; Player 2 can be keyboard, gamepad, or CPU depending on inputs and mode).
+
+The HUD and canvas layout in the web demo mimic the final tabletop hardware: a 128×64 P2.5 RGB LED matrix with a split, flipped interface for opposing players.
+
 ---
-## 📟 Installation (Hardware Version)
-*(Coming Soon: Instructions for setting up the Raspberry Pi environment using rpi-rgb-led-matrix library)*
+
+## Core mechanics
+
+### Energy system
+
+You have a single **Energy** bar that slowly regenerates and is shared by all actions.
+
+Energy is consumed by:
+
+- Boosting (sprinting to chase or escape).
+- Beams (tap and charge).
+- Shield (blocks all damage while active; drains the bar in roughly 3 seconds in the current tuning).
+- Remote detonation of mines (Boom).
+
+Mismanaging energy leaves you unable to shield, escape, or fire at key moments.
+
+### Offensive tools
+
+- Tap Beam  
+  - Quick, low‑cost beam that **stuns** / slows the enemy (80% speed for a few seconds).
+- Charged Beam  
+  - Hold the beam button for about 3 seconds to charge a lethal shot.
+  - Slows you while charging, then fires a high‑velocity projectile that breaks walls and instantly kills.
+- Mines  
+  - Each player can hold up to 4 mines (refill via ammo crates).
+  - Stepping on or detonating a mine creates a large explosion that destroys nearby walls and kills anything in range.
+
+### Environment and pickups
+
+- Ammo Crates  
+  - Green crates spawn on the map and refill your mines to the maximum when collected.
+- Portals  
+  - Two portals (orange and blue) link two points on the map; entering one teleports you to the other.
+  - Each portal use has a 30% chance to “glitch” your controls, inverting movement for a short period.
+- Glitch  
+  - Temporary control inversion status effect used mainly as portal risk and occasional effect. 
+
+### Rounds, scoring, and sudden death
+
+- A match is first to 5 points; rounds resolve on elimination or successful goal run.  
+- Draws (“DOUBLE KO! DRAW!”) are handled when both players die simultaneously. 
+- If time runs out, the round ends in a “TIME OUT!” state. 
+- After time is low, **Sudden Death** triggers:
+  - Warning message and scrolling text (“SUDDEN DEATH!”) on the LED matrix.
+  - Neutral mines start spawning at random cells, damaging both players and increasing chaos.
+
+The web demo includes a simple attract‑mode / idle demo loop that restarts rounds and uses AI for both players when no input is detected for a while.
+
+---
+
+## Controls (Web demo)
+
+The web demo supports keyboard, gamepads, and mobile touch controls.
+
+### Keyboard controls
+
+Default bindings in the current build:
+
+| Action        | Player 1 (Blue)                 | Player 2 / CPU (Right side) | Notes |
+|--------------|----------------------------------|-----------------------------|-------|
+| Move         | W / A / S / D                    | Arrow keys                  | Navigate the maze. |
+| Tap / Hold Beam | F (tap / hold)               | K (tap / hold)              | Tap = stun; Hold ≈ 3s = lethal wall‑breaking beam. |
+| Shield       | R                                | I                           | Blocks all damage while energy lasts. |
+| Drop Mine    | E                                | O                           | Place a lethal mine (max 4, refilled by ammo crates). |
+| Boost        | G                                | L                           | Momentum‑based speed boost; drains energy. |
+| Boom (Detonate all mines) | Space               | Enter                       | Remote detonation; costs energy. |
+| Start / Next Round / Reset | 1, 2, R, Enter (depending on context) | Same keys plus Select / Start on controllers | See menu / system controls below. |
+| Menu         | Esc                              | Esc                         | Return to main menu “SELECT MODE”. |
+
+The top UI bar in the web demo shows a quick reference for all of these actions around each player’s panel.
+
+### Gamepad support
+
+The web demo includes full gamepad support with sensible defaults:
+
+- Left stick or D‑pad for movement.
+- Standard SNES/Xbox‑style mapping:
+  - Beam: A / Cross button.
+  - Boom: B.
+  - Mine: X / Y (depending on layout).
+  - Shield: Y or shoulder buttons (L1/R1).
+  - Boost: R1 (or another face/shoulder mapped in `input.js`).
+- Start / Select buttons are used to start games and reset rounds/matches:
+  - In main menu, pressing any gamepad button starts a game. Player 1 = gamepad 0, Player 2 = gamepad 1.
+  - On Game Over or Round Over screens, Start/Select + Shield trigger next round or full reset, mirroring keyboard behavior.
+
+All gamepad input is merged with keyboard for each player, so both can be used simultaneously.
+
+### Mobile touch controls
+
+For narrow viewports (mobile), the web demo activates a touch UI: 
+
+- Virtual joystick on the left for movement (implemented via nipplejs).
+- Touch buttons on the right for:
+  - Shield (R).  
+  - Boost (G).  
+  - Beam (F).  
+  - Boom (Space).  
+  - Mine (E). 
+- A “Start” button replaces keyboard/gamepad Start for beginning a match from the main menu.
+- A small “SYSTEM MECHANICS” modal summarises Mines, Shield, Tap Beam, Hold Beam, Portals, and Glitch for quick reference. 
+
+---
+
+## Hardware (tabletop cabinet)
+
+The target hardware is a compact, affordable tabletop arcade build using off‑the‑shelf components. 
+
+Core components:
+
+- Controller: Raspberry Pi Zero 2 W. 
+- Display: P2.5 indoor HUB75 RGB LED matrix, 128×64 px (320 mm × 160 mm). 
+- Interface: RGB Matrix Bonnet for Raspberry Pi (or equivalent HUB75 driver for 128×64).
+- Power: 5 V 10 A power supply brick.
+- Controls: Arcade buttons, gamepads, or USB controllers, depending on your cabinet design. 
+- Audio: External USB sound card + speakers.
+
+The LED matrix layout in the browser demo matches the logical resolution and aspect ratio used in the physical cabinet (configurable via `CONFIG` in `config.js`). 
+
+A full Bill of Materials (BOM) is maintained in a separate Google Sheet referenced from this project.
+
+---
+
+## Installation and development
+
+### Web version
+
+- No build step is required for the browser demo; everything is pure HTML/CSS/JS.
+- Main entry points:
+  - `index.html` – layout, HUD, mobile controls, and canvas.
+  - `style.css` – retro cabinet styling, dashboard, and responsive layout.x
+  - `config.js` – game constants (grid size, energy costs, colors, etc.) and control mappings.
+  - `main.js` – main loop, state transitions, sudden death, and round logic.
+  - `mechanics.js`, `renderer.js`, `ai.js`, `grid.js`, `input.js`, `state.js`, `classes.js` – gameplay, visuals, AI, maze generation, input handling, and data structures. 
+
+### Hardware version (LED matrix)
+
+Hardware setup and deployment scripts for Raspberry Pi will be documented using the `rpi-rgb-led-matrix` library.
+
+- Status: Coming Soon – current focus is on gameplay and browser demo polish. 
+- The plan is to drive the same 128×64 logical framebuffer used in the browser to the physical HUB75 matrix. 
