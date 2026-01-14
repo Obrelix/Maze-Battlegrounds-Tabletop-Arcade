@@ -17,7 +17,7 @@ export function checkIdle() {
     return Date.now() - lastInputTime > CONFIG.IDLE_THRESHOLD;
 }
 
-export function setupInputs(startGame) {
+export function setupInputs(startGame, startMatchSetup) {
 
     window.addEventListener('keydown', (e) => {
         resetIdleTimer();
@@ -33,7 +33,7 @@ export function setupInputs(startGame) {
 
         if (STATE.screen === 'PLAYING') {
             if (STATE.isGameOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect')) {
-                startGame(); // Full Reset
+                startMatchSetup(); // Full Reset
             } else if (STATE.isRoundOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect')) {
                 initMaze(); // Next Round (Keep Score)
             }
@@ -42,11 +42,11 @@ export function setupInputs(startGame) {
 
     window.addEventListener('keyup', (e) => STATE.keys[e.code] = false);
 
-    initTouchControls(startGame);
+    initTouchControls(startGame, startMatchSetup);
 
 }
 
-export function pollGamepads(startGame) {
+export function pollGamepads(startGame, startMatchSetup) {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
 
     // We will populate this "Input Snapshot" to merge with Keyboard later
@@ -103,7 +103,7 @@ export function pollGamepads(startGame) {
             if (isAnyButton || targetState.up || targetState.down) {
                 // If P2 presses a button, start MULTI, otherwise SINGLE
                 STATE.gameMode = (i === 1) ? 'MULTI' : 'SINGLE';
-                startGame();
+                startMatchSetup();
                 return gpState; // Exit early to prevent "holding" button issues
             }
         }
@@ -142,7 +142,7 @@ export function getHumanInput(playerIdx, controls) {
     };
 }
 
-function initTouchControls(startGame) {
+function initTouchControls(startGame, startMatchSetup) {
     const buttons = document.querySelectorAll('.btn');
     buttons.forEach(btn => {
         btn.addEventListener('touchstart', (e) => {
@@ -153,9 +153,10 @@ function initTouchControls(startGame) {
             STATE.keys[code] = true;
 
             if ((STATE.isGameOver || STATE.isRoundOver) && (code === 'KeyR' || code === 'KeyStart' || code === 'KeySelect')) {
-                if (STATE.isGameOver) startGame(); else initMaze();
+                if (STATE.isGameOver) startGame(); 
+                else initMaze();
             }
-            if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startGame(); }
+            if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
         }, { passive: false });
 
         btn.addEventListener('touchend', (e) => {
@@ -198,7 +199,7 @@ function initTouchControls(startGame) {
             if (dir.angle === 'left' || dir.x === 'left') STATE.keys['KeyA'] = true;
             if (dir.angle === 'right' || dir.x === 'right') STATE.keys['KeyD'] = true;
 
-            if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startGame(); }
+            if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
         }
     });
 

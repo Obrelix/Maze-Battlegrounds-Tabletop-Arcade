@@ -333,6 +333,17 @@ function handlePlayerSetupInput() {
     }
 }
 
+function validateAndTrimName(name) {
+    name = name.trim();
+    if (!name || name.length === 0) {
+        return "AAA";
+    }
+    if (name.length > 3) {
+        name = name.substring(0, 3);
+    }
+    return name;
+}
+
 function updateHtmlUI() {
     
     let p1Name = STATE.players[0]?.name || "CPU";
@@ -349,26 +360,9 @@ function updateHtmlUI() {
     document.getElementById('p2-panel').style.boxShadow = `inset 0 0 15px ${p2Color.slice(0, 7)}23`;
 }
 
-// ✅ NEW HELPER FUNCTION - ADD THIS TO main.js
-function validateAndTrimName(name) {
-    // Remove whitespace
-    name = name.trim();
-
-    // If empty, default to AAA
-    if (!name || name.length === 0) {
-        return "AAA";
-    }
-
-    // Limit to 3 characters max
-    if (name.length > 3) {
-        name = name.substring(0, 3);
-    }
-
-    return name;
-}
 
 window.addEventListener('load', () => {
-    setupInputs(startGame);
+    setupInputs(startGame, startMatchSetup);
     loop();
     updateHtmlUI();
 });
