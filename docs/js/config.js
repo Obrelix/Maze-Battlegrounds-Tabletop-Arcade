@@ -10,6 +10,7 @@ export const CONFIG = {
     MAZE_OFFSET_X: 8,
     MAX_SCORE: 5,
     MAX_MINES: 4,
+    GAME_TIME: 20000,
     GLITCH_DURATION: 180,
     GLITCH_CHANCE: 0.3,
     MINE_ARM_TIME: 1000,

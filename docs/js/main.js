@@ -1,7 +1,7 @@
 import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS } from './config.js';
 import { STATE, resetStateForMatch, saveHighScore } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
-import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js'; 1
+import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js'; 
 import { getCpuInput } from './ai.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import {

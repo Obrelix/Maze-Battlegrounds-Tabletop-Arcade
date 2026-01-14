@@ -171,15 +171,17 @@ export class Player {
         this.goalC = 0;
         this.goalR = 0;
         this.lastDir = {
-            x: id === 0 ? 1 : -1,
+            x: 0,
             y: 0
         };
-
         // AI Memory
         this.lastPos = {
             x: 0,
             y: 0
         };
+        this.botNextCell = null;
+        this.botRetargetTimer = 0;
+        this.ai = null;
         this.stuckCounter = 0;
         this.forceUnstuckTimer = 0;
         this.unstuckDir = {
@@ -207,6 +209,14 @@ export class Player {
         this.chargeStartTime = 0;
         this.glitchTime = 0;
         this.chargeGrace = 0;
+        this.lastDir = {
+            x: 0,
+            y: 0
+        };
+        this.lastPos = {
+            x: 0,
+            y: 0
+        };
         this.botPath = [];
         this.botNextCell = null;
         this.botRetargetTimer = 0;

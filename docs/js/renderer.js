@@ -393,7 +393,7 @@ export function renderGame() {
                 const alpha = (i / p.trail.length) * 0.4;
                 ctx.globalAlpha = alpha;
                 drawLED(Math.floor(t.x), Math.floor(t.y), p.color);
-                drawLED(Math.floor(t.x) + 1, Math.floor(t.y) + 1, p.color); 11
+                // drawLED(Math.floor(t.x) + 1, Math.floor(t.y) + 1, p.color); 11
             });
             ctx.globalAlpha = 1.0;
         }

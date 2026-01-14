@@ -164,8 +164,8 @@ export function getCpuInput(cpu, opponent) {
     if (cpu.boostEnergy < 20 && opponent.boostEnergy > 40) {
         // Survival Mode
         if (STATE.ammoCrate) {
-            targetC = STATE.ammoCrate.c;
-            targetR = STATE.ammoCrate.r;
+            targetC = Math.floor((STATE.ammoCrate.x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+            targetR = Math.floor(STATE.ammoCrate.y / CONFIG.CELL_SIZE);
         } else {
             // Run to furthest corner
             targetC = (opponent.c < CONFIG.COLS / 2) ? CONFIG.COLS - 1 : 0;
