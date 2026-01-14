@@ -6,10 +6,10 @@ import { getCpuInput } from './ai.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import {
     applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,
-    checkBeamCollisions, checkArmorCrate, checkPortalActions, chekcBeamActions, checkMinesActions
+    checkBeamCollisions, checkArmorCrate, checkPortalActions, checkBeamActions, checkMinesActions
 } from './mechanics.js';
 
-export function startMatchSetup() {
+function startMatchSetup() {
     resetStateForMatch();
     STATE.screen = 'PLAYER_SETUP';
     STATE.playerSetup = {
@@ -22,7 +22,7 @@ export function startMatchSetup() {
     };
 }
 
-export function startGame() {
+function startGame() {
     if (STATE.sfx) STATE.sfx.init();
     STATE.screen = 'PLAYING';
     resetStateForMatch();
@@ -80,6 +80,52 @@ function finalizeRound() {
     STATE.deathTimer = 0;
     if (STATE.isAttractMode) {
         STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER; // Wait ~3 seconds (60 frames/sec * 3)
+    }
+}
+
+function handleTimeOut() {
+    if (STATE.gameTime <= 0) {
+        STATE.isRoundOver = true;
+        STATE.messages.round = "TIME OUT!";
+        STATE.messages.roundColor = "#ffff00";
+        STATE.scrollX = CONFIG.LOGICAL_W + 5;
+        if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
+        return true;
+    }
+    return false;
+}
+
+function handleSuddenDeath() {
+    // Sudden Death - Every second after time runs low (e.g. < 30 seconds left)
+    if (STATE.gameTime < 1800 && STATE.gameTime % 50 === 0) {
+        STATE.messages.round = "SUDDEN DEATH!";
+        STATE.scrollX = CONFIG.LOGICAL_W; // Flash warning
+
+        // Spawn a neutral mine in a random spot to increase panic
+        let rx = Math.floor(Math.random() * CONFIG.COLS);
+        let ry = Math.floor(Math.random() * CONFIG.ROWS);
+        STATE.mines.push({
+            x: CONFIG.MAZE_OFFSET_X + rx * CONFIG.CELL_SIZE,
+            y: ry * CONFIG.CELL_SIZE,
+            active: true, // Instantly active
+            droppedAt: Date.now(),
+            visX: 0, visY: 0,
+            owner: -1 // Neutral owner (hurts everyone)
+        });
+    }
+}
+
+function updateMinesAndCrates() {
+    let now = Date.now();
+    STATE.mines.forEach(m => {
+        if (!m.active && now - m.droppedAt > CONFIG.MINE_ARM_TIME) m.active = true;
+    });
+    if (!STATE.ammoCrate) {
+        STATE.ammoRespawnTimer++;
+        if (STATE.ammoRespawnTimer > CONFIG.AMMO_RESPAWN_DELAY) {
+            spawnAmmoCrate();
+            STATE.ammoRespawnTimer = 0;
+        }
     }
 }
 
@@ -144,60 +190,22 @@ function update() {
         return;
     }
     updateProjectiles();
-    if (STATE.gameTime <= 0) {
-        STATE.isRoundOver = true;
-        STATE.messages.round = "TIME OUT!";
-        STATE.messages.roundColor = "#ffff00";
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
-        return;
-    }
+    if(handleTimeOut()) return;
     STATE.gameTime -= 1;
-    // NEW: Sudden Death - Every second after time runs low (e.g. < 30 seconds left)
-    if (STATE.gameTime < 1800 && STATE.gameTime % 50 === 0) {
-        STATE.messages.round = "SUDDEN DEATH!";
-        STATE.scrollX = CONFIG.LOGICAL_W; // Flash warning
-
-        // Spawn a neutral mine in a random spot to increase panic
-        let rx = Math.floor(Math.random() * CONFIG.COLS);
-        let ry = Math.floor(Math.random() * CONFIG.ROWS);
-        STATE.mines.push({
-            x: CONFIG.MAZE_OFFSET_X + rx * CONFIG.CELL_SIZE,
-            y: ry * CONFIG.CELL_SIZE,
-            active: true, // Instantly active
-            droppedAt: Date.now(),
-            visX: 0, visY: 0,
-            owner: -1 // Neutral owner (hurts everyone)
-        });
-    }
-    let now = Date.now();
-    STATE.mines.forEach(m => {
-        if (!m.active && now - m.droppedAt > CONFIG.MINE_ARM_TIME) m.active = true;
-    });
-    if (!STATE.ammoCrate) {
-        STATE.ammoRespawnTimer++;
-        if (STATE.ammoRespawnTimer > CONFIG.AMMO_RESPAWN_DELAY) {
-            spawnAmmoCrate();
-            STATE.ammoRespawnTimer = 0;
-        }
-    }
-
+    handleSuddenDeath();
+    updateMinesAndCrates();
     checkBeamCollisions();
 
     STATE.players.forEach((p, idx) => {
         checkArmorCrate(p);
-
         if (p.stunTime > 0) p.stunTime--;
         if (p.glitchTime > 0) p.glitchTime--;
-
         checkPortalActions(p);
         checkBoostTrail(p);
-        chekcBeamActions(p, idx);
+        checkBeamActions(p, idx);
         checkMinesActions(p);
-
-        // --- INPUT LOGIC  ---
-        let cmd = {};
-
+        
+        let cmd = {};// --- INPUT LOGIC  ---
         // If in Attract Mode, BOTH players use AI
         if (STATE.isAttractMode) { // Player 1 targets Player 2, Player 2 targets Player 1
             cmd = getCpuInput(p, STATE.players[(idx + 1) % 2]);
@@ -295,11 +303,7 @@ function handlePlayerSetupInput() {
                 setupInputDelay = 15;
             } else {
                 // Finished with name, check if more players
-                let finalName = String.fromCharCode(...ps.nameChars);
-                finalName = finalName.trim();
-                if (!finalName || finalName.length === 0) {
-                    finalName = "AAA";
-                }
+                let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars))
                 STATE.players[ps.activePlayer].name = finalName;
 
                 // Check if we need to set up next player
@@ -345,7 +349,7 @@ function validateAndTrimName(name) {
 }
 
 function updateHtmlUI() {
-    
+
     let p1Name = STATE.players[0]?.name || "CPU";
     let p1Color = STATE.players[0]?.color ?? CONFIG.PLAYER_COLORS[5]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";

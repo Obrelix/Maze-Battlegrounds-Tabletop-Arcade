@@ -2,27 +2,289 @@ import { CONFIG, TAUNTS } from './config.js';
 import { STATE } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
 
-export function triggerExplosion(x, y, reason = "EXPLODED") {
-    STATE.sfx.explosion();
-    STATE.camera.shake(15);
-    const BLAST_RADIUS = 4.0;
-    let centerC = Math.floor((x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
-    let centerR = Math.floor(y / CONFIG.CELL_SIZE);
-    let cellRadius = 1;
+//// Helper functions 
 
-    // --- Wall Destruction Logic ---
-    for (let r = centerR - cellRadius; r <= centerR + cellRadius; r++) {
-        for (let c = centerC - cellRadius; c <= centerC + cellRadius; c++) {
-            if (c < 0 || c >= CONFIG.COLS || r < 0 || r >= CONFIG.ROWS) continue;
-            let dc = c - centerC;
-            let dr = r - centerR;
-            if (dc * dc + dr * dr <= 2) {
-                destroyWallAt(c, r);
+function handleDetonate(p, input, now) {
+    // Detonate
+    if (input.boom && !p.prevDetonateKey) {
+        if (p.boostEnergy >= CONFIG.DETONATE_COST) {
+            let minesFound = false;
+            for (let i = STATE.mines.length - 1; i >= 0; i--) {
+                if (STATE.mines[i].owner === p.id) {
+                    triggerExplosion(STATE.mines[i].x, STATE.mines[i].y, "WAS FRAGGED");
+                    STATE.mines.splice(i, 1);
+                    minesFound = true;
+                }
+            }
+            if (minesFound) p.boostEnergy -= CONFIG.DETONATE_COST;
+        }
+    }
+    p.prevDetonateKey = input.boom;
+}
+
+function handleShield(p, input, now) {
+    // Shield
+    if (input.shield && p.boostEnergy > 0) {
+        if (!p.shieldActive) {
+            p.boostEnergy -= CONFIG.SHIELD_ACTIVATION_COST;
+        }
+        if (p.boostEnergy >= 0 && !p.shieldActive) {
+            STATE.sfx.shield();
+            p.shieldActive = true;
+        }
+        p.boostEnergy -= CONFIG.SHIELD_DRAIN;
+
+        // Clamp to 0 so we don't go negative
+        if (p.boostEnergy < 0) p.boostEnergy = 0;
+    } else {
+        p.shieldActive = false;
+    }
+}
+
+function handleBeamInput(p, input, now) {// Beam
+    if (input.beam) {
+        p.chargeGrace = 0;
+        if (!p.isCharging) {
+            p.isCharging = true;
+            p.chargeStartTime = now;
+        }
+        if (now - p.chargeStartTime > CONFIG.CHARGE_TIME) {
+            fireChargedBeam(p);
+            p.isCharging = false;
+            p.chargeStartTime = 0;
+        } else if (p.isCharging && Math.floor(now / 100) % 5 === 0) {
+            STATE.sfx.charge();
+        }
+    } else {
+        if (p.isCharging) {
+            p.chargeGrace++;
+            if (now - p.chargeStartTime < CONFIG.CHARGE_TIME) fireBeam(p);
+            p.isCharging = false;
+        }
+        // Reset
+        p.isCharging = false;
+        p.chargeStartTime = 0;
+        p.chargeGrace = 0;
+    }
+}
+
+function handleMovement(p, input, now) {
+    // Movement
+    let speed = CONFIG.BASE_SPEED;
+    if (p.stunTime > 0) {
+        speed = CONFIG.BASE_SPEED * 0.5;
+        if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+    } else if (p.isCharging) {
+        speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_PENALTY;
+        p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+    } else {
+        if (p.boostCooldown > 0) {
+            p.boostCooldown--;
+            if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+        } else if (input.boost && p.boostEnergy > 0) {
+            p.boostEnergy -= CONFIG.BOOST_DRAIN;
+            speed = CONFIG.MAX_SPEED;
+            if (p.boostEnergy <= 0) p.boostEnergy = 0;
+
+            // Play sound every 100ms (prevents stuttering)
+            if (now - p.lastBoostTime > 600) {
+                p.lastBoostTime = now;
+                STATE.sfx.boost();
+            }
+        } else {
+            if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
+            else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+        }
+    }
+    p.currentSpeed = speed;
+
+    let dx = 0,
+        dy = 0;
+    if (input.up) dy = -speed;
+    if (input.down) dy = speed;
+    if (input.left) dx = -speed;
+    if (input.right) dx = speed;
+
+    if (p.glitchTime > 0) {
+        dx = -dx;
+        dy = -dy;
+    }
+
+    if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
+        if (Math.abs(dx) > Math.abs(dy)) p.lastDir = {
+            x: dx > 0 ? 1 : -1,
+            y: 0
+        };
+        else p.lastDir = {
+            x: 0,
+            y: dy > 0 ? 1 : -1
+        };
+    }
+
+    let dist = Math.hypot(dx, dy);
+    let steps = Math.ceil(dist / 0.5);
+    let sx = dx / steps;
+    let sy = dy / steps;
+
+    // --- CORNER ASSIST CONSTANTS ---
+    // How far to "look ahead" for an open space (approx 1/3 of player size)
+    const ASSIST_OFFSET = 0.6;
+    // How fast to push the player into alignment (smoothness)
+    const NUDGE_SPEED = 0.15;
+
+    for (let i = 0; i < steps; i++) {
+        // ----------------------
+        // X-AXIS MOVEMENT
+        // ----------------------
+        if (sx !== 0) {
+            if (!checkPlayerCollision(p, sx, 0)) {
+                // Path is clear, move normally
+                p.x += sx;
+            } else {
+                if (!checkPlayerCollision(p, sx, -ASSIST_OFFSET)) {
+                    p.y -= NUDGE_SPEED; // Yes! Nudge them Up
+                } else if (!checkPlayerCollision(p, sx, ASSIST_OFFSET)) {
+                    p.y += NUDGE_SPEED; // Yes! Nudge them Down
+                }
+            }
+        }
+
+        // ----------------------
+        // Y-AXIS MOVEMENT
+        // ----------------------
+        if (sy !== 0) {
+            if (!checkPlayerCollision(p, 0, sy)) {
+                p.y += sy;
+            } else {
+                if (!checkPlayerCollision(p, -ASSIST_OFFSET, sy)) {
+                    p.x -= NUDGE_SPEED; // Nudge Left
+                } else if (!checkPlayerCollision(p, ASSIST_OFFSET, sy)) {
+                    p.x += NUDGE_SPEED; // Nudge Right
+                }
             }
         }
     }
+}
 
-    // --- Particle Spawning ---
+function handleMineDrop(p, input, now) {
+    // Mine Drop
+    if (input.mine && p.minesLeft > 0 && now - p.lastMineTime > CONFIG.MINE_COOLDOWN) {
+        STATE.sfx.mineDrop();
+        p.lastMineTime = now;
+        p.minesLeft--;
+        STATE.mines.push({
+            x: Math.floor(p.x),
+            y: Math.floor(p.y),
+            droppedAt: now,
+            active: false,
+            visX: Math.floor(Math.random() * 2),
+            visY: Math.floor(Math.random() * 2),
+            owner: p.id
+        });
+    }
+
+}
+
+function handleGoal(p, input, now) {
+    // Goal
+    let gx = CONFIG.MAZE_OFFSET_X + (p.goalC * CONFIG.CELL_SIZE) + 1;
+    let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
+    if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
+        p.score += 1;
+        if (p.score >= CONFIG.MAX_SCORE) {
+            STATE.isGameOver = true;
+            STATE.victimIdx = (p.id == 1) ? 2 : 1;
+            STATE.messages.win = `PLAYER ${p.id + 1} WINS!`;
+            STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+            STATE.messages.winColor = p.color;
+            STATE.scrollX = CONFIG.LOGICAL_W + 5;
+        } else {
+            STATE.isRoundOver = true;
+            STATE.messages.round = `PLAYER ${p.id + 1} SCORES!`;
+            STATE.messages.roundColor = p.color;
+            STATE.scrollX = CONFIG.LOGICAL_W + 5;
+        }
+        if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
+    }
+
+}
+
+function checkPlayerCollision(p, dx, dy) {
+    let nx = p.x + dx;
+    let ny = p.y + dy;
+    let hitbox = 0.8;
+    let pad = 0.6;
+    return (
+        isWall(nx + pad, ny + pad) ||
+        isWall(nx + pad + hitbox, ny + pad) ||
+        isWall(nx + pad, ny + pad + hitbox) ||
+        isWall(nx + pad + hitbox, ny + pad + hitbox)
+    );
+}
+
+function handleMultiDeath(indices, reason) {
+    if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
+
+    // Set global death state
+    STATE.deathTimer = 50;
+    STATE.deathReason = reason || "ELIMINATED";
+    STATE.sfx.death();
+
+    // Check for Draw
+    if (indices.length > 1) {
+        STATE.isDraw = true; // Mark as draw
+    } else {
+        STATE.victimIdx = indices[0]; // Mark single victim
+        STATE.isDraw = false;
+    }
+
+    // Apply death effects to ALL victims
+    indices.forEach(idx => {
+        let p = STATE.players[idx];
+        p.isDead = true;
+
+        // Visual effects for each player
+        for (let i = 0; i < 30; i++) {
+            STATE.particles.push({
+                x: p.x + 1,
+                y: p.y + 1,
+                vx: (Math.random() - 0.5) * 4,
+                vy: (Math.random() - 0.5) * 4,
+                life: 1.5,
+                color: p.color
+            });
+        }
+    });
+}
+
+function handlePlayerDeath(victimIdx, reason) {
+    if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
+
+    // 1. Mark player as dead
+    STATE.players[victimIdx].isDead = true;
+    STATE.victimIdx = victimIdx;
+    // 2. Store the reason in the global state (add this property implicitly)
+    STATE.deathReason = reason || "ELIMINATED BY A SNEAKY BUG";
+    // 3. Start the Death Timer 
+    STATE.deathTimer = 50;
+
+    // 4. Extra visual effects
+    let p = STATE.players[victimIdx];
+    STATE.sfx.death();
+
+    for (let i = 0; i < 30; i++) {
+        STATE.particles.push({
+            x: p.x + 1,
+            y: p.y + 1,
+            vx: (Math.random() - 0.5) * 4,
+            vy: (Math.random() - 0.5) * 4,
+            life: 1.5,
+            color: p.color
+        });
+    }
+}
+
+function spawnExplosionParticles(x, y) {
     const PARTICLE_COUNT = 30;
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         let angle = Math.random() * Math.PI * 2;
@@ -37,8 +299,10 @@ export function triggerExplosion(x, y, reason = "EXPLODED") {
             color: '#ffffff'
         });
     }
+}
 
-    // --- Player Damage Logic (FIXED) ---
+function applyPlayerExplosionDamage(x, y, reason) {
+    const BLAST_RADIUS = 4.0;
     // 1. Collect all victims first
     let hitIndices = [];
     if (!STATE.isRoundOver && !STATE.isGameOver) {
@@ -55,6 +319,34 @@ export function triggerExplosion(x, y, reason = "EXPLODED") {
     if (hitIndices.length > 0) {
         handleMultiDeath(hitIndices, reason);
     }
+}
+
+function handleWallDestruction(x, y) {
+    let centerC = Math.floor((x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+    let centerR = Math.floor(y / CONFIG.CELL_SIZE);
+    let cellRadius = 1;
+
+    // --- Wall Destruction Logic ---
+    for (let r = centerR - cellRadius; r <= centerR + cellRadius; r++) {
+        for (let c = centerC - cellRadius; c <= centerC + cellRadius; c++) {
+            if (c < 0 || c >= CONFIG.COLS || r < 0 || r >= CONFIG.ROWS) continue;
+            let dc = c - centerC;
+            let dr = r - centerR;
+            if (dc * dc + dr * dr <= 2) {
+                destroyWallAt(c, r);
+            }
+        }
+    }
+}
+
+//// Helper functions END
+
+export function triggerExplosion(x, y, reason = "EXPLODED") {
+    STATE.sfx.explosion();
+    STATE.camera.shake(15);
+    handleWallDestruction(x, y);
+    spawnExplosionParticles(x, y);
+    applyPlayerExplosionDamage(x, y, reason);
 }
 
 export function fireBeam(p) {
@@ -152,223 +444,12 @@ export function fireBeam(p) {
 
 export function applyPlayerActions(p, input) {
     let now = Date.now();
-
-    // Detonate
-    if (input.boom && !p.prevDetonateKey) {
-        if (p.boostEnergy >= CONFIG.DETONATE_COST) {
-            let minesFound = false;
-            for (let i = STATE.mines.length - 1; i >= 0; i--) {
-                if (STATE.mines[i].owner === p.id) {
-                    triggerExplosion(STATE.mines[i].x, STATE.mines[i].y, "WAS FRAGGED");
-                    STATE.mines.splice(i, 1);
-                    minesFound = true;
-                }
-            }
-            if (minesFound) p.boostEnergy -= CONFIG.DETONATE_COST;
-        }
-    }
-    p.prevDetonateKey = input.boom;
-
-    // Shield
-    if (input.shield && p.boostEnergy > 0) {
-        if (!p.shieldActive) {
-            p.boostEnergy -= CONFIG.SHIELD_ACTIVATION_COST;
-        }
-        if (p.boostEnergy >= 0 && !p.shieldActive) {
-            STATE.sfx.shield();
-            p.shieldActive = true;
-        }
-        p.boostEnergy -= CONFIG.SHIELD_DRAIN;
-
-        // Clamp to 0 so we don't go negative
-        if (p.boostEnergy < 0) p.boostEnergy = 0;
-    } else {
-        p.shieldActive = false;
-    }
-
-    // Beam
-    if (input.beam) {
-        p.chargeGrace = 0;
-        if (!p.isCharging) {
-            p.isCharging = true;
-            p.chargeStartTime = now;
-        }
-        if (now - p.chargeStartTime > CONFIG.CHARGE_TIME) {
-            fireChargedBeam(p);
-            p.isCharging = false;
-            p.chargeStartTime = 0;
-        } else if (p.isCharging && Math.floor(now / 100) % 5 === 0) {
-            STATE.sfx.charge();
-        }
-    } else {
-        if (p.isCharging) {
-            p.chargeGrace++;
-            if (now - p.chargeStartTime < CONFIG.CHARGE_TIME) fireBeam(p);
-            p.isCharging = false;
-        }
-        // Reset
-        p.isCharging = false;
-        p.chargeStartTime = 0;
-        p.chargeGrace = 0;
-    }
-
-    // Movement
-    let speed = CONFIG.BASE_SPEED;
-    if (p.stunTime > 0) {
-        speed = CONFIG.BASE_SPEED * 0.8;
-        if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
-    } else if (p.isCharging) {
-        speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_PENALTY;
-        p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
-    } else {
-        if (p.boostCooldown > 0) {
-            p.boostCooldown--;
-            if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
-        } else if (input.boost && p.boostEnergy > 0) {
-            p.boostEnergy -= CONFIG.BOOST_DRAIN;
-            speed = CONFIG.MAX_SPEED;
-            if (p.boostEnergy <= 0) p.boostEnergy = 0;
-
-            // Play sound every 100ms (prevents stuttering)
-            if (now - p.lastBoostTime > 600) {
-                p.lastBoostTime = now;
-                STATE.sfx.boost();
-            }
-            // if (Math.random() < 0.4) { // 40% chance per frame
-            //     STATE.particles.push({
-            //         x: p.x + 1, // Center of player
-            //         y: p.y + 1,
-            //         // Velocity: Shoot opposite to player movement
-            //         vx: -(p.lastDir.x * (Math.random() * 0.5 + 0.2)),
-            //         vy: -(p.lastDir.y * (Math.random() * 0.5 + 0.2)),
-            //         life: 0.4, // Short life
-            //         decay: 0.08,
-            //         color: '#ffffff' // White hot sparks
-            //     });
-            // }
-        } else {
-            if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
-            else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
-        }
-    }
-    p.currentSpeed = speed;
-
-    let dx = 0,
-        dy = 0;
-    if (input.up) dy = -speed;
-    if (input.down) dy = speed;
-    if (input.left) dx = -speed;
-    if (input.right) dx = speed;
-
-    if (p.glitchTime > 0) {
-        dx = -dx;
-        dy = -dy;
-    }
-
-    if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
-        if (Math.abs(dx) > Math.abs(dy)) p.lastDir = {
-            x: dx > 0 ? 1 : -1,
-            y: 0
-        };
-        else p.lastDir = {
-            x: 0,
-            y: dy > 0 ? 1 : -1
-        };
-    }
-
-    let dist = Math.hypot(dx, dy);
-    let steps = Math.ceil(dist / 0.5);
-    let sx = dx / steps;
-    let sy = dy / steps;
-
-    // --- CORNER ASSIST CONSTANTS ---
-    // How far to "look ahead" for an open space (approx 1/3 of player size)
-    const ASSIST_OFFSET = 0.6;
-    // How fast to push the player into alignment (smoothness)
-    const NUDGE_SPEED = 0.15;
-
-    for (let i = 0; i < steps; i++) {
-        // ----------------------
-        // X-AXIS MOVEMENT
-        // ----------------------
-        if (sx !== 0) {
-            if (!checkPlayerCollision(p, sx, 0)) {
-                // Path is clear, move normally
-                p.x += sx;
-            } else {
-                // BLOCKED! Check for a corner to slide around.
-                // We "look" slightly Up and Down to see if the path is clear there.
-
-                // Check UP (Negative Y)
-                // If we shifted the player UP by ASSIST_OFFSET, could they move?
-                if (!checkPlayerCollision(p, sx, -ASSIST_OFFSET)) {
-                    p.y -= NUDGE_SPEED; // Yes! Nudge them Up
-                }
-                // Check DOWN (Positive Y)
-                else if (!checkPlayerCollision(p, sx, ASSIST_OFFSET)) {
-                    p.y += NUDGE_SPEED; // Yes! Nudge them Down
-                }
-            }
-        }
-
-        // ----------------------
-        // Y-AXIS MOVEMENT
-        // ----------------------
-        if (sy !== 0) {
-            if (!checkPlayerCollision(p, 0, sy)) {
-                // Path is clear, move normally
-                p.y += sy;
-            } else {
-                // BLOCKED! Check for a corner.
-
-                // Check LEFT (Negative X)
-                if (!checkPlayerCollision(p, -ASSIST_OFFSET, sy)) {
-                    p.x -= NUDGE_SPEED; // Nudge Left
-                }
-                // Check RIGHT (Positive X)
-                else if (!checkPlayerCollision(p, ASSIST_OFFSET, sy)) {
-                    p.x += NUDGE_SPEED; // Nudge Right
-                }
-            }
-        }
-    }
-
-    // Mine Drop
-    if (input.mine && p.minesLeft > 0 && now - p.lastMineTime > CONFIG.MINE_COOLDOWN) {
-        STATE.sfx.mineDrop();
-        p.lastMineTime = now;
-        p.minesLeft--;
-        STATE.mines.push({
-            x: Math.floor(p.x),
-            y: Math.floor(p.y),
-            droppedAt: now,
-            active: false,
-            visX: Math.floor(Math.random() * 2),
-            visY: Math.floor(Math.random() * 2),
-            owner: p.id
-        });
-    }
-
-    // Goal
-    let gx = CONFIG.MAZE_OFFSET_X + (p.goalC * CONFIG.CELL_SIZE) + 1;
-    let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
-    if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
-        p.score += 1;
-        if (p.score >= CONFIG.MAX_SCORE) {
-            STATE.isGameOver = true;
-            STATE.victimIdx = (p.id == 1) ? 2 : 1;
-            STATE.messages.win = `PLAYER ${p.id + 1} WINS!`;
-            STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
-            STATE.messages.winColor = p.color;
-            STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        } else {
-            STATE.isRoundOver = true;
-            STATE.messages.round = `PLAYER ${p.id + 1} SCORES!`;
-            STATE.messages.roundColor = p.color;
-            STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        }
-        if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
-    }
+    handleDetonate(p, input, now);
+    handleShield(p, input, now);
+    handleBeamInput(p, input, now);
+    handleMovement(p, input, now);
+    handleMineDrop(p, input, now);
+    handleGoal(p, input, now);
 }
 
 export function updateProjectiles() {
@@ -511,8 +592,8 @@ export function fireChargedBeam(p) {
         STATE.particles.push({
             x: startX,
             y: startY,
-            vx: (Math.random() - 0.5)*3,
-            vy: (Math.random() - 0.5)*3,
+            vx: (Math.random() - 0.5) * 3,
+            vy: (Math.random() - 0.5) * 3,
             life: 2,
             decay: 0.02 + Math.random() * 0.03,
             color: '#fff'
@@ -547,7 +628,7 @@ export function checkBeamCollisions() {
     }
 }
 
-export function chekcBeamActions(p, idx) {
+export function checkBeamActions(p, idx) {
     if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) p.beamIdx += 0.8;
     let opponent = STATE.players[(idx + 1) % 2];
     let tipIdx = Math.floor(opponent.beamIdx);
@@ -617,81 +698,6 @@ export function checkArmorCrate(p) {
         STATE.sfx.powerup();
         STATE.ammoCrate = null;
         STATE.ammoRespawnTimer = 0;
-    }
-}
-
-function checkPlayerCollision(p, dx, dy) {
-    let nx = p.x + dx;
-    let ny = p.y + dy;
-    let hitbox = 0.8;
-    let pad = 0.6;
-    return (
-        isWall(nx + pad, ny + pad) ||
-        isWall(nx + pad + hitbox, ny + pad) ||
-        isWall(nx + pad, ny + pad + hitbox) ||
-        isWall(nx + pad + hitbox, ny + pad + hitbox)
-    );
-}
-
-function handleMultiDeath(indices, reason) {
-    if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
-
-    // Set global death state
-    STATE.deathTimer = 50;
-    STATE.deathReason = reason || "ELIMINATED";
-    STATE.sfx.death();
-
-    // Check for Draw
-    if (indices.length > 1) {
-        STATE.isDraw = true; // Mark as draw
-    } else {
-        STATE.victimIdx = indices[0]; // Mark single victim
-        STATE.isDraw = false;
-    }
-
-    // Apply death effects to ALL victims
-    indices.forEach(idx => {
-        let p = STATE.players[idx];
-        p.isDead = true;
-
-        // Visual effects for each player
-        for (let i = 0; i < 30; i++) {
-            STATE.particles.push({
-                x: p.x + 1,
-                y: p.y + 1,
-                vx: (Math.random() - 0.5) * 4,
-                vy: (Math.random() - 0.5) * 4,
-                life: 1.5,
-                color: p.color
-            });
-        }
-    });
-}
-
-function handlePlayerDeath(victimIdx, reason) {
-    if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
-
-    // 1. Mark player as dead
-    STATE.players[victimIdx].isDead = true;
-    STATE.victimIdx = victimIdx;
-    // 2. Store the reason in the global state (add this property implicitly)
-    STATE.deathReason = reason || "ELIMINATED BY A SNEAKY BUG";
-    // 3. Start the Death Timer 
-    STATE.deathTimer = 50;
-
-    // 4. Extra visual effects
-    let p = STATE.players[victimIdx];
-    STATE.sfx.death();
-
-    for (let i = 0; i < 30; i++) {
-        STATE.particles.push({
-            x: p.x + 1,
-            y: p.y + 1,
-            vx: (Math.random() - 0.5) * 4,
-            vy: (Math.random() - 0.5) * 4,
-            life: 1.5,
-            color: p.color
-        });
     }
 }
 
