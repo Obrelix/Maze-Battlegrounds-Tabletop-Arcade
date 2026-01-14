@@ -10,7 +10,7 @@ function handleDetonate(p, input, now) {
         if (p.boostEnergy >= CONFIG.DETONATE_COST) {
             let minesFound = false;
             for (let i = STATE.mines.length - 1; i >= 0; i--) {
-                if (STATE.mines[i].owner === p.id) {
+                if (STATE.mines[i].owner === p.id || STATE.mines[i].owner === -1) {
                     triggerExplosion(STATE.mines[i].x, STATE.mines[i].y, "WAS FRAGGED");
                     STATE.mines.splice(i, 1);
                     minesFound = true;
@@ -28,12 +28,11 @@ function handleShield(p, input, now) {
         if (!p.shieldActive) {
             p.boostEnergy -= CONFIG.SHIELD_ACTIVATION_COST;
         }
-        if (p.boostEnergy >= 0 && !p.shieldActive) {
+        if (p.boostEnergy > 0 && !p.shieldActive) {
             STATE.sfx.shield();
             p.shieldActive = true;
         }
         p.boostEnergy -= CONFIG.SHIELD_DRAIN;
-
         // Clamp to 0 so we don't go negative
         if (p.boostEnergy < 0) p.boostEnergy = 0;
     } else {
@@ -193,7 +192,7 @@ function handleGoal(p, input, now) {
         p.score += 1;
         if (p.score >= CONFIG.MAX_SCORE) {
             STATE.isGameOver = true;
-            STATE.victimIdx = (p.id == 1) ? 2 : 1;
+            STATE.victimIdx = (p.id == 1) ? 0 : 1;
             STATE.messages.win = `${STATE.players[p.id]?.name} WINS!`;
             STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
             STATE.messages.winColor = p.color;
@@ -227,7 +226,7 @@ function handleMultiDeath(indices, reason) {
 
     // Set global death state
     STATE.deathTimer = 50;
-    STATE.deathReason = reason || "ELIMINATED";
+    STATE.messages.deathReason = reason || "ELIMINATED";
     STATE.sfx.death();
 
     // Check for Draw
@@ -264,7 +263,7 @@ function handlePlayerDeath(victimIdx, reason) {
     STATE.players[victimIdx].isDead = true;
     STATE.victimIdx = victimIdx;
     // 2. Store the reason in the global state (add this property implicitly)
-    STATE.deathReason = reason || "ELIMINATED BY A SNEAKY BUG";
+    STATE.messages.deathReason = reason || "ELIMINATED BY A SNEAKY BUG";
     // 3. Start the Death Timer 
     STATE.deathTimer = 50;
 
@@ -390,7 +389,7 @@ export function fireBeam(p) {
         [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]].forEach(d => {
             let n = gridIndex(curr.c + d[0], curr.r + d[1]);
             // Standard BFS: Check walls and visited status
-            if (n && !n.bfsVisited && !curr.walls[d[2]]) {
+            if (n && !n.bfsVisited && !curr.walls[d[2]] && !n.walls[(d[2] + 2) % 4]) {
                 n.bfsVisited = true;
                 n.parent = curr;
                 queue.push(n);
@@ -605,7 +604,9 @@ export function checkBoostTrail(p) {
     if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) {
         p.trail.push({ x: p.x, y: p.y });
         if (p.trail.length > CONFIG.TRAIL_LENGTH) p.trail.shift();
-    } else p.trail = [{ x: p.x, y: p.y }]
+    } else if (p.trail.length > 0) {
+        p.trail.shift();  // Remove oldest point
+    }
 }
 
 export function checkBeamCollisions() {
@@ -637,7 +638,6 @@ export function checkBeamActions(p, idx) {
         if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
             if (!p.shieldActive) {
                 p.stunTime = CONFIG.STUN_DURATION;
-                p.glitchStartTime = Date.now();
                 p.glitchTime = CONFIG.STUN_DURATION;
                 STATE.sfx.charge();
             }
@@ -683,8 +683,8 @@ export function checkPortalActions(p) {
                 p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5;
                 p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
                 p.portalCooldown = 60;
+                p.speed = CONFIG.BASE_SPEED;
                 if (Math.random() < CONFIG.GLITCH_CHANCE) {
-                    p.glitchStartTime = Date.now();
                     p.glitchTime = CONFIG.GLITCH_DURATION;
                 }
             }

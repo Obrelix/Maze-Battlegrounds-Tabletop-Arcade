@@ -198,7 +198,6 @@ export class Player {
         this.boostCooldown = 0;
         this.portalCooldown = 0;
         this.stunTime = 0;
-        this.glitchTime = 0;
         this.shieldActive = false;
         this.currentSpeed = CONFIG.BASE_SPEED;
         this.prevDetonateKey = false;
@@ -206,7 +205,7 @@ export class Player {
         this.beamIdx = 0;
         this.isCharging = false;
         this.chargeStartTime = 0;
-        this.glitchStartTime = 0;
+        this.glitchTime = 0;
         this.chargeGrace = 0;
         this.botPath = [];
         this.botNextCell = null;

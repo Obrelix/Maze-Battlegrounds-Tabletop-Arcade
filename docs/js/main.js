@@ -61,7 +61,7 @@ function finalizeRound() {
             saveHighScore(winnerName);
         }
     }
-    STATE.messages.round = `${STATE.players[victimIdx]?.name} '${STATE.deathReason}!'`;
+    STATE.messages.round = `${STATE.players[victimIdx]?.name} '${STATE.messages.deathReason}!'`;
     STATE.messages.roundColor = STATE.players[victimIdx].color;
 
     if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {

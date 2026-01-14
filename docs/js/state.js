@@ -67,9 +67,9 @@ export function saveHighScore(name) {
 export function resetStateForMatch() {
     // Store current names if they exist
     let p1Name = STATE.players[0]?.name || "CPU";
-    let p1Color = STATE.players[0]?.color ?? CONFIG.PLAYER_COLORS[5]?.hex;
+    let p1Color = STATE.players[0]?.color ?? CONFIG.PLAYER_COLORS[Math.floor(Math.random() * CONFIG.PLAYER_COLORS.length)]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";
-    let p2Color = STATE.players[1]?.color ?? CONFIG.PLAYER_COLORS[1]?.hex;
+    let p2Color = STATE.players[1]?.color ?? CONFIG.PLAYER_COLORS[Math.floor(Math.random() * CONFIG.PLAYER_COLORS.length)]?.hex;
 
     // Create fresh players
     STATE.players = [
@@ -77,7 +77,6 @@ export function resetStateForMatch() {
         new Player(1, p2Color, CONTROLS_P2)
     ];
 
-    // ✅ Restore names
     STATE.players[0].name = p1Name;
     STATE.players[1].name = p2Name;
 
