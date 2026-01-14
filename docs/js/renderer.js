@@ -469,8 +469,6 @@ export function renderGame() {
     drawDigit(0, 57, parseInt(s[1]), wallColor, 90);
     drawDigit(0, 61, parseInt(s[2]), wallColor, 90);
 
-    
-
     let rx = 123;
     if (p2.name) {
         drawChar(rx, 61, p2.name[0], p2.color, -90);
@@ -629,5 +627,5 @@ export function renderMenu() {
     drawText("1. SINGLE PLAYER", 32, 20, Math.floor(Date.now() / 500) % 3 === 0 ? "#08ffffff" : "#555");
     drawText("2. MULTIPLAYER", 35, 30, Math.floor(Date.now() / 500) % 3 === 1 ? "#ff00ffff" : "#555");
     drawText("3. HIGH SCORES", 35, 40, Math.floor(Date.now() / 500) % 3 === 2 ? "#88f" : "#555");
-    drawText("CPU: HARD", 45, 50, "#f55");
+    drawText("AI: HARD", 46, 50, "#f55");
 }

@@ -163,7 +163,7 @@ export class Cell {
 export class Player {
     constructor(id, color, controls) {
         this.id = id;
-        this.name = "CPU";
+        this.name = `CPU`;
         this.color = color;
         this.controls = controls;
         this.size = 2.0;

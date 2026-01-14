@@ -194,13 +194,13 @@ function handleGoal(p, input, now) {
         if (p.score >= CONFIG.MAX_SCORE) {
             STATE.isGameOver = true;
             STATE.victimIdx = (p.id == 1) ? 2 : 1;
-            STATE.messages.win = `PLAYER ${p.id + 1} WINS!`;
+            STATE.messages.win = `${STATE.players[p.id]?.name} WINS!`;
             STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
             STATE.messages.winColor = p.color;
             STATE.scrollX = CONFIG.LOGICAL_W + 5;
         } else {
             STATE.isRoundOver = true;
-            STATE.messages.round = `PLAYER ${p.id + 1} SCORES!`;
+            STATE.messages.round = `${STATE.players[p.id]?.name} SCORES!`;
             STATE.messages.roundColor = p.color;
             STATE.scrollX = CONFIG.LOGICAL_W + 5;
         }

@@ -61,13 +61,13 @@ function finalizeRound() {
             saveHighScore(winnerName);
         }
     }
-    STATE.messages.round = `P${victimIdx + 1} ${STATE.deathReason}!`;
+    STATE.messages.round = `${STATE.players[victimIdx]?.name} '${STATE.deathReason}!'`;
     STATE.messages.roundColor = STATE.players[victimIdx].color;
 
     if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
         STATE.sfx.win();
         STATE.isGameOver = true;
-        STATE.messages.win = `PLAYER ${winnerIdx + 1} WINS!`;
+        STATE.messages.win = `${STATE.players[winnerIdx]?.name} WINS!`;
         STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
         STATE.messages.winColor = STATE.players[winnerIdx].color;
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
