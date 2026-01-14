@@ -446,7 +446,6 @@ export function renderGame() {
     // 7. Draw Particles
     STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
 
-    // --- FIX 2: Restore Context BEFORE Drawing HUD ---
     // This ensures the HUD doesn't shake with the world
     ctx.restore();
     // Draw Names 
@@ -454,20 +453,20 @@ export function renderGame() {
     let p1 = STATE.players[0],
         p2 = STATE.players[1],
         s = Math.ceil(STATE.gameTime / 60).toString().padStart(3, '0');
-    if (p1.name) {//53
+    if (p1.name) {
         drawChar(0, 0, p1.name[0], p1.color, 90);
         drawChar(0, 4, p1.name[1], p1.color, 90);
         drawChar(0, 8, p1.name[2], p1.color, 90);
     }
-    drawDigit(0, 13, parseInt(p1.score.toString().padStart(2, '0')[0]), p1.color, 90);1
-    drawDigit(0, 17, parseInt(p1.score.toString().padStart(2, '0')[1]), p1.color, 90);
-    drawDigit(0, 22, p1.minesLeft, `hsl(${p1.minesLeft / 4 * 120},100%,50%)`, 90);
+    drawDigit(0, 13, p1.minesLeft, `hsl(${p1.minesLeft / 4 * 120},100%,50%)`, 90);
     for (let h = 0; h < Math.floor(p1.boostEnergy / 100 * 26); h++)
-        for (let w = 0; w < 5; w++) drawLED(w, 26 + h, `hsl(${p1.boostEnergy / 100 * 120},100%,50%)`);
+        for (let w = 0; w < 5; w++) drawLED(w, 17 + h, `hsl(${p1.boostEnergy / 100 * 120},100%,50%)`);
 
-    drawDigit(0, 53, parseInt(s[0]), wallColor, 90);
-    drawDigit(0, 57, parseInt(s[1]), wallColor, 90);
-    drawDigit(0, 61, parseInt(s[2]), wallColor, 90);
+    drawDigit(0, 44, parseInt(s[0]), wallColor, 90);
+    drawDigit(0, 48, parseInt(s[1]), wallColor, 90);
+    drawDigit(0, 52, parseInt(s[2]), wallColor, 90);
+    drawDigit(0, 57, parseInt(p1.score.toString().padStart(2, '0')[0]), p1.color, 90);
+    drawDigit(0, 61, parseInt(p1.score.toString().padStart(2, '0')[1]), p1.color, 90);
 
     let rx = 123;
     if (p2.name) {
@@ -475,15 +474,15 @@ export function renderGame() {
         drawChar(rx, 57, p2.name[1], p2.color, -90);
         drawChar(rx, 53, p2.name[2], p2.color, -90);
     }
-    drawDigit(rx, 48, parseInt(p2.score.toString().padStart(2, '0')[0]), p2.color, -90);
-    drawDigit(rx, 44, parseInt(p2.score.toString().padStart(2, '0')[1]), p2.color, -90);
-    drawDigit(rx, 39, p2.minesLeft, `hsl(${p2.minesLeft / 4 * 120},100%,50%)`, -90);
+    drawDigit(rx, 48, p2.minesLeft, `hsl(${p2.minesLeft / 4 * 120},100%,50%)`, -90);
     for (let h = 0; h < Math.floor(p2.boostEnergy / 100 * 26); h++)
-        for (let w = 0; w < 5; w++) drawLED(rx + w, 37 - h, `hsl(${p2.boostEnergy / 100 * 120},100%,50%)`);
+        for (let w = 0; w < 5; w++) drawLED(rx + w, 46 - h, `hsl(${p2.boostEnergy / 100 * 120},100%,50%)`);
 
-    drawDigit(rx, 8, parseInt(s[0]), wallColor, -90);
-    drawDigit(rx, 4, parseInt(s[1]), wallColor, -90);
-    drawDigit(rx, 0, parseInt(s[2]), wallColor, -90);
+    drawDigit(rx, 17, parseInt(s[0]), wallColor, -90);
+    drawDigit(rx, 13, parseInt(s[1]), wallColor, -90);
+    drawDigit(rx, 9, parseInt(s[2]), wallColor, -90);
+    drawDigit(rx, 4, parseInt(p2.score.toString().padStart(2, '0')[0]), p2.color, -90);
+    drawDigit(rx, 0, parseInt(p2.score.toString().padStart(2, '0')[1]), p2.color, -90);
     if (STATE.isAttractMode) {
         if (Math.floor(Date.now() / 800) % 2 === 0) { // Blink slowly
             drawText("DEMO MODE", 46, 25, "#ff0000");
