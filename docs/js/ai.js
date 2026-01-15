@@ -1,234 +1,589 @@
-import { STATE } from './state.js';
+// ============================================================
+// ADVANCED AI: ENHANCED GOD TIER (UNFAIR & RUTHLESS v2.0)
+// ============================================================
+// New features added:
+// 1. Advanced mine placement strategy
+// 2. Tactical charging system
+// 3. Adaptive difficulty scaling
+// 4. Extended predictive movement
+// 5. Combo chain detection
+// 6. Energy management mastery
+// ============================================================
+
 import { CONFIG } from './config.js';
-import { gridIndex, isWall } from './grid.js';
+import { STATE } from './state.js';
+import { isWall, gridIndex } from './grid.js';
+import { DIFFICULTY_PRESETS, TACTICAL_STYLES } from './ai_config_presets.js';
 
-export function findPath(cpu, targetC, targetR, ignoreMines) {
-    let start = gridIndex(Math.floor((cpu.x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE), Math.floor(cpu.y / CONFIG.CELL_SIZE));
-    let end = gridIndex(targetC, targetR);
-    if (!start || !end) return null;
+let LOCAL_AI_CONFIG = { ...DIFFICULTY_PRESETS.INTERMEDIATE };
 
-    STATE.maze.forEach(c => {
-        c.bfsVisited = false;
-        c.parent = null;
+// ============================================================
+// 1. ADVANCED PATHFINDING (CORNER CUTTING)
+// ============================================================
+
+function findPathToTarget(fromPlayer, targetX, targetY) {
+  if (!STATE.maze || STATE.maze.length === 0) return [];
+
+  let startC = Math.floor((fromPlayer.x - CONFIG.MAZE_OFFSET_X + (fromPlayer.size / 2)) / CONFIG.CELL_SIZE);
+  let startR = Math.floor((fromPlayer.y + (fromPlayer.size / 2)) / CONFIG.CELL_SIZE);
+  let endC = Math.floor((targetX - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+  let endR = Math.floor(targetY / CONFIG.CELL_SIZE);
+
+  startC = Math.max(0, Math.min(startC, CONFIG.COLS - 1));
+  startR = Math.max(0, Math.min(startR, CONFIG.ROWS - 1));
+  endC = Math.max(0, Math.min(endC, CONFIG.COLS - 1));
+  endR = Math.max(0, Math.min(endR, CONFIG.ROWS - 1));
+
+  let start = gridIndex(startC, startR);
+  let end = gridIndex(endC, endR);
+
+  if (!start || !end) return [];
+
+  STATE.maze.forEach(c => {
+    c.bfsVisited = false;
+    c.parent = null;
+  });
+
+  let queue = [start];
+  start.bfsVisited = true;
+  let found = false;
+
+  while (queue.length > 0) {
+    let curr = queue.shift();
+    if (curr === end) {
+      found = true;
+      break;
+    }
+
+    let dirs = [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]];
+    dirs.sort((a, b) => {
+      let distA = Math.abs((curr.c + a[0]) - endC) + Math.abs((curr.r + a[1]) - endR);
+      let distB = Math.abs((curr.c + b[0]) - endC) + Math.abs((curr.r + b[1]) - endR);
+      return distA - distB;
     });
-    let q = [start];
-    start.bfsVisited = true;
-    let found = false;
 
-    while (q.length > 0) {
-        let curr = q.shift();
-        if (curr === end) {
-            found = true;
-            break;
-        }
+    dirs.forEach(d => {
+      let n = gridIndex(curr.c + d[0], curr.r + d[1]);
+      if (n && !n.bfsVisited && !curr.walls[d[2]] && !n.walls[(d[2] + 2) % 4]) {
+        n.bfsVisited = true;
+        n.parent = curr;
+        queue.push(n);
+      }
+    });
+  }
 
-        [
-            [0, -1, 0],
-            [1, 0, 1],
-            [0, 1, 2],
-            [-1, 0, 3]
-        ].forEach(d => {
-            let n = gridIndex(curr.c + d[0], curr.r + d[1]);
-            let isSafe = true;
-            if (n && !ignoreMines) {
-                let mx = CONFIG.MAZE_OFFSET_X + n.c * CONFIG.CELL_SIZE + 1.5;
-                let my = n.r * CONFIG.CELL_SIZE + 1.5;
-                if (STATE.mines.some(m => m.active && Math.abs(m.x - mx) < 3 && Math.abs(m.y - my) < 3)) {
-                    isSafe = false;
-                }
-            }
-            if (n && !n.bfsVisited && !curr.walls[d[2]] && isSafe) {
-                n.bfsVisited = true;
-                n.parent = curr;
-                q.push(n);
-            }
-        });
-    }
+  if (!found) return [];
 
-    if (found) {
-        let path = [];
-        let t = end;
-        while (t) {
-            path.push(t);
-            t = t.parent;
-        }
-        path.reverse();
-        return path;
-    }
-    return null;
+  let path = [];
+  let temp = end;
+  while (temp) {
+    path.push(temp);
+    temp = temp.parent;
+  }
+  path.reverse();
+  return path;
 }
 
-export function canHitTarget(shooter, target) {
-    // 1. Determine Shooting Direction based on relative position
-    let dx = target.x - shooter.x;
-    let dy = target.y - shooter.y;
+// ============================================================
+// 2. ENHANCED STRATEGY ENGINE
+// ============================================================
 
-    // Must be roughly aligned to an axis
-    if (Math.abs(dx) > 4.0 && Math.abs(dy) > 4.0) return false;
+function decideStrategy(player, opponent, currentConfig) {
+  let goalX = CONFIG.MAZE_OFFSET_X + (player.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+  let goalY = (player.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
 
-    let stepX = 0, stepY = 0;
-    if (Math.abs(dx) > Math.abs(dy)) stepX = Math.sign(dx); // Horizontal Shot
-    else stepY = Math.sign(dy); // Vertical Shot
+  let oppGoalX = CONFIG.MAZE_OFFSET_X + (opponent.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+  let oppGoalY = (opponent.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
 
-    // 2. Trace the path
-    let dist = Math.hypot(dx, dy);
-    let checkDist = 0;
-    let currX = shooter.x + (shooter.size / 2); // Start at center
-    let currY = shooter.y + (shooter.size / 2);
+  let myDistToGoal = Math.hypot(goalX - player.x, goalY - player.y);
+  let enemyDistToTheirGoal = Math.hypot(oppGoalX - opponent.x, oppGoalY - opponent.y);
+  let distToEnemy = Math.hypot(opponent.x - player.x, opponent.y - player.y);
 
-    while (checkDist < dist && checkDist < CONFIG.BEAM_LENGTH) {
-        currX += stepX; // Step 1 unit at a time
-        currY += stepY;
-        checkDist++;
+  let aggression = currentConfig.BASE_AGGRESSION || 0.6;
+  const scoreDiff = opponent.score - player.score;
+  if (scoreDiff >= 2) aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3);
+  if (scoreDiff <= -2) aggression *= (currentConfig.AGGRESSION_SCALE_DOWN || 0.8);
 
-        // Hit Wall? Stop.
-        if (isWall(currX, currY)) return false;
+  // PANIC DEFENSE
+  if (enemyDistToTheirGoal < 20 || (enemyDistToTheirGoal < myDistToGoal && player.score <= opponent.score)) {
+    return { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 10 };
+  }
 
-        // Hit Target? Success!
-        // Simple AABB check against target body
-        if (currX > target.x && currX < target.x + target.size &&
-            currY > target.y && currY < target.y + target.size) {
-            return true;
-        }
+  // EXECUTE STUNNED
+  if (opponent.stunTime > 0 || opponent.glitchTime > 0) {
+    return { x: opponent.x + opponent.size / 2, y: opponent.y + opponent.size / 2, type: 'EXECUTE', priority: 9, canCharge: true };
+  }
+
+  // RESOURCE DENIAL
+  let ammo = STATE.ammoCrate;
+  if (ammo && currentConfig.RESOURCE_DENIAL_ENABLED !== false) {
+    let distToAmmo = Math.hypot(ammo.x - player.x, ammo.y - player.y);
+    let enemyDistToAmmo = Math.hypot(ammo.x - opponent.x, ammo.y - opponent.y);
+    if (distToAmmo < enemyDistToAmmo * 1.2 && distToAmmo < 40) {
+      return { x: ammo.x, y: ammo.y, type: 'SCAVENGE', priority: 8 };
     }
-    return false;
+  }
+
+  // PREDICTIVE INTERCEPT
+  if (player.boostEnergy > 15) {
+    let predictedPos = predictPlayerMovement(opponent, currentConfig);
+    let distToPredicted = Math.hypot(predictedPos.x - player.x, predictedPos.y - player.y);
+    let huntThreshold = currentConfig.HUNT_THRESHOLD || 60;
+    if (scoreDiff > 0) huntThreshold *= 1.2;
+
+    if (distToPredicted < huntThreshold && aggression > 0.5) {
+      return { x: predictedPos.x, y: predictedPos.y, type: 'HUNT', priority: 7, aggressive: true };
+    }
+  }
+
+  return { x: goalX, y: goalY, type: 'GOAL', priority: 1 };
 }
 
-export function getCpuInput(cpu, opponent) {
-    // --- 0. INIT MEMORY ---
-    if (!cpu.ai) {
-        cpu.ai = {
-            mode: 'SCORE',      // SCORE (Main), HUNT (If close), FLEE (If dying)
-            stuckTimer: 0,
-            lastCell: null
-        };
-    }
+// ============================================================
+// 2.5 ADVANCED MINE PLACEMENT
+// ============================================================
 
-    let cmd = {
-        up: false, down: false, left: false, right: false,
-        shield: false, beam: false, mine: false, boost: false, boom: false
+function calculateAdvancedMinePositions(player, opponent, currentConfig) {
+  if (!currentConfig.ADVANCED_MINING_ENABLED) {
+    let randomCell = STATE.maze[Math.floor(Math.random() * STATE.maze.length)];
+    return {
+      x: CONFIG.MAZE_OFFSET_X + (randomCell.c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2),
+      y: (randomCell.r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2)
     };
+  }
 
-    let distOpp = Math.hypot(opponent.x - cpu.x, opponent.y - cpu.y);
+  const mineStrategy = currentConfig.MINE_STRATEGY || 'BALANCED';
 
-    // =============================================
-    // 1. COMBAT (Opportunity Fire)
-    // =============================================
-    // Expert Logic: "If I shoot now, will it hit?"
-    // We check this EVERY frame. If yes, pull the trigger.
-    if (!cmd.shield && cpu.boostEnergy > 25 && distOpp < 35) {
-        if (canHitTarget(cpu, opponent)) {
-            cmd.beam = true;
-        }
+  if (mineStrategy === 'DEFENSIVE') {
+    let ourGoalX = CONFIG.MAZE_OFFSET_X + (player.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+    let ourGoalY = (player.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+
+    let angleOffset = Math.random() * Math.PI * 2;
+    let distFromGoal = CONFIG.CELL_SIZE * 2 + Math.random() * CONFIG.CELL_SIZE;
+
+    return {
+      x: ourGoalX + Math.cos(angleOffset) * distFromGoal,
+      y: ourGoalY + Math.sin(angleOffset) * distFromGoal
+    };
+  }
+
+  if (mineStrategy === 'AGGRESSIVE') {
+    let oppGoalX = CONFIG.MAZE_OFFSET_X + (opponent.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+    let oppGoalY = (opponent.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+
+    let towardsGoal = { x: oppGoalX - opponent.x, y: oppGoalY - opponent.y };
+    let dist = Math.hypot(towardsGoal.x, towardsGoal.y);
+
+    if (dist > 0.1) {
+      let offset = CONFIG.CELL_SIZE * (1 + Math.random() * 0.5);
+      return {
+        x: opponent.x + (towardsGoal.x / dist) * offset,
+        y: opponent.y + (towardsGoal.y / dist) * offset
+      };
     }
+  }
 
-    // Detonate Mines (Wall Hacks)
-    // If enemy is near ANY of our mines, blow it up.
-    STATE.mines.forEach(m => {
-        if (m.owner === cpu.id && Math.hypot(m.x - opponent.x, m.y - opponent.y) < 5) {
-            cmd.boom = true;
-        }
-    });
-
-
-    // =============================================
-    // 2. SURVIVAL (Reflexes)
-    // =============================================
-    // Only shield if absolutely necessary (conserves energy for boosting)
-    STATE.projectiles.forEach(proj => {
-        if (proj.owner !== cpu.id) {
-            let d = Math.hypot(cpu.x - proj.x, cpu.y - proj.y);
-
-            // Vector logic: Is it moving towards me?
-            let dot = (proj.vx * (cpu.x - proj.x)) + (proj.vy * (cpu.y - proj.y));
-
-            // If it's close (20px), incoming, and aligned with my body
-            if (d < 20 && dot > 0) {
-                // Check if it will actually hit my width
-                let perp = Math.abs((proj.vx * (cpu.y - proj.y) - proj.vy * (cpu.x - proj.x)));
-                if (perp < 2.0 && cpu.boostEnergy > 10) cmd.shield = true;
-            }
-        }
-    });
-
-
-    // =============================================
-    // 3. NAVIGATION (Speed & Goal Pressure)
-    // =============================================
-
-    // A. DETERMINE GOAL
-    let targetC, targetR;
-
-    // Logic: If I have more health than enemy, ignore them and SCORE.
-    // If I am dying, run to Ammo.
-    if (cpu.boostEnergy < 20 && opponent.boostEnergy > 40) {
-        // Survival Mode
-        if (STATE.ammoCrate) {
-            targetC = Math.floor((STATE.ammoCrate.x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
-            targetR = Math.floor(STATE.ammoCrate.y / CONFIG.CELL_SIZE);
-        } else {
-            // Run to furthest corner
-            targetC = (opponent.c < CONFIG.COLS / 2) ? CONFIG.COLS - 1 : 0;
-            targetR = (opponent.r < CONFIG.ROWS / 2) ? CONFIG.ROWS - 1 : 0;
-        }
-    } else {
-        // Winning Mode: GO FOR GOAL
-        targetC = cpu.goalC;
-        targetR = cpu.goalR;
-    }
-
-    // B. CALCULATE PATH
-    // Only re-calculate if we don't have a next cell or reached it
-    if (!cpu.botNextCell || cpu.botRetargetTimer <= 0) {
-        let path = findPath(cpu, targetC, targetR, false); // Try safe path
-        if (!path) path = findPath(cpu, targetC, targetR, true); // Force path
-
-        if (path && path.length > 0) {
-            // Look Ahead: If path[1] is straight line from path[0], target that!
-            cpu.botNextCell = path.length > 1 ? path[1] : path[0];
-        }
-        cpu.botRetargetTimer = 5;
-    }
-    cpu.botRetargetTimer--;
-
-    // C. EXECUTE MOVEMENT
-    if (cpu.botNextCell) {
-        let tx = CONFIG.MAZE_OFFSET_X + cpu.botNextCell.c * CONFIG.CELL_SIZE + 0.5;
-        let ty = cpu.botNextCell.r * CONFIG.CELL_SIZE + 0.5;
-
-        let diffX = tx - cpu.x;
-        let diffY = ty - cpu.y;
-
-        // Move towards center of target cell
-        if (Math.abs(diffX) > 0.1) { if (diffX < 0) cmd.left = true; else cmd.right = true; }
-        if (Math.abs(diffY) > 0.1) { if (diffY < 0) cmd.up = true; else cmd.down = true; }
-
-        // --- PRO MOVE: SPRINTING ---
-        // If we are moving in a straight line towards the goal and have energy, BOOST.
-        if (!cmd.shield && cpu.boostEnergy > 60 && !cmd.beam) {
-            // Check if the path ahead is clear for a boost
-            // Simple check: Are we moving exclusively X or Y?
-            if ((cmd.left || cmd.right) && !cmd.up && !cmd.down) {
-                if (!isWall(cpu.x + (cmd.right ? 4 : -4), cpu.y)) cmd.boost = true;
-            }
-            else if ((cmd.up || cmd.down) && !cmd.left && !cmd.right) {
-                if (!isWall(cpu.x, cpu.y + (cmd.down ? 4 : -4))) cmd.boost = true;
-            }
-        }
-    }
-
-    // D. UNSTUCK (Fallback)
-    // Check if we haven't moved in a while
-    let distMoved = Math.hypot(cpu.x - cpu.lastPos.x, cpu.y - cpu.lastPos.y);
-    if (distMoved < 0.05) cpu.ai.stuckTimer++; else cpu.ai.stuckTimer = 0;
-    cpu.lastPos = { x: cpu.x, y: cpu.y };
-
-    if (cpu.ai.stuckTimer > 15) {
-        // Jiggle randomly to break free
-        if (Math.random() > 0.5) cmd.up = !cmd.up;
-        else cmd.left = !cmd.left;
-        cmd.boost = true; // Burst out
-    }
-
-    return cmd;
+  let balance = Math.random();
+  if (balance < 0.5) {
+    return calculateAdvancedMinePositions(player, opponent, { ...currentConfig, MINE_STRATEGY: 'DEFENSIVE' });
+  } else {
+    return calculateAdvancedMinePositions(player, opponent, { ...currentConfig, MINE_STRATEGY: 'AGGRESSIVE' });
+  }
 }
+
+// ============================================================
+// 3. TACTICAL CHARGING
+// ============================================================
+
+function shouldChargeBeam(player, opponent, currentConfig) {
+  if (!currentConfig.TACTICAL_CHARGING_ENABLED) {
+    return shouldFireBeamBasic(player, opponent);
+  }
+
+  if (player.boostEnergy < (currentConfig.MIN_CHARGE_ENERGY || 65)) {
+    return false;
+  }
+
+  if (opponent.stunTime > 200) {
+    return true;
+  }
+
+  let predictedPos = predictPlayerMovement(opponent, currentConfig);
+  const TOLERANCE = 5;
+  let predictedAlignedX = Math.abs(player.y - predictedPos.y) < TOLERANCE;
+  let predictedAlignedY = Math.abs(player.x - predictedPos.x) < TOLERANCE;
+
+  const IS_INSANE = (currentConfig.TACTICAL_PROBABILITY > 0.9);
+  if (IS_INSANE && (predictedAlignedX || predictedAlignedY)) {
+    return true;
+  }
+
+  return (predictedAlignedX || predictedAlignedY);
+}
+
+function shouldFireBeamBasic(player, opponent) {
+  const TOLERANCE = 3.5;
+  let dx = Math.abs(player.x - opponent.x);
+  let dy = Math.abs(player.y - opponent.y);
+
+  let futureX = opponent.x + (opponent.lastDir ? opponent.lastDir.x * 8 : 0);
+  let futureY = opponent.y + (opponent.lastDir ? opponent.lastDir.y * 8 : 0);
+
+  let willBeAlignedX = Math.abs(player.y - futureY) < TOLERANCE;
+  let willBeAlignedY = Math.abs(player.x - futureX) < TOLERANCE;
+  let currentlyAlignedX = dy < TOLERANCE;
+  let currentlyAlignedY = dx < TOLERANCE;
+
+  return (currentlyAlignedX || currentlyAlignedY || willBeAlignedX || willBeAlignedY);
+}
+
+// ============================================================
+// 4. EXTENDED PREDICTIVE MOVEMENT
+// ============================================================
+
+function predictPlayerMovement(opponent, currentConfig) {
+  if (!opponent.lastDir) {
+    return { x: opponent.x, y: opponent.y };
+  }
+
+  let predictionFrames = currentConfig.PREDICTION_WINDOW || 15;
+
+  if (currentConfig.TACTICAL_PROBABILITY > 0.7) {
+    predictionFrames = 20;
+  }
+  if (currentConfig.TACTICAL_PROBABILITY > 0.9) {
+    predictionFrames = 25;
+  }
+
+  let predictedX = opponent.x + (opponent.lastDir.x * predictionFrames);
+  let predictedY = opponent.y + (opponent.lastDir.y * predictionFrames);
+
+  if (currentConfig.CORNER_CUT_DETECTION !== false) {
+    let turningFactor = analyzeDirectionChanges(opponent);
+    if (turningFactor > 0.3) {
+      let cornerPrediction = predictCornerCut(opponent, predictedX, predictedY);
+      predictedX = cornerPrediction.x;
+      predictedY = cornerPrediction.y;
+    }
+  }
+
+  predictedX = Math.max(0, Math.min(predictedX, CONFIG.LOGICAL_W));
+  predictedY = Math.max(0, Math.min(predictedY, CONFIG.LOGICAL_H));
+
+  return { x: predictedX, y: predictedY };
+}
+
+function analyzeDirectionChanges(opponent) {
+  if (!opponent.directionHistory) {
+    opponent.directionHistory = [];
+  }
+
+  if (opponent.lastDir) {
+    opponent.directionHistory.push(opponent.lastDir);
+    if (opponent.directionHistory.length > 3) {
+      opponent.directionHistory.shift();
+    }
+  }
+
+  if (opponent.directionHistory.length < 2) return 0;
+
+  let dirs = opponent.directionHistory;
+  let variance = 0;
+
+  for (let i = 1; i < dirs.length; i++) {
+    let prevDir = dirs[i - 1];
+    let currDir = dirs[i];
+    let dot = (prevDir.x * currDir.x + prevDir.y * currDir.y);
+    variance += (1 - dot) / 2;
+  }
+
+  return variance / (dirs.length - 1);
+}
+
+function predictCornerCut(opponent, predictedX, predictedY) {
+  let path = findPathToTarget(opponent, predictedX, predictedY);
+
+  if (path.length > 0) {
+    let midpointCell = path[Math.floor(path.length / 2)];
+    return {
+      x: CONFIG.MAZE_OFFSET_X + (midpointCell.c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2),
+      y: (midpointCell.r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2)
+    };
+  }
+
+  return { x: predictedX, y: predictedY };
+}
+
+// ============================================================
+// 5. COMBO CHAIN DETECTION
+// ============================================================
+
+function shouldExecuteCombo(player, opponent, currentConfig) {
+  if (!currentConfig.COMBO_CHAINS_ENABLED) return null;
+
+  if (opponent.stunTime > 300 && player.boostEnergy > 65) {
+    return {
+      type: 'STUN_CHARGE',
+      actions: ['charge_beam'],
+      priority: 10,
+      window: opponent.stunTime
+    };
+  }
+
+  let closeMines = STATE.mines.filter(mine => {
+    let d = Math.hypot(mine.x - opponent.x, mine.y - opponent.y);
+    return d < CONFIG.CELL_SIZE * 2.5 && (mine.owner === player.id || mine.owner === -1);
+  });
+
+  if (closeMines.length >= 1 && player.boostEnergy > 30) {
+    return {
+      type: 'MINE_DETONATE',
+      actions: ['boom'],
+      priority: 8,
+      mineTargets: closeMines
+    };
+  }
+
+  if (player.boostEnergy > 40 && Math.hypot(player.x - opponent.x, player.y - opponent.y) > 20) {
+    return {
+      type: 'BOOST_HUNT',
+      actions: ['boost'],
+      priority: 6
+    };
+  }
+
+  return null;
+}
+
+// ============================================================
+// 6. MOVEMENT DIRECTION
+// ============================================================
+
+function getSmartMovementDirection(player, target, currentConfig) {
+  let path = findPathToTarget(player, target.x, target.y);
+
+  let dxRaw = target.x - player.x;
+  let dyRaw = target.y - player.y;
+
+  if (Math.hypot(dxRaw, dyRaw) < CONFIG.CELL_SIZE * 1.5) {
+    let dist = Math.hypot(dxRaw, dyRaw);
+    if (dist < 0.5) return { dx: 0, dy: 0 };
+    return { dx: (dxRaw / dist) * CONFIG.BASE_SPEED, dy: (dyRaw / dist) * CONFIG.BASE_SPEED };
+  }
+
+  if (path.length < 2) return { dx: 0, dy: 0 };
+
+  let targetIndex = 1;
+  if (path.length > 2) {
+    let c1 = path[1];
+    let p1x = CONFIG.MAZE_OFFSET_X + c1.c * CONFIG.CELL_SIZE + 1.5;
+    let p1y = c1.r * CONFIG.CELL_SIZE + 1.5;
+
+    if (Math.hypot(p1x - player.x, p1y - player.y) < 2.5) {
+      targetIndex = 2;
+    }
+  }
+
+  let nextCell = path[targetIndex];
+  let tx = CONFIG.MAZE_OFFSET_X + (nextCell.c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+  let ty = (nextCell.r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+
+  let dx = tx - (player.x + player.size / 2);
+  let dy = ty - (player.y + player.size / 2);
+  let dist = Math.hypot(dx, dy);
+
+  if (dist < 0.1) return { dx: 0, dy: 0 };
+  return { dx: (dx / dist) * CONFIG.BASE_SPEED, dy: (dy / dist) * CONFIG.BASE_SPEED };
+}
+
+// ============================================================
+// 7. ADAPTIVE DIFFICULTY
+// ============================================================
+
+function adjustDifficultyDynamically(playerScore, cpuScore, currentConfig) {
+  if (!currentConfig.ADAPTIVE_DIFFICULTY_ENABLED) return currentConfig;
+
+  const scoreDiff = cpuScore - playerScore;
+
+  if (scoreDiff <= -3) {
+    console.log("🔥 Player crushing CPU - ramping up difficulty!");
+    return {
+      ...currentConfig,
+      MIN_BEAM_ENERGY: Math.max(15, currentConfig.MIN_BEAM_ENERGY * 0.6),
+      MIN_CHARGE_ENERGY: Math.max(50, currentConfig.MIN_CHARGE_ENERGY * 0.7),
+      HUNT_THRESHOLD: 85,
+      TACTICAL_PROBABILITY: Math.min(0.95, currentConfig.TACTICAL_PROBABILITY + 0.15),
+    };
+  }
+
+  if (scoreDiff >= 3) {
+    console.log("😎 CPU crushing player - easing off slightly");
+    return {
+      ...currentConfig,
+      MIN_BEAM_ENERGY: Math.min(50, currentConfig.MIN_BEAM_ENERGY * 1.3),
+      MIN_CHARGE_ENERGY: Math.min(85, currentConfig.MIN_CHARGE_ENERGY * 1.2),
+      HUNT_THRESHOLD: 40,
+      TACTICAL_PROBABILITY: Math.max(0.5, currentConfig.TACTICAL_PROBABILITY - 0.1),
+    };
+  }
+
+  return currentConfig;
+}
+
+// ============================================================
+// MAIN CPU INPUT (ENHANCED)
+// ============================================================
+
+export function getCpuInput(player, opponent) {
+  let cmd = {
+    up: false,
+    down: false,
+    left: false,
+    right: false,
+    boost: false,
+    beam: false,
+    shield: false,
+    mine: false,
+    boom: false,
+    start: false
+  };
+
+  if (!player || !opponent) return cmd;
+
+  let currentConfig = (typeof window !== 'undefined' && window.AI_CONFIG)
+    ? window.AI_CONFIG
+    : LOCAL_AI_CONFIG;
+
+  if (currentConfig.ADAPTIVE_DIFFICULTY_ENABLED) {
+    currentConfig = adjustDifficultyDynamically(player.score, opponent.score, currentConfig);
+  }
+
+  const IS_INSANE = (currentConfig.TACTICAL_PROBABILITY > 0.9);
+
+  let strategy = decideStrategy(player, opponent, currentConfig);
+  let moveDir = getSmartMovementDirection(player, strategy, currentConfig);
+
+  STATE.mines.forEach(mine => {
+    let dist = Math.hypot(mine.x - player.x, mine.y - player.y);
+    if (dist < 4.5) {
+      let pushX = player.x - mine.x;
+      let pushY = player.y - mine.y;
+      moveDir.dx += pushX * 2.0;
+      moveDir.dy += pushY * 2.0;
+    }
+  });
+
+  const DEADZONE = 0.05;
+  if (Math.abs(moveDir.dx) > DEADZONE) {
+    cmd.left = moveDir.dx < 0;
+    cmd.right = moveDir.dx > 0;
+  }
+  if (Math.abs(moveDir.dy) > DEADZONE) {
+    cmd.up = moveDir.dy < 0;
+    cmd.down = moveDir.dy > 0;
+  }
+
+  if (player.boostEnergy > 15) {
+    let isMoving = Math.abs(moveDir.dx) > 0.1 || Math.abs(moveDir.dy) > 0.1;
+    if (isMoving) {
+      if (strategy.type === 'BLOCK_GOAL' || strategy.type === 'EXECUTE' || strategy.type === 'SCAVENGE') {
+        cmd.boost = true;
+      }
+      if (strategy.type === 'HUNT' && Math.hypot(player.x - opponent.x, player.y - opponent.y) > 10) {
+        cmd.boost = true;
+      }
+    }
+  }
+
+  if (player.boostEnergy > 5) {
+    let imminentDanger = false;
+    STATE.projectiles.forEach(p => {
+      if (p.owner !== player.id) {
+        let dist = Math.hypot(p.x - player.x, p.y - player.y);
+        if (dist < 4.0) imminentDanger = true;
+      }
+    });
+    if (imminentDanger) cmd.shield = true;
+  }
+
+  let combo = shouldExecuteCombo(player, opponent, currentConfig);
+  if (combo) {
+    combo.actions.forEach(action => {
+      if (action === 'charge_beam') cmd.beam = true;
+      if (action === 'boom') cmd.boom = true;
+      if (action === 'boost') cmd.boost = true;
+    });
+  }
+
+  if (player.boostEnergy > currentConfig.MIN_BEAM_ENERGY) {
+    let shouldFire = false;
+
+    if (currentConfig.TACTICAL_CHARGING_ENABLED && strategy.canCharge) {
+      shouldFire = shouldChargeBeam(player, opponent, currentConfig);
+    } else {
+      shouldFire = shouldFireBeamBasic(player, opponent);
+    }
+
+    if (shouldFire && Math.random() < 0.95) cmd.beam = true;
+  }
+
+  let distToEnemy = Math.hypot(player.x - opponent.x, player.y - opponent.y);
+  if (player.minesLeft > 0 && distToEnemy < 8.0 && Math.random() < 0.25) {
+    cmd.mine = true;
+  }
+
+  if (cmd.mine && currentConfig.ADVANCED_MINING_ENABLED) {
+    let strategicPos = calculateAdvancedMinePositions(player, opponent, currentConfig);
+    player._suggestedMinePos = strategicPos;
+  }
+
+  STATE.mines.forEach(mine => {
+    if ((mine.owner === player.id || mine.owner === -1) && !mine.active) return;
+    let d = Math.hypot(mine.x - opponent.x, mine.y - opponent.y);
+    if (d < 3.5) cmd.boom = true;
+  });
+
+  return cmd;
+}
+
+export function getDifficultyPreset(difficulty = 'INTERMEDIATE') {
+  return DIFFICULTY_PRESETS[difficulty] || DIFFICULTY_PRESETS.INTERMEDIATE;
+}
+
+export function setDifficulty(difficulty = 'INTERMEDIATE', tacticalStyle = null) {
+  const baseConfig = DIFFICULTY_PRESETS[difficulty] || DIFFICULTY_PRESETS.INTERMEDIATE;
+  let styleConfig = {};
+
+  if (tacticalStyle && TACTICAL_STYLES[tacticalStyle]) {
+    styleConfig = TACTICAL_STYLES[tacticalStyle];
+  }
+
+  let enhancedConfig = {
+    ...baseConfig,
+    ...styleConfig,
+    ADVANCED_MINING_ENABLED: true,
+    TACTICAL_CHARGING_ENABLED: true,
+    ADAPTIVE_DIFFICULTY_ENABLED: difficulty !== 'BEGINNER',
+    PREDICTIVE_MOVEMENT_ENABLED: true,
+    COMBO_CHAINS_ENABLED: difficulty !== 'BEGINNER',
+    CORNER_CUT_DETECTION: difficulty !== 'BEGINNER',
+    RESOURCE_DENIAL_ENABLED: difficulty !== 'BEGINNER',
+    PREDICTION_WINDOW: difficulty === 'INSANE' ? 25 : difficulty === 'HARD' ? 20 : 15,
+    BASE_AGGRESSION: difficulty === 'INSANE' ? 0.95 : difficulty === 'HARD' ? 0.75 : 0.5,
+    AGGRESSION_SCALE_UP: 1.4,
+    AGGRESSION_SCALE_DOWN: 0.8,
+    MINE_STRATEGY: difficulty === 'INSANE' ? 'AGGRESSIVE' : difficulty === 'HARD' ? 'BALANCED' : 'DEFENSIVE',
+  };
+
+  if (typeof window !== 'undefined') {
+    window.AI_CONFIG = enhancedConfig;
+  } else {
+    LOCAL_AI_CONFIG = enhancedConfig;
+  }
+
+  console.log(`✨ AI Enhanced - Difficulty set to ${difficulty}`);
+}
+
+setDifficulty('INTERMEDIATE');
+
+export { DIFFICULTY_PRESETS, TACTICAL_STYLES };

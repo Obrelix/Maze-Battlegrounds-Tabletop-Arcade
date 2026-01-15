@@ -498,7 +498,7 @@ export function renderGame() {
             const winColor = STATE.victimIdx == 0 ? STATE.players[1]?.color : STATE.players[0]?.color;
             const tauntColor = STATE.victimIdx == 1 ? STATE.players[1]?.color : STATE.players[0]?.color;
             if (Math.floor(Date.now() / 300) % 2 === 0)
-                drawText(STATE.messages.win, 38, 8, winColor);
+                drawText(STATE.messages.win, 49, 8, winColor);
             let msg = `P${STATE.victimIdx + 1}: '${STATE.messages.taunt}'`
             drawText(msg, STATE.scrollX, 29, tauntColor);
             drawText("PRESS 'R' TO RESET", 30, 52, "#888");

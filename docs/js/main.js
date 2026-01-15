@@ -1,14 +1,25 @@
 import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS } from './config.js';
 import { STATE, resetStateForMatch, saveHighScore } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
-import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js'; 
+import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput } from './ai.js';
+import { DIFFICULTY_PRESETS, TACTICAL_STYLES } from './ai_config_presets.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import {
     applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,
     checkBeamCollisions, checkArmorCrate, checkPortalActions, checkBeamActions, checkMinesActions
 } from './mechanics.js';
+function setAIDifficulty(level) {
+    const levels = {
+        'BEGINNER': DIFFICULTY_PRESETS.BEGINNER,
+        'INTERMEDIATE': DIFFICULTY_PRESETS.INTERMEDIATE,
+        'HARD': DIFFICULTY_PRESETS.HARD,
+        'INSANE': DIFFICULTY_PRESETS.INSANE,
+    };
 
+    window.AI_CONFIG = levels[level] || DIFFICULTY_PRESETS.INTERMEDIATE;
+    console.log(`AI Difficulty: ${level}`);
+}
 function startMatchSetup() {
     resetStateForMatch();
     STATE.screen = 'PLAYER_SETUP';
@@ -28,6 +39,7 @@ function startGame() {
     resetStateForMatch();
     updateHtmlUI();
     document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
+    setAIDifficulty('INSANE');
     initMaze();
 }
 
@@ -190,7 +202,7 @@ function update() {
         return;
     }
     updateProjectiles();
-    if(handleTimeOut()) return;
+    if (handleTimeOut()) return;
     STATE.gameTime -= 1;
     handleSuddenDeath();
     updateMinesAndCrates();
@@ -204,7 +216,7 @@ function update() {
         checkBoostTrail(p);
         checkBeamActions(p, idx);
         checkMinesActions(p);
-        
+
         let cmd = {};// --- INPUT LOGIC  ---
         // If in Attract Mode, BOTH players use AI
         if (STATE.isAttractMode) { // Player 1 targets Player 2, Player 2 targets Player 1
@@ -222,8 +234,17 @@ function update() {
     updateParticles();
 }
 
-function loop() {
-    update();
+let lastUpdateTime = performance.now();
+let accumulator = 0;
+function loop(now) {
+    if (now === undefined) now = performance.now();
+    accumulator += now - lastUpdateTime;
+
+    lastUpdateTime = now;
+    while (accumulator >= CONFIG.FIXED_STEP_MS) {
+        update();
+        accumulator -= CONFIG.FIXED_STEP_MS;
+    }
     if (STATE.screen === 'MENU') renderMenu();
     else if (STATE.screen === 'PLAYER_SETUP') renderPlayerSetup();
     else if (STATE.screen === 'HIGHSCORES') renderHighScores(); // New
