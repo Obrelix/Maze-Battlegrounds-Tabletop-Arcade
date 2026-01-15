@@ -1,9 +1,10 @@
 # Maze Battlegrounds – Tabletop Arcade (Pre‑Alpha)
 
 A DIY head‑to‑head tabletop arcade console powered by a Raspberry Pi Zero 2 W and a P2.5 128×64 RGB LED Matrix.
-This repository contains the source code for **Maze** Battlegrounds—a fast‑paced tactical shooter designed specifically for low‑resolution LED displays—along with the hardware specifications to build the physical machine.
 
-Status: Pre‑Alpha – mechanics, balance, and UX are under active development and testing.
+This repository contains the source code for **Maze Battlegrounds**—a fast‑paced tactical 1v1 shooter designed specifically for low‑resolution LED displays—along with the hardware specifications to build the physical machine.
+
+**Status:** Pre‑Alpha – mechanics, balance, and UX are under active development and testing.
 
 ---
 
@@ -11,9 +12,9 @@ Status: Pre‑Alpha – mechanics, balance, and UX are under active development 
 
 You can test the current mechanics directly in your browser in a pixel‑perfect mockup of the 128×64 LED matrix.
 
-- Online demo: 🕹️ [**PLAY ONLINE DEMO**](https://obrelix.github.io/Maze-Battlegrounds-Tabletop-Arcade/)
-- Works in any modern desktop browser (Chrome, Firefox, Edge, Safari).
-- Mobile is supported with on‑screen joystick and buttons, but a keyboard or gamepad on desktop gives the best experience.
+- **Online demo:** 🕹️ [**PLAY ONLINE DEMO**](https://obrelix.github.io/Maze-Battlegrounds-Tabletop-Arcade/)
+- **Browser support:** Chrome, Firefox, Edge, Safari (desktop recommended)
+- **Mobile:** Full on‑screen joystick and button support with virtual gamepad
 
 ---
 
@@ -21,18 +22,20 @@ You can test the current mechanics directly in your browser in a pixel‑perfect
 
 Maze Battlegrounds is a 1v1 top‑down shooter designed for a digital tabletop experience where both players sit on opposite sides of the same display.
 
-- Goal: Be the first to reach 5 points. 
-- Score is awarded by:
-  - Reaching the opponent’s spawn zone (the “Goal”).
-  - Eliminating the opponent with a mine, explosion, or charged beam.
-- The battlefield is dynamic: walls can be destroyed, traps can be placed, portals used, and a shared energy resource must be managed carefully.
+### Objective
 
-Two game modes are currently available:
+- **Goal:** Be the first to reach **5 points**
+- **Score by:**
+  - Reaching the opponent's spawn zone (the "Goal")
+  - Eliminating the opponent with a mine, explosion, or charged beam
+- **Dynamic battlefield:** Walls can be destroyed, traps placed, portals used, and energy carefully managed
 
-- Single Player vs CPU (hard AI using pathfinding, dodging, shielding, and “battering ram” mine‑clearing behavior).
-- Multiplayer PvP (local head‑to‑head; Player 2 can be keyboard, gamepad, or CPU depending on inputs and mode).
+### Game Modes
 
-The HUD and canvas layout in the web demo mimic the final tabletop hardware: a 128×64 P2.5 RGB LED matrix with a split, flipped interface for opposing players.
+- **Single Player vs CPU** – Hard AI with advanced pathfinding, dodging, shielding, and tactical mine-clearing
+- **Multiplayer PvP** – Local head‑to‑head; Player 2 can be human (keyboard/gamepad) or CPU depending on inputs
+
+The HUD and canvas layout mimic the final tabletop hardware: a 128×64 P2.5 RGB LED matrix with a split, flipped interface for opposing players.
 
 ---
 
@@ -40,48 +43,74 @@ The HUD and canvas layout in the web demo mimic the final tabletop hardware: a 1
 
 ### Energy system
 
-You have a single **Energy** bar that slowly regenerates and is shared by all actions.
+Players have a single **Energy** bar (0–100) that slowly regenerates and is shared by all actions:
 
-Energy is consumed by:
+- **Tap Beam** – Quick, low‑cost stun attack (30 energy)
+- **Charged Beam** – Hold ~3 seconds for lethal wall‑breaking shot (65 energy)
+- **Shield** – Block all incoming damage; drains ~3 seconds to empty (10 activation + continuous drain)
+- **Boost** – Sprint to chase or escape; slows energy regen while active (drain ~5 seconds to empty)
+- **Mine Detonation** – Remotely trigger mines for area denial (30 energy per detonation)
 
-- Boosting (sprinting to chase or escape).
-- Beams (tap and charge).
-- Shield (blocks all damage while active; drains the bar in roughly 3 seconds in the current tuning).
-- Remote detonation of mines (Boom).
-
-Mismanaging energy leaves you unable to shield, escape, or fire at key moments.
+**Mismanaging energy leaves you vulnerable to attack, unable to escape, or locked out of vital defenses.**
 
 ### Offensive tools
 
-- Tap Beam  
-  - Quick, low‑cost beam that **stuns** / slows the enemy (80% speed for a few seconds).
-- Charged Beam  
-  - Hold the beam button for about 3 seconds to charge a lethal shot.
-  - Slows you while charging, then fires a high‑velocity projectile that breaks walls and instantly kills.
-- Mines  
-  - Each player can hold up to 4 mines (refill via ammo crates).
-  - Stepping on or detonating a mine creates a large explosion that destroys nearby walls and kills anything in range.
+#### Tap Beam
+- Quick, low‑cost beam that **stuns** / **slows** the enemy (80% speed reduction for ~300ms)
+- Costs **30 energy**
 
-### Environment and pickups
+#### Charged Beam
+- Hold the beam button for ~3 seconds to charge
+- Fires a high‑velocity projectile that **breaks walls** and **instantly kills** on contact
+- Costs **65 energy** when released
+- Movement is slowed to 60% while charging
+- Can be released early for a quick tap stun if held <3 seconds
 
-- Ammo Crates  
-  - Green crates spawn on the map and refill your mines to the maximum when collected.
-- Portals  
-  - Two portals (orange and blue) link two points on the map; entering one teleports you to the other.
-  - Each portal use has a 30% chance to “glitch” your controls, inverting movement for a short period.
-- Glitch  
-  - Temporary control inversion status effect used mainly as portal risk and occasional effect. 
+#### Mines
+- Place up to **4 mines** per round (refill via ammo crates)
+- Mines arm after ~1 second when dropped
+- **Stepping on** or **detonating** a mine creates a large explosion that:
+  - Destroys nearby walls
+  - Kills players in range
+  - Damages both enemies and friendly mines
+- Remote detonation costs **30 energy**
 
-### Rounds, scoring, and sudden death
+### Environment & pickups
 
-- A match is first to 5 points; rounds resolve on elimination or successful goal run.  
-- Draws (“DOUBLE KO! DRAW!”) are handled when both players die simultaneously. 
-- If time runs out, the round ends in a “TIME OUT!” state. 
-- After time is low, **Sudden Death** triggers:
-  - Warning message and scrolling text (“SUDDEN DEATH!”) on the LED matrix.
-  - Neutral mines start spawning at random cells, damaging both players and increasing chaos.
+#### Ammo Crates
+- Green crates spawn randomly on the map
+- Refill **mines to max** (4) when collected
+- Respawn every 300ms if empty
 
-The web demo includes a simple attract‑mode / idle demo loop that restarts rounds and uses AI for both players when no input is detected for a while.
+#### Portals
+- Two portals (blue and cyan) link two points on the map; entering one teleports you to the other
+- Each portal use has a **30% chance to "glitch"** your controls, inverting movement for a few seconds
+- Animated 4×4 LED display with rotating center pattern
+
+#### Glitch effect
+- Temporary control inversion (inverts `dx` and `dy`)
+- Duration: ~3 seconds (180 frames)
+- Triggered by portal use or environmental hazards
+
+### Rounds, scoring & sudden death
+
+- A match is **first to 5 points**; rounds resolve on elimination or goal score
+- **Double KO / Draws** are handled when both players die simultaneously
+- **TIME OUT!** ends a round if time expires
+- **Sudden Death** triggers when time runs low (<30 seconds):
+  - Warning message and scrolling text on the LED matrix
+  - Neutral mines spawn at random cells every ~830ms, damaging both players and increasing chaos
+  - No timer limit—play until one player is eliminated
+
+### Game states
+
+- **MENU** – Main screen; select "1" for Single Player, "2" for PvP, "3" for High Scores
+- **PLAYER_SETUP** – Color selection (arrow keys) and 3‑letter name entry (customizable)
+- **PLAYING** – Active gameplay with HUD, energy bars, and real‑time action
+- **ROUND_OVER** – Displays winner and scores; waits for next round
+- **GAME_OVER** – Full match winner with taunt message (best of 5 rounds)
+- **HIGH_SCORES** – Displays top recorded player names and wins
+- **ATTRACT_MODE** – Auto‑demo when idle (both players AI‑controlled)
 
 ---
 
@@ -91,88 +120,201 @@ The web demo supports keyboard, gamepads, and mobile touch controls.
 
 ### Keyboard controls
 
-Default bindings in the current build:
-
-| Action        | Player 1 (Blue)                 | Player 2 / CPU (Right side) | Notes |
-|--------------|----------------------------------|-----------------------------|-------|
-| Move         | W / A / S / D                    | Arrow keys                  | Navigate the maze. |
-| Tap / Hold Beam | F (tap / hold)               | K (tap / hold)              | Tap = stun; Hold ≈ 3s = lethal wall‑breaking beam. |
-| Shield       | R                                | I                           | Blocks all damage while energy lasts. |
-| Drop Mine    | E                                | O                           | Place a lethal mine (max 4, refilled by ammo crates). |
-| Boost        | G                                | L                           | Momentum‑based speed boost; drains energy. |
-| Boom (Detonate all mines) | Space               | Enter                       | Remote detonation; costs energy. |
-| Start / Next Round / Reset | 1, 2, R, Enter (depending on context) | Same keys plus Select / Start on controllers | See menu / system controls below. |
-| Menu         | Esc                              | Esc                         | Return to main menu “SELECT MODE”. |
-
-The top UI bar in the web demo shows a quick reference for all of these actions around each player’s panel.
+| Action | Player 1 (Blue) | Player 2 (Right) | Notes |
+|--------|-----------------|------------------|-------|
+| **Move** | W / A / S / D | Arrow Keys | Navigate the maze |
+| **Tap/Hold Beam** | F (tap/hold) | K (tap/hold) | Tap = stun; hold ≈3s = lethal shot |
+| **Shield** | R | I | Block all damage while energy lasts |
+| **Drop Mine** | E | O | Place mine (max 4, refilled by crates) |
+| **Boost** | G | L | Speed boost; drains energy quickly |
+| **Boom** (Detonate) | Space | Enter | Remote detonation; costs 30 energy |
+| **Start/Menu** | 1, 2, R, Enter | Same | Context‑dependent: start game, next round, or reset |
+| **Menu** | Esc | Esc | Return to main menu |
 
 ### Gamepad support
 
-The web demo includes full gamepad support with sensible defaults:
+Full gamepad support with sensible defaults:
 
-- Left stick or D‑pad for movement.
-- Standard SNES/Xbox‑style mapping:
-  - Beam: A / Cross button.
-  - Boom: B.
-  - Mine: X / Y (depending on layout).
-  - Shield: Y or shoulder buttons (L1/R1).
-  - Boost: R1 (or another face/shoulder mapped in `input.js`).
-- Start / Select buttons are used to start games and reset rounds/matches:
-  - In main menu, pressing any gamepad button starts a game. Player 1 = gamepad 0, Player 2 = gamepad 1.
-  - On Game Over or Round Over screens, Start/Select + Shield trigger next round or full reset, mirroring keyboard behavior.
+- **Movement:** Left stick or D‑pad
+- **Beam:** A / Cross button
+- **Boom (Detonate):** B button
+- **Mine:** X / Y (depending on layout)
+- **Shield:** Y or L1/R1 (shoulder buttons)
+- **Boost:** R1 or secondary face button
+- **Start/Select:** Menu navigation and round/match control
+  - In main menu: any gamepad button starts a game
+  - On Game Over/Round Over: Start + Shield triggers next action
+  - Player 1 = gamepad 0, Player 2 = gamepad 1
 
 All gamepad input is merged with keyboard for each player, so both can be used simultaneously.
 
 ### Mobile touch controls
 
-For narrow viewports (mobile), the web demo activates a touch UI: 
+For narrow viewports (phones/tablets), the demo activates a touch UI with:
 
-- Virtual joystick on the left for movement (implemented via nipplejs).
-- Touch buttons on the right for:
-  - Shield (R).  
-  - Boost (G).  
-  - Beam (F).  
-  - Boom (Space).  
-  - Mine (E). 
-- A “Start” button replaces keyboard/gamepad Start for beginning a match from the main menu.
-- A small “SYSTEM MECHANICS” modal summarises Mines, Shield, Tap Beam, Hold Beam, Portals, and Glitch for quick reference. 
-
----
-
-## Hardware (tabletop cabinet)
-
-The target hardware is a compact, affordable tabletop arcade build using off‑the‑shelf components. 
-
-Core components:
-
-- Controller: Raspberry Pi Zero 2 W. 
-- Display: P2.5 indoor HUB75 RGB LED matrix, 128×64 px (320 mm × 160 mm). 
-- Interface: RGB Matrix Bonnet for Raspberry Pi (or equivalent HUB75 driver for 128×64).
-- Power: 5 V 10 A power supply brick.
-- Controls: Arcade buttons, gamepads, or USB controllers, depending on your cabinet design. 
-- Audio: External USB sound card + speakers.
-
-The LED matrix layout in the browser demo matches the logical resolution and aspect ratio used in the physical cabinet (configurable via `CONFIG` in `config.js`). 
-
-A full Bill of Materials (BOM) is maintained in a separate Google Sheet referenced from this project.
+- **Virtual joystick** (left side) – Movement via [nipplejs](https://yomugames.com/nipplejs/)
+- **Touch buttons** (right side):
+  - Shield (R)
+  - Boost (G)
+  - Beam (F)
+  - Boom (Space)
+  - Mine (E)
+- **Start button** – Begin a match from the main menu
+- **System Mechanics modal** – Quick reference: Mines, Shield, Beams, Portals, Glitch
 
 ---
 
-## Installation and development
+## Technical architecture
+
+### File structure
+
+- **`config.js`** – All game constants (grid size, energy costs, colors, control mappings, bitmap fonts)
+- **`main.js`** – Main game loop, state machine, round/match logic, sudden death handling
+- **`state.js`** – Global game state, player objects, initialization, high score persistence
+- **`mechanics.js`** – Core gameplay: player actions, collisions, projectiles, mines, explosions, portals
+- **`renderer.js`** – LED matrix rendering, camera shake, HUD display, text rendering (bitmap fonts)
+- **`grid.js`** – Maze generation (recursive backtracking), wall collision detection, cell indexing
+- **`input.js`** – Keyboard, gamepad, and touch input polling; idle detection for attract mode
+- **`ai.js`** – CPU pathfinding (BFS), target detection, combat tactics, unstuck logic
+- **`classes.js`** – Player, projectile, and particle class definitions
+- **`utils.js`** – Utility functions
+- **`style.css`** – Retro cabinet styling, responsive layout, mobile UI
+- **`index.html`** – Main entry point: canvas, HUD, mobile controls, nipplejs integration
+
+### Key systems
+
+#### Rendering
+- **LED-accurate simulation:** 128×64 logical grid at P2.5 pitch (10px per LED on screen)
+- **Dynamic wall coloring:** Walls shift through HSL spectrum based on round timer (red→yellow→cyan)
+- **Bitmap font rendering:** Custom 3×5 font for on‑screen text and HUD
+- **Pre‑rendered background:** Static LED grid cached for performance
+- **Camera shake:** Screen jitter on impacts and explosions
+
+#### Physics & collision
+- **Pixel‑perfect wall collisions:** Per‑pixel hitbox checking with corner‑assist for smooth movement
+- **Entity overlap detection:** AABB checks for mines, crates, portals, and projectiles
+- **Momentum‑based movement:** Substepped collision resolution with nudging for tight corners
+
+#### AI
+- **Breadth‑First Search (BFS) pathfinding:** Computes safe paths around mines and walls
+- **Opportunity fire:** Checks if enemy is within range and line‑of‑sight before attacking
+- **Survival mode:** Shields incoming projectiles and retreats to ammo crates when low on energy
+- **Tactical sprinting:** Boosts in straight lines towards objectives when energy permits
+- **Unstuck detection:** Breaks out of stuck states with randomized jiggle
+
+#### Audio
+- **Minimal SFX:** Beam charge, shield activation, mine drop, detonation, damage, death (Web Audio API)
+- **Silent fallback:** Game continues normally if audio fails or is muted
+
+---
+
+## Installation & development
 
 ### Web version
 
-- No build step is required for the browser demo; everything is pure HTML/CSS/JS.
-- Main entry points:
-  - `index.html` – layout, HUD, mobile controls, and canvas.
-  - `style.css` – retro cabinet styling, dashboard, and responsive layout.x
-  - `config.js` – game constants (grid size, energy costs, colors, etc.) and control mappings.
-  - `main.js` – main loop, state transitions, sudden death, and round logic.
-  - `mechanics.js`, `renderer.js`, `ai.js`, `grid.js`, `input.js`, `state.js`, `classes.js` – gameplay, visuals, AI, maze generation, input handling, and data structures. 
+**No build step required!** Everything is pure HTML/CSS/JavaScript.
+
+1. Clone or download the repository
+2. Open `index.html` in a modern browser
+3. Start playing
+
+#### Local development
+
+- Modify `config.js` to tune game constants (energy costs, timings, colors, etc.)
+- Edit `mechanics.js` for gameplay logic changes
+- Update `renderer.js` for visual tweaks
+- Adjust `ai.js` for CPU difficulty
+
+#### Build & deploy
+
+- Copy all files (HTML, CSS, JS) to a static web server
+- Deploy to GitHub Pages, Netlify, or any CDN
+- No compilation or bundling needed
 
 ### Hardware version (LED matrix)
 
-Hardware setup and deployment scripts for Raspberry Pi will be documented using the `rpi-rgb-led-matrix` library.
+Deploying to physical Raspberry Pi with HUB75 RGB LED matrix is **in progress**.
 
-- Status: Coming Soon – current focus is on gameplay and browser demo polish. 
-- The plan is to drive the same 128×64 logical framebuffer used in the browser to the physical HUB75 matrix. 
+**Target setup:**
+- Raspberry Pi Zero 2 W
+- P2.5 128×64 RGB LED Matrix (HUB75 interface)
+- RGB Matrix Bonnet for Pi (or equivalent HUB75 driver)
+- 5V 10A power supply
+- USB arcade controllers or gamepad adapters
+
+**Status:** The browser demo's 128×64 logical framebuffer maps directly to the physical matrix. C/C++ driver code and deployment scripts coming soon.
+
+---
+
+## Configuration & customization
+
+### Key config parameters (in `config.js`)
+
+```javascript
+// Display
+LOGICAL_W: 128,      // Canvas width in LEDs
+LOGICAL_H: 64,       // Canvas height in LEDs
+PITCH: 10,           // Pixels per LED on screen
+
+// Gameplay
+MAX_SCORE: 5,        // Points to win match
+GAME_TIME: 20000,    // Round duration (ms)
+MAX_MINES: 4,        // Mines per player
+
+// Energy costs
+BEAM_ENERGY_COST: 30,        // Tap beam
+CHARGED_BEAM_COST: 65,       // Charged beam
+SHIELD_ACTIVATION_COST: 10,  // Shield startup
+SHIELD_DRAIN: 0.556,         // Per-frame drain (~3 sec to empty)
+BOOST_DRAIN: 0.333,          // Per-frame drain (~5 sec to empty)
+DETONATE_COST: 30,           // Mine detonation
+
+// Timings
+CHARGE_TIME: 3000,           // Time to full charge (ms)
+STUN_DURATION: 300,          // Stun effect duration (ms)
+GLITCH_DURATION: 180,        // Control inversion duration (frames)
+
+// Controls
+CONTROLS_P1, CONTROLS_P2     // Keyboard key mappings
+```
+
+### High score system
+
+High scores are persisted to browser `localStorage` under key `LED_MAZE_HIGHSCORES`. Clearing browser data will reset scores. Entry is via the **PLAYER_SETUP** screen where you choose a 3‑letter name.
+
+---
+
+## Known limitations & future work
+
+- **Hardware deployment** – Pi/HUB75 driver coming soon
+- **Sound effects** – Currently Web Audio API only; needs external audio for physical cabinet
+- **Gamepad support** – Tested on Xbox and SNES controllers; other layouts may need remapping
+- **Mobile responsiveness** – Optimized for portrait mobile; landscape recommended for best gameplay
+- **Network multiplayer** – Not yet supported; local play only
+- **Customizable layouts** – Theme/color customization planned
+
+---
+
+## Contributing
+
+This is an active hobby project. If you find bugs or have ideas, feel free to open an issue or submit a pull request!
+
+---
+
+## License
+
+MIT License – Free for personal, educational, and non‑commercial use.
+
+---
+
+## Credits
+
+- **Game design & code:** Obrelix
+- **Bitmap font:** Custom 3×5 design
+- **Joystick library:** [nipplejs](https://yomugames.com/nipplejs/) by Yannick Assogba
+- **Inspiration:** Classic arcade games (Robotron, Gauntlet, Bomberman) adapted for LED displays
+
+---
+
+**Last updated:** January 2026  
+**Version:** 0.1.0‑alpha
