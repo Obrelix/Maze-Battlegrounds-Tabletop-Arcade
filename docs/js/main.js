@@ -2,24 +2,13 @@ import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS } from './config.js';
 import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
-import { getCpuInput } from './ai.js';
+import { getCpuInput, setDifficulty } from './ai.js';
 import { DIFFICULTY_PRESETS, TACTICAL_STYLES } from './ai_config_presets.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import {
     applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,
     checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions
 } from './mechanics.js';
-function setAIDifficulty(level) {
-    const levels = {
-        'BEGINNER': DIFFICULTY_PRESETS.BEGINNER,
-        'INTERMEDIATE': DIFFICULTY_PRESETS.INTERMEDIATE,
-        'HARD': DIFFICULTY_PRESETS.HARD,
-        'INSANE': DIFFICULTY_PRESETS.INSANE,
-    };
-
-    window.AI_CONFIG = levels[level] || DIFFICULTY_PRESETS.INTERMEDIATE;
-    console.log(`AI Difficulty: ${level}`);
-}
 function startMatchSetup() {
     resetStateForMatch();
     STATE.screen = 'PLAYER_SETUP';
@@ -39,7 +28,7 @@ function startGame() {
     resetStateForMatch();
     updateHtmlUI();
     document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
-    setAIDifficulty('HARD');
+    setDifficulty('INSANE');
     initMaze();
 }
 

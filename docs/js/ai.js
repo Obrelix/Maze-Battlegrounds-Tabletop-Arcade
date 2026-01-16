@@ -15,7 +15,7 @@ import { STATE } from './state.js';
 import { isWall, gridIndex } from './grid.js';
 import { DIFFICULTY_PRESETS, TACTICAL_STYLES } from './ai_config_presets.js';
 
-let LOCAL_AI_CONFIG = { ...DIFFICULTY_PRESETS.INTERMEDIATE };
+let LOCAL_AI_CONFIG = { ...DIFFICULTY_PRESETS.INSANE };
 
 // ============================================================
 // 1. ADVANCED PATHFINDING (CORNER CUTTING)
