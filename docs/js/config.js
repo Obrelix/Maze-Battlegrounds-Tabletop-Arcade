@@ -1,3 +1,4 @@
+const FIXED_STEP_MS = 1000 / 50; //1000/ 32,// ~31.25 ms
 export const CONFIG = {
     LOGICAL_W: 128,
     LOGICAL_H: 64,
@@ -10,8 +11,8 @@ export const CONFIG = {
     MAZE_OFFSET_X: 8,
     MAX_SCORE: 5,
     MAX_MINES: 4,
-    FIXED_STEP_MS: 1000/ 32,// ~31.25 ms
-    GAME_TIME: 20000,
+    FIXED_STEP_MS: FIXED_STEP_MS, 
+    GAME_TIME: Math.round(200000 / FIXED_STEP_MS),
     SUDDEN_DEATH_TIME: 1800,
     GLITCH_DURATION: 180,
     GLITCH_CHANCE: 0.3,
@@ -33,8 +34,10 @@ export const CONFIG = {
     GAMEPAD_THRESH: 0.5,
     IDLE_THRESHOLD: 8000,
     DEMO_RESET_TIMER: 500,
+    MAX_ENERGY: 100,
     BASE_SPEED: 0.8,
     MAX_SPEED: 1.5,
+    BEAM_SPEED: 1.55,
     BEAM_ENERGY_COST: 30,
     CHARGED_BEAM_COST: 65,
     SHIELD_DRAIN: (100 / (3 * 60)), // Drains full bar in 3 seconds (was 5)

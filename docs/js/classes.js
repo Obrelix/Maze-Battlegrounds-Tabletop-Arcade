@@ -196,7 +196,7 @@ export class Player {
         this.lastMineTime = 0;
         this.lastBoostTime = 0;
         this.trail = [];
-        this.boostEnergy = 100;
+        this.boostEnergy = CONFIG.MAX_ENERGY;
         this.boostCooldown = 0;
         this.portalCooldown = 0;
         this.stunTime = 0;

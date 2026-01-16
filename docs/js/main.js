@@ -7,7 +7,7 @@ import { DIFFICULTY_PRESETS, TACTICAL_STYLES } from './ai_config_presets.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import {
     applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,
-    checkBeamCollisions, checkArmorCrate, checkPortalActions, checkBeamActions, checkMinesActions
+    checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions
 } from './mechanics.js';
 function setAIDifficulty(level) {
     const levels = {
@@ -224,7 +224,7 @@ function update() {
     checkBeamCollisions();
 
     STATE.players.forEach((p, idx) => {
-        checkArmorCrate(p);
+        checkCrate(p);
         if (p.stunTime > 0) p.stunTime--;
         if (p.glitchTime > 0) p.glitchTime--;
         checkPortalActions(p);

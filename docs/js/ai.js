@@ -152,44 +152,45 @@ function calculateAdvancedMinePositions(player, opponent, currentConfig) {
     };
   }
 
+  const scoreDiff = opponent.score - player.score;
   const mineStrategy = currentConfig.MINE_STRATEGY || 'BALANCED';
 
-  if (mineStrategy === 'DEFENSIVE') {
+  // DEFENSIVE: Protect own goal when losing
+  if (mineStrategy === 'DEFENSIVE' || scoreDiff > 0) {
     let ourGoalX = CONFIG.MAZE_OFFSET_X + (player.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
     let ourGoalY = (player.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
-
-    let angleOffset = Math.random() * Math.PI * 2;
-    let distFromGoal = CONFIG.CELL_SIZE * 2 + Math.random() * CONFIG.CELL_SIZE;
-
+    let angle = Math.random() * Math.PI * 2;
+    let distFromGoal = CONFIG.CELL_SIZE * 2.5 + Math.random() * CONFIG.CELL_SIZE * 0.5;
     return {
-      x: ourGoalX + Math.cos(angleOffset) * distFromGoal,
-      y: ourGoalY + Math.sin(angleOffset) * distFromGoal
+      x: ourGoalX + Math.cos(angle) * distFromGoal,
+      y: ourGoalY + Math.sin(angle) * distFromGoal
     };
   }
 
-  if (mineStrategy === 'AGGRESSIVE') {
+  // AGGRESSIVE: Intercept opponent's path
+  if (mineStrategy === 'AGGRESSIVE' || scoreDiff < 0) {
     let oppGoalX = CONFIG.MAZE_OFFSET_X + (opponent.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
     let oppGoalY = (opponent.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
-
-    let towardsGoal = { x: oppGoalX - opponent.x, y: oppGoalY - opponent.y };
-    let dist = Math.hypot(towardsGoal.x, towardsGoal.y);
-
+    let dirToGoal = { x: oppGoalX - opponent.x, y: oppGoalY - opponent.y };
+    let dist = Math.hypot(dirToGoal.x, dirToGoal.y);
     if (dist > 0.1) {
-      let offset = CONFIG.CELL_SIZE * (1 + Math.random() * 0.5);
+      let interceptDistance = CONFIG.CELL_SIZE * (2 + Math.random() * 2);
       return {
-        x: opponent.x + (towardsGoal.x / dist) * offset,
-        y: opponent.y + (towardsGoal.y / dist) * offset
+        x: opponent.x + (dirToGoal.x / dist) * interceptDistance,
+        y: opponent.y + (dirToGoal.y / dist) * interceptDistance
       };
     }
   }
 
-  let balance = Math.random();
-  if (balance < 0.5) {
-    return calculateAdvancedMinePositions(player, opponent, { ...currentConfig, MINE_STRATEGY: 'DEFENSIVE' });
-  } else {
+  // BALANCED: 60% aggressive, 40% defensive
+  if (Math.random() < 0.6) {
     return calculateAdvancedMinePositions(player, opponent, { ...currentConfig, MINE_STRATEGY: 'AGGRESSIVE' });
+  } else {
+    return calculateAdvancedMinePositions(player, opponent, { ...currentConfig, MINE_STRATEGY: 'DEFENSIVE' });
   }
 }
+
+
 
 // ============================================================
 // 3. TACTICAL CHARGING
@@ -222,7 +223,7 @@ function shouldChargeBeam(player, opponent, currentConfig) {
 }
 
 function shouldFireBeamBasic(player, opponent) {
-  const TOLERANCE = 3.5;
+  const TOLERANCE = 2.5;
   let dx = Math.abs(player.x - opponent.x);
   let dy = Math.abs(player.y - opponent.y);
 
@@ -330,20 +331,6 @@ function shouldExecuteCombo(player, opponent, currentConfig) {
     };
   }
 
-  let closeMines = STATE.mines.filter(mine => {
-    let d = Math.hypot(mine.x - opponent.x, mine.y - opponent.y);
-    return d < CONFIG.CELL_SIZE * 2.5 && (mine.owner === player.id || mine.owner === -1);
-  });
-
-  if (closeMines.length >= 1 && player.boostEnergy > 30) {
-    return {
-      type: 'MINE_DETONATE',
-      actions: ['boom'],
-      priority: 8,
-      mineTargets: closeMines
-    };
-  }
-
   if (player.boostEnergy > 40 && Math.hypot(player.x - opponent.x, player.y - opponent.y) > 20) {
     return {
       type: 'BOOST_HUNT',
@@ -430,6 +417,45 @@ function adjustDifficultyDynamically(playerScore, cpuScore, currentConfig) {
   return currentConfig;
 }
 
+function getEnergyStrategy(player, opponent) {
+  let dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+  let scoreDiff = opponent.score - player.score;
+
+  if (dist < 10 && player.boostEnergy > 25) return { shield: true, boost: false };
+  if (scoreDiff >= 3 && player.boostEnergy > 65) return { shield: false, boost: false };
+  if (scoreDiff <= -2 && player.boostEnergy > 50) return { shield: false, boost: true };
+
+  return { shield: false, boost: Math.random() < 0.4 };
+}
+
+function shouldDetonateNearbyMines(player, opponent) {
+  if (STATE.mines.length === 0) return false;
+  let closeMines = STATE.mines.filter(mine => {
+    let distPlayer = Math.hypot(mine.x - player.x, mine.y - player.y);
+    let distOpp = Math.hypot(mine.x - opponent.x, mine.y - opponent.y);
+    return (mine.owner === player.id || mine.owner === -1) &&
+      distOpp < 6 && distPlayer > 5;
+  });
+  return closeMines.length > 0 && player.boostEnergy > 20;
+}
+function isPlayerStuck(player) {
+  if (!player.lastPos) return false;
+  let dx = Math.abs(player.x - player.lastPos.x);
+  let dy = Math.abs(player.y - player.lastPos.y);
+  return (dx < 0.3 && dy < 0.3);
+}
+
+function getUnstuckDirection() {
+  let directions = [
+    { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
+    { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 }
+  ];
+  for (let i = directions.length - 1; i > 0; i--) {
+    let j = Math.floor(Math.random() * (i + 1));
+    [directions[i], directions[j]] = [directions[j], directions[i]];
+  }
+  return directions[0];
+}
 // ============================================================
 // MAIN CPU INPUT (ENHANCED)
 // ============================================================
@@ -447,9 +473,31 @@ export function getCpuInput(player, opponent) {
     boom: false,
     start: false
   };
+  // STUCK DETECTION
+  if (isPlayerStuck(player)) {
+    player.stuckCounter = (player.stuckCounter || 0) + 1;
+    if (player.stuckCounter > 15) {
+      player.unstuckDir = getUnstuckDirection();
+      player.forceUnstuckTimer = 30;
+      player.stuckCounter = 0;
+    }
+  } else {
+    player.stuckCounter = 0;
+  }
+
+  // FORCE UNSTUCK
+  if (player.forceUnstuckTimer > 0) {
+    player.forceUnstuckTimer--;
+    let dir = player.unstuckDir || { x: 0, y: 0 };
+    if (dir.x < 0) cmd.left = true;
+    if (dir.x > 0) cmd.right = true;
+    if (dir.y < 0) cmd.up = true;
+    if (dir.y > 0) cmd.down = true;
+    return cmd;
+  }
 
   if (!player || !opponent) return cmd;
-
+  let energyStrat = getEnergyStrategy(player, opponent);
   let currentConfig = (typeof window !== 'undefined' && window.AI_CONFIG)
     ? window.AI_CONFIG
     : LOCAL_AI_CONFIG;
@@ -483,34 +531,36 @@ export function getCpuInput(player, opponent) {
     cmd.down = moveDir.dy > 0;
   }
 
-  if (player.boostEnergy > 15) {
-    let isMoving = Math.abs(moveDir.dx) > 0.1 || Math.abs(moveDir.dy) > 0.1;
-    if (isMoving) {
-      if (strategy.type === 'BLOCK_GOAL' || strategy.type === 'EXECUTE' || strategy.type === 'SCAVENGE') {
-        cmd.boost = true;
-      }
-      if (strategy.type === 'HUNT' && Math.hypot(player.x - opponent.x, player.y - opponent.y) > 10) {
-        cmd.boost = true;
-      }
-    }
-  }
+  if (energyStrat.shield) cmd.shield = true;
+  if (player.boostEnergy > 20 && energyStrat.boost) cmd.boost = true;
 
-  if (player.boostEnergy > 5) {
-    let imminentDanger = false;
-    STATE.projectiles.forEach(p => {
-      if (p.owner !== player.id) {
-        let dist = Math.hypot(p.x - player.x, p.y - player.y);
-        if (dist < 4.0) imminentDanger = true;
-      }
-    });
-    if (imminentDanger) cmd.shield = true;
-  }
+  // if (player.boostEnergy > 15) {
+  //   let isMoving = Math.abs(moveDir.dx) > 0.1 || Math.abs(moveDir.dy) > 0.1;
+  //   if (isMoving) {
+  //     if (strategy.type === 'BLOCK_GOAL' || strategy.type === 'EXECUTE' || strategy.type === 'SCAVENGE') {
+  //       cmd.boost = true;
+  //     }
+  //     if (strategy.type === 'HUNT' && Math.hypot(player.x - opponent.x, player.y - opponent.y) > 10) {
+  //       cmd.boost = true;
+  //     }
+  //   }
+  // }
 
+  // if (player.boostEnergy > 5) {
+  //   let imminentDanger = false;
+  //   STATE.projectiles.forEach(p => {
+  //     if (p.owner !== player.id) {
+  //       let dist = Math.hypot(p.x - player.x, p.y - player.y);
+  //       if (dist < 4.0) imminentDanger = true;
+  //     }
+  //   });
+  //   if (imminentDanger) cmd.shield = true;
+  // }
+  if (shouldDetonateNearbyMines(player, opponent)) cmd.boom = true;
   let combo = shouldExecuteCombo(player, opponent, currentConfig);
   if (combo) {
     combo.actions.forEach(action => {
       if (action === 'charge_beam') cmd.beam = true;
-      if (action === 'boom') cmd.boom = true;
       if (action === 'boost') cmd.boost = true;
     });
   }
@@ -542,7 +592,7 @@ export function getCpuInput(player, opponent) {
     let d = Math.hypot(mine.x - opponent.x, mine.y - opponent.y);
     if (d < 3.5) cmd.boom = true;
   });
-
+  player.lastPos = { x: player.x, y: player.y };
   return cmd;
 }
 

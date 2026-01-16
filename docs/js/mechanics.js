@@ -72,14 +72,14 @@ function handleMovement(p, input, now) {
     let speed = CONFIG.BASE_SPEED;
     if (p.stunTime > 0) {
         speed = CONFIG.BASE_SPEED * 0.5;
-        if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+        if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + CONFIG.BOOST_REGEN);
     } else if (p.isCharging) {
         speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_PENALTY;
-        p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+        p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + CONFIG.BOOST_REGEN);
     } else {
         if (p.boostCooldown > 0) {
             p.boostCooldown--;
-            if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+            if (!p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + CONFIG.BOOST_REGEN);
         } else if (input.boost && p.boostEnergy > 0) {
             p.boostEnergy -= CONFIG.BOOST_DRAIN;
             speed = CONFIG.MAX_SPEED;
@@ -92,7 +92,7 @@ function handleMovement(p, input, now) {
             }
         } else {
             if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
-            else if (!p.shieldActive) p.boostEnergy = Math.min(100, p.boostEnergy + CONFIG.BOOST_REGEN);
+            else if (!p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + CONFIG.BOOST_REGEN);
         }
     }
     p.currentSpeed = speed;
@@ -629,7 +629,8 @@ export function checkBeamCollisions() {
 }
 
 export function checkBeamActions(p, idx) {
-    if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) p.beamIdx += 0.8;
+    if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) 
+        p.beamIdx += CONFIG.BEAM_SPEED;
     let opponent = STATE.players[(idx + 1) % 2];
     let tipIdx = Math.floor(opponent.beamIdx);
     if (tipIdx >= 0 && tipIdx < opponent.beamPixels.length) {
@@ -642,7 +643,7 @@ export function checkBeamActions(p, idx) {
             }
             opponent.beamPixels = [];
             opponent.beamIdx = 9999;
-            opponent.boostEnergy = Math.min(100, opponent.boostEnergy + 15); // Attacker gains
+            opponent.boostEnergy = Math.min(CONFIG.MAX_ENERGY, opponent.boostEnergy + 15); // Attacker gains
             p.boostEnergy = Math.max(0, p.boostEnergy - 15);                 // Victim loses
         }
     }
@@ -691,9 +692,10 @@ export function checkPortalActions(p) {
     }
 }
 
-export function checkArmorCrate(p) {
+export function checkCrate(p) {
     if (STATE.ammoCrate && Math.abs((p.x + 1) - (STATE.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (STATE.ammoCrate.y + 1)) < 2) {
         p.minesLeft = CONFIG.MAX_MINES;
+        p.boostEnergy = CONFIG.MAX_ENERGY;
         STATE.sfx.powerup();
         STATE.ammoCrate = null;
         STATE.ammoRespawnTimer = 0;
