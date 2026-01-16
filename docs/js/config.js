@@ -37,7 +37,7 @@ export const CONFIG = {
     MAX_ENERGY: 150,
     BASE_SPEED: 0.6,
     MAX_SPEED: 1.5,
-    BEAM_SPEED: 1.55,
+    BEAM_SPEED: 1.8,
     BEAM_ENERGY_COST: 30,
     CHARGED_BEAM_COST: 65,
     SHIELD_DRAIN: (100 / (3 * 60)), // Drains full bar in 3 seconds (was 5)

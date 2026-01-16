@@ -3,7 +3,6 @@ import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive } from '.
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput, setDifficulty } from './ai.js';
-import { DIFFICULTY_PRESETS, TACTICAL_STYLES } from './ai_config_presets.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import {
     applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,

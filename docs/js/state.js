@@ -76,7 +76,7 @@ export function resetStateForMatch() {
     let p1Name = STATE.players[0]?.name || "CPU";
     let p1Color = STATE.players[0]?.color ?? CONFIG.PLAYER_COLORS[Math.floor(Math.random() * CONFIG.PLAYER_COLORS.length)]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";
-    let p2Color = STATE.players[1]?.color ?? CONFIG.PLAYER_COLORS[Math.floor(Math.random() * CONFIG.PLAYER_COLORS.length)]?.hex;
+    let p2Color = STATE.players[1]?.color ?? CONFIG.PLAYER_COLORS.filter(x=>x.hex!=p1Color)[Math.floor(Math.random() * CONFIG.PLAYER_COLORS.length)]?.hex;
 
     // Create fresh players
     STATE.players = [
