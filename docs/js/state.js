@@ -30,7 +30,8 @@ export const STATE = {
         winColor: "#fff",
         roundColor: "#fff"
     },
-    scrollX: 0,
+    scrollX: 70,
+    scrollY: 0,
     sfx: new SoundFX(),
     camera: new Camera(),
     gpData: null,
@@ -62,6 +63,12 @@ export function saveHighScore(name) {
     STATE.highScores = STATE.highScores.slice(0, 5);
 
     localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(STATE.highScores));
+}
+
+export function suddenDeathIsActive() {
+    if (STATE.gameTime)
+        return STATE.gameTime <= CONFIG.SUDDEN_DEATH_TIME;
+    else return false;
 }
 
 export function resetStateForMatch() {
@@ -103,6 +110,7 @@ export function resetStateForMatch() {
         winColor: "#fff",
         roundColor: "#fff"
     };
-    STATE.scrollX = 0;
+    STATE.scrollX= 70,
+    STATE.scrollY= 0,
     STATE.portalReverseColors = false;
 }

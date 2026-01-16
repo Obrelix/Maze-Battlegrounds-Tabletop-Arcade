@@ -12,6 +12,7 @@ export const CONFIG = {
     MAX_MINES: 4,
     FIXED_STEP_MS: 1000/ 32,// ~31.25 ms
     GAME_TIME: 20000,
+    SUDDEN_DEATH_TIME: 1800,
     GLITCH_DURATION: 180,
     GLITCH_CHANCE: 0.3,
     MINE_ARM_TIME: 1000,
@@ -57,6 +58,8 @@ export const CONFIG = {
     ],
     STORAGE_KEY: 'LED_MAZE_HIGHSCORES',
     DEFAULT_NAMES: ['P-1', 'P-2'],
+    SCROLL_X_VAL: -1,
+    SCROLL_Y_VAL: +2
 };
 
 export const CONTROLS_P1 = {

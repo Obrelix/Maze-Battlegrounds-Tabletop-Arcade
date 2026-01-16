@@ -1,5 +1,5 @@
 import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS } from './config.js';
-import { STATE, resetStateForMatch, saveHighScore } from './state.js';
+import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput } from './ai.js';
@@ -109,21 +109,20 @@ function handleTimeOut() {
 
 function handleSuddenDeath() {
     // Sudden Death - Every second after time runs low (e.g. < 30 seconds left)
-    if (STATE.gameTime < 1800 && STATE.gameTime % 50 === 0) {
-        STATE.messages.round = "SUDDEN DEATH!";
-        STATE.scrollX = CONFIG.LOGICAL_W; // Flash warning
-
-        // Spawn a neutral mine in a random spot to increase panic
-        let rx = Math.floor(Math.random() * CONFIG.COLS);
-        let ry = Math.floor(Math.random() * CONFIG.ROWS);
-        STATE.mines.push({
-            x: CONFIG.MAZE_OFFSET_X + rx * CONFIG.CELL_SIZE,
-            y: ry * CONFIG.CELL_SIZE,
-            active: true, // Instantly active
-            droppedAt: Date.now(),
-            visX: 0, visY: 0,
-            owner: -1 // Neutral owner (hurts everyone)
-        });
+    if (suddenDeathIsActive()) {
+        if (STATE.gameTime % 50 === 0) {
+            // Spawn a neutral mine in a random spot to increase panic
+            let rx = Math.floor(Math.random() * CONFIG.COLS);
+            let ry = Math.floor(Math.random() * CONFIG.ROWS);
+            STATE.mines.push({
+                x: CONFIG.MAZE_OFFSET_X + rx * CONFIG.CELL_SIZE,
+                y: ry * CONFIG.CELL_SIZE,
+                active: true, // Instantly active
+                droppedAt: Date.now(),
+                visX: 0, visY: 0,
+                owner: -1 // Neutral owner (hurts everyone)
+            });
+        }
     }
 }
 
@@ -169,6 +168,22 @@ function update() {
         }
         updateParticles();
         return;
+    }
+    if (suddenDeathIsActive() && !(STATE.isGameOver || STATE.isRoundOver)) {
+        STATE.scrollX += CONFIG.SCROLL_X_VAL;
+        if (STATE.scrollX < 5) {
+            STATE.scrollY += CONFIG.SCROLL_Y_VAL;
+            CONFIG.SCROLL_X_VAL *= -1;
+        }
+        if (STATE.scrollX > 75) {
+            STATE.scrollY += CONFIG.SCROLL_Y_VAL;
+            CONFIG.SCROLL_X_VAL *= -1;
+        }
+        if (STATE.scrollY >= 60 || STATE.scrollY < 0) {
+            CONFIG.SCROLL_Y_VAL *= -1;
+            STATE.scrollY += CONFIG.SCROLL_Y_VAL;
+        }
+        // STATE.scrollY = 0;
     }
 
     if (STATE.deathTimer > 0) {
