@@ -182,8 +182,8 @@ function calculateAdvancedMinePositions(player, opponent, currentConfig) {
     }
   }
 
-  // BALANCED: 60% aggressive, 40% defensive
-  if (Math.random() < 0.6) {
+  // BALANCED: 70% aggressive, 30% defensive
+  if (Math.random() < 0.7) {
     return calculateAdvancedMinePositions(player, opponent, { ...currentConfig, MINE_STRATEGY: 'AGGRESSIVE' });
   } else {
     return calculateAdvancedMinePositions(player, opponent, { ...currentConfig, MINE_STRATEGY: 'DEFENSIVE' });

@@ -192,7 +192,7 @@ function calculateGameTime() {
             }
         });
     }
-    STATE.gameTime = Math.floor((len * CONFIG.CELL_SIZE / ((CONFIG.BASE_SPEED + CONFIG.MAX_SPEED) / 2)) * 6);
+    STATE.gameTime = Math.floor((len * CONFIG.CELL_SIZE / (CONFIG.BASE_SPEED*1.2)) * 6);
     STATE.maxGameTime = STATE.gameTime;
 }
 

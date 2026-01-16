@@ -103,8 +103,8 @@ function renderHUD(wallColor) {
         drawChar(0, 8, p1.name[2], p1.color, 90);
     }
     drawDigit(0, 13, p1.minesLeft, `hsl(${p1.minesLeft / 4 * 120},100%,50%)`, 90);
-    for (let h = 0; h < Math.floor(p1.boostEnergy / 100 * 26); h++)
-        for (let w = 0; w < 5; w++) drawLED(w, 17 + h, `hsl(${p1.boostEnergy / 100 * 120},100%,50%)`);
+    for (let h = 0; h < Math.floor(p1.boostEnergy / CONFIG.MAX_ENERGY * 26); h++)
+        for (let w = 0; w < 5; w++) drawLED(w, 17 + h, `hsl(${p1.boostEnergy / CONFIG.MAX_ENERGY * 120},100%,50%)`);
 
     drawDigit(0, 44, parseInt(s[0]), wallColor, 90);
     drawDigit(0, 48, parseInt(s[1]), wallColor, 90);
@@ -119,8 +119,8 @@ function renderHUD(wallColor) {
         drawChar(rx, 53, p2.name[2], p2.color, -90);
     }
     drawDigit(rx, 48, p2.minesLeft, `hsl(${p2.minesLeft / 4 * 120},100%,50%)`, -90);
-    for (let h = 0; h < Math.floor(p2.boostEnergy / 100 * 26); h++)
-        for (let w = 0; w < 5; w++) drawLED(rx + w, 46 - h, `hsl(${p2.boostEnergy / 100 * 120},100%,50%)`);
+    for (let h = 0; h < Math.floor(p2.boostEnergy / CONFIG.MAX_ENERGY * 26); h++)
+        for (let w = 0; w < 5; w++) drawLED(rx + w, 46 - h, `hsl(${p2.boostEnergy / CONFIG.MAX_ENERGY * 120},100%,50%)`);
 
     drawDigit(rx, 17, parseInt(s[0]), wallColor, -90);
     drawDigit(rx, 13, parseInt(s[1]), wallColor, -90);
@@ -486,7 +486,7 @@ export function renderGame() {
     // 7. Draw Particles
     STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
     // 8. Draw Particles
-    renderHUD();
+    renderHUD(wallColor);
     // 9. OVERLAY TEXT & DIMMER
     if (STATE.isGameOver || STATE.isRoundOver) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.75)";

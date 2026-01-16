@@ -39,7 +39,7 @@ function startGame() {
     resetStateForMatch();
     updateHtmlUI();
     document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
-    setAIDifficulty('INSANE');
+    setAIDifficulty('HARD');
     initMaze();
 }
 
