@@ -100,12 +100,12 @@ function decideStrategy(player, opponent, currentConfig) {
   let distToEnemy = Math.hypot(opponent.x - player.x, opponent.y - player.y);
 
   let aggression = currentConfig.BASE_AGGRESSION || 0.6;
-  const scoreDiff = opponent.score - player.score;
-  if (scoreDiff >= 2) aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3);
-  if (scoreDiff <= -2) aggression *= (currentConfig.AGGRESSION_SCALE_DOWN || 0.8);
-
+  // const scoreDiff = opponent.score - player.score;
+  // if (scoreDiff >= 2) aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3);
+  // if (scoreDiff <= -2) aggression *= (currentConfig.AGGRESSION_SCALE_DOWN || 0.8);
+  aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3)
   // PANIC DEFENSE
-  if (enemyDistToTheirGoal < 20 || (enemyDistToTheirGoal < myDistToGoal && player.score <= opponent.score)) {
+  if (enemyDistToTheirGoal < 10 || (enemyDistToTheirGoal + 80 < myDistToGoal)) {
     return { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 10 };
   }
 
@@ -129,7 +129,8 @@ function decideStrategy(player, opponent, currentConfig) {
     let predictedPos = predictPlayerMovement(opponent, currentConfig);
     let distToPredicted = Math.hypot(predictedPos.x - player.x, predictedPos.y - player.y);
     let huntThreshold = currentConfig.HUNT_THRESHOLD || 60;
-    if (scoreDiff > 0) huntThreshold *= 1.2;
+    // if (scoreDiff > 0) 
+    // huntThreshold *= 1.2;
 
     if (distToPredicted < huntThreshold && aggression > 0.5) {
       return { x: predictedPos.x, y: predictedPos.y, type: 'HUNT', priority: 7, aggressive: true };
@@ -152,11 +153,11 @@ function calculateAdvancedMinePositions(player, opponent, currentConfig) {
     };
   }
 
-  const scoreDiff = opponent.score - player.score;
+  // const scoreDiff = opponent.score - player.score;
   const mineStrategy = currentConfig.MINE_STRATEGY || 'BALANCED';
 
   // DEFENSIVE: Protect own goal when losing
-  if (mineStrategy === 'DEFENSIVE' || scoreDiff > 0) {
+  if (mineStrategy === 'DEFENSIVE') {
     let ourGoalX = CONFIG.MAZE_OFFSET_X + (player.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
     let ourGoalY = (player.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
     let angle = Math.random() * Math.PI * 2;
@@ -168,7 +169,7 @@ function calculateAdvancedMinePositions(player, opponent, currentConfig) {
   }
 
   // AGGRESSIVE: Intercept opponent's path
-  if (mineStrategy === 'AGGRESSIVE' || scoreDiff < 0) {
+  if (mineStrategy === 'AGGRESSIVE') {
     let oppGoalX = CONFIG.MAZE_OFFSET_X + (opponent.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
     let oppGoalY = (opponent.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
     let dirToGoal = { x: oppGoalX - opponent.x, y: oppGoalY - opponent.y };
@@ -419,11 +420,11 @@ function adjustDifficultyDynamically(playerScore, cpuScore, currentConfig) {
 
 function getEnergyStrategy(player, opponent) {
   let dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
-  let scoreDiff = opponent.score - player.score;
+  // let scoreDiff = opponent.score - player.score;
 
   if (dist < 10 && player.boostEnergy > 25) return { shield: true, boost: false };
-  if (scoreDiff >= 3 && player.boostEnergy > 65) return { shield: false, boost: false };
-  if (scoreDiff <= -2 && player.boostEnergy > 50) return { shield: false, boost: true };
+  if (player.boostEnergy > 65) return { shield: false, boost: false };
+  if (player.boostEnergy > 50) return { shield: false, boost: true };
 
   return { shield: false, boost: Math.random() < 0.4 };
 }
