@@ -1,10 +1,10 @@
-# Maze Battlegrounds – Tabletop Arcade (Pre‑Alpha)
+# Maze Battlegrounds – Tabletop Arcade
 
 A DIY head‑to‑head tabletop arcade console powered by a Raspberry Pi Zero 2 W and a P2.5 128×64 RGB LED Matrix.
 
 This repository contains the source code for **Maze Battlegrounds**—a fast‑paced tactical 1v1 shooter designed specifically for low‑resolution LED displays—along with the hardware specifications to build the physical machine.
 
-**Status:** Pre‑Alpha – mechanics, balance, and UX are under active development and testing.
+**Status:** Early Alpha – mechanics, balance, and UX are under active development and testing, but the core loop is fully playable in the browser.
 
 ---
 
@@ -32,7 +32,7 @@ Maze Battlegrounds is a 1v1 top‑down shooter designed for a digital tabletop e
 
 ### Game Modes
 
-- **Single Player vs CPU** – Hard AI with advanced pathfinding, dodging, shielding, and tactical mine-clearing
+- **Single Player vs CPU** – AI uses advanced pathfinding, predictive movement, tactical beam charging, and mine placement tuned by difficulty presets
 - **Multiplayer PvP** – Local head‑to‑head; Player 2 can be human (keyboard/gamepad) or CPU depending on inputs
 
 The HUD and canvas layout mimic the final tabletop hardware: a 128×64 P2.5 RGB LED matrix with a split, flipped interface for opposing players.
@@ -168,18 +168,19 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 
 ### File structure
 
-- **`config.js`** – All game constants (grid size, energy costs, colors, control mappings, bitmap fonts)
-- **`main.js`** – Main game loop, state machine, round/match logic, sudden death handling
-- **`state.js`** – Global game state, player objects, initialization, high score persistence
-- **`mechanics.js`** – Core gameplay: player actions, collisions, projectiles, mines, explosions, portals
-- **`renderer.js`** – LED matrix rendering, camera shake, HUD display, text rendering (bitmap fonts)
-- **`grid.js`** – Maze generation (recursive backtracking), wall collision detection, cell indexing
-- **`input.js`** – Keyboard, gamepad, and touch input polling; idle detection for attract mode
-- **`ai.js`** – CPU pathfinding (BFS), target detection, combat tactics, unstuck logic
-- **`classes.js`** – Player, projectile, and particle class definitions
-- **`utils.js`** – Utility functions
-- **`style.css`** – Retro cabinet styling, responsive layout, mobile UI
-- **`index.html`** – Main entry point: canvas, HUD, mobile controls, nipplejs integration
+- **`config.js`** – All game constants (grid size, energy costs, colors, control mappings, bitmap fonts, AI configuration flags)
+- **`main.js`** – Main game loop, state machine, round/match logic, sudden death handling 
+- **`state.js`** – Global game state, player objects, initialization, and high score persistence
+- **`mechanics.js`** – Core gameplay: player actions, collisions, projectiles, mines, explosions, portals, and round resolution
+- **`renderer.js`** – LED matrix rendering, camera shake, HUD display, text rendering (bitmap fonts), and visual effects
+- **`grid.js`** – Maze generation (recursive backtracking), wall collision detection, and cell indexing helpers
+- **`input.js`** – Keyboard, gamepad, and touch input polling; idle detection for attract mode and mobile UI bindings
+- **`classes.js`** – Player, projectile, particle, and other entity class definitions
+- **`ai.js`** – CPU controller with pathfinding, predictive aiming, adaptive difficulty, tactical mine placement, and combo behavior (uses presets from `ai_config_presets.js`)
+- **`ai_config_presets.js`** – Difficulty and tactical style presets used to configure the AI at runtime 
+- **`nipplejs.min.js`** – Third‑party virtual joystick library used for the mobile touch controls
+- **`style.css`** – Retro cabinet styling, responsive layout, and mobile UI layout
+- **`index.html`** – Main entry point: canvas, HUD, mobile controls, and script/style wiring
 
 ### Key systems
 
@@ -197,9 +198,12 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 
 #### AI
 - **Breadth‑First Search (BFS) pathfinding:** Computes safe paths around mines and walls
-- **Opportunity fire:** Checks if enemy is within range and line‑of‑sight before attacking
+- **Predictive aiming:** Analyzes enemy movement patterns and predicts future positions for beam and mine placement
+- **Tactical charging:** AI decides when to charge beams based on enemy alignment, stun state, and energy levels
+- **Adaptive difficulty:** Dynamically adjusts aggression, energy thresholds, and reaction times based on score differential
+- **Combo chains:** Executes multi‑action sequences (stun → charge, boost → hunt) for maximum effectiveness
+- **Strategic mine placement:** Places mines defensively around own goal or aggressively along enemy paths based on difficulty preset
 - **Survival mode:** Shields incoming projectiles and retreats to ammo crates when low on energy
-- **Tactical sprinting:** Boosts in straight lines towards objectives when energy permits
 - **Unstuck detection:** Breaks out of stuck states with randomized jiggle
 
 #### Audio
@@ -223,7 +227,7 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - Modify `config.js` to tune game constants (energy costs, timings, colors, etc.)
 - Edit `mechanics.js` for gameplay logic changes
 - Update `renderer.js` for visual tweaks
-- Adjust `ai.js` for CPU difficulty
+- Adjust `ai.js` and `ai_config_presets.js` for CPU difficulty and behavior
 
 #### Build & deploy
 
@@ -278,6 +282,16 @@ GLITCH_DURATION: 180,        // Control inversion duration (frames)
 CONTROLS_P1, CONTROLS_P2     // Keyboard key mappings
 ```
 
+### AI difficulty presets (in `ai_config_presets.js`)
+
+Available difficulty levels:
+- **BEGINNER** – Slower reactions, basic pathfinding, defensive mine placement
+- **INTERMEDIATE** – Balanced behavior with moderate aggression and tactical awareness
+- **HARD** – Fast reactions, predictive aiming, strategic mine placement
+- **INSANE** – Near-perfect reactions, advanced prediction, adaptive difficulty, aggressive tactics
+
+To change AI difficulty, modify the `setDifficulty()` call in `ai.js` or set `window.AI_CONFIG` at runtime.
+
 ### High score system
 
 High scores are persisted to browser `localStorage` under key `LED_MAZE_HIGHSCORES`. Clearing browser data will reset scores. Entry is via the **PLAYER_SETUP** screen where you choose a 3‑letter name.
@@ -317,4 +331,4 @@ MIT License – Free for personal, educational, and non‑commercial use.
 ---
 
 **Last updated:** January 2026  
-**Version:** 0.1.0‑alpha
+**Version:** 0.1.1‑alpha
