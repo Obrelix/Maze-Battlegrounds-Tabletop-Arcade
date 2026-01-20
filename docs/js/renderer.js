@@ -489,6 +489,12 @@ export function renderGame() {
     STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
     // 8. Draw Particles
     renderHUD(wallColor);
+    if (STATE.isAttractMode) {
+        if (Math.floor(Date.now() / 800) % 2 === 0) { // Blink slowly
+            drawText("DEMO MODE", 46, 25, "#ff0000aa");
+            drawText("PRESS ANY BUTTON", 32, 35, "#ffff00aa");
+        }
+    }
     // 9. OVERLAY TEXT & DIMMER
     if (STATE.isGameOver || STATE.isRoundOver) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
@@ -581,7 +587,7 @@ export function renderPlayerSetup() {
     drawText(progressText, 40, 3, "#888");
     if (ps.phase === 'DIFFICULTY') {        
         drawText("CHOOSE DIFFICULTY", 32, 15, "#888");
-        drawText(difficulty.name, 30, 28, difficulty.hex);
+        drawText(difficulty.name, 45, 28, difficulty.hex);
     } else if (ps.phase === 'COLOR') {
         drawText("CHOOSE COLOR", 42, 15, "#888");
         let previewX = 65;
@@ -629,5 +635,5 @@ export function renderMenu() {
     drawText("1. SINGLE PLAYER", 32, 20, Math.floor(Date.now() / 500) % 3 === 0 ? "#08ffffff" : "#555");
     drawText("2. MULTIPLAYER", 35, 30, Math.floor(Date.now() / 500) % 3 === 1 ? "#ff00ffff" : "#555");
     drawText("3. HIGH SCORES", 35, 40, Math.floor(Date.now() / 500) % 3 === 2 ? "#88f" : "#555");
-    drawText("AI: HARD", 46, 50, "#f55");
+    drawText("AI: INSANE", 42, 50, "#f55");
 }

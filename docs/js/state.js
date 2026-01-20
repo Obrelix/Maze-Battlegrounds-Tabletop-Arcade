@@ -43,14 +43,14 @@ export const STATE = {
     ],
     playerSetup: {
         activePlayer: 0,      // 0 for P1, 1 for P2
-        difficultyIdx: 0,     // Which difficulty selected
+        difficultyIdx: 3,     // Which difficulty selected
         colorIdx: 0,          // Which color selected
         nameCharIdx: 0,       // Which character in name (0, 1, 2)
         nameChars: [65, 65, 65],  // ASCII codes
-        phase: 'DIFFICULTY',       // 'COLOR' or 'NAME'
+        phase: 'DIFFICULTY',       // 'DIFFICULTY', 'COLOR' or 'NAME'
         isDone: false
     },
-    difficulty:''
+    difficulty: 'INSANE'
 };
 
 export function saveHighScore(name) {
@@ -80,10 +80,11 @@ export function shouldSpawnAmmoCrate() {
 
 export function resetStateForMatch() {
     // Store current names if they exist
+    let CPUColors = COLORS.filter(x => x.name !== 'BLACK' && x.name !== 'ORANGE' && x.name !== 'BLUE' && x.name !== 'RED' && x.name !== 'PURPLE')
     let p1Name = STATE.players[0]?.name || "CPU";
-    let p1Color = STATE.players[0]?.color ?? COLORS[Math.floor(Math.random() * COLORS.length)]?.hex;
+    let p1Color = STATE.players[0]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";
-    let p2Color = STATE.players[1]?.color ?? COLORS.filter(x=>x.hex!=p1Color)[Math.floor(Math.random() * COLORS.length)]?.hex;
+    let p2Color = STATE.players[1]?.color ?? CPUColors.filter(x => x.hex != p1Color)[Math.floor(Math.random() * CPUColors.length - 1)]?.hex;
 
     // Create fresh players
     STATE.players = [
@@ -116,7 +117,7 @@ export function resetStateForMatch() {
         winColor: "#fff",
         roundColor: "#fff"
     };
-    STATE.scrollX= 70,
-    STATE.scrollY= 0,
-    STATE.portalReverseColors = false;
+    STATE.scrollX = 70,
+        STATE.scrollY = 0,
+        STATE.portalReverseColors = false;
 }

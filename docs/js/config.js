@@ -169,5 +169,5 @@ export const DIFFICULTIES = [
     { name: 'INTERMEDIATE', hex: '#ffff00ff' }, 
     { name: 'HARD', hex: '#ff5100ff' }, 
     { name:  'INSANE', hex: '#ff0000ff' },
-    { name: 'DYNAMIC', hex: '#00c3ffff' }
+    // { name: 'DYNAMIC', hex: '#00c3ffff' }
 ];
