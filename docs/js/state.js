@@ -43,12 +43,14 @@ export const STATE = {
     ],
     playerSetup: {
         activePlayer: 0,      // 0 for P1, 1 for P2
+        difficultyIdx: 0,     // Which difficulty selected
         colorIdx: 0,          // Which color selected
         nameCharIdx: 0,       // Which character in name (0, 1, 2)
         nameChars: [65, 65, 65],  // ASCII codes
-        phase: 'COLOR',       // 'COLOR' or 'NAME'
+        phase: 'DIFFICULTY',       // 'COLOR' or 'NAME'
         isDone: false
     },
+    difficulty:''
 };
 
 export function saveHighScore(name) {

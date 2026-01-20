@@ -33,7 +33,7 @@ export function setupInputs(startGame, startMatchSetup) {
 
         if (STATE.screen === 'PLAYING') {
             if (STATE.isGameOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect')) {
-                startMatchSetup(); // Full Reset
+                startGame(); // Full Reset
             } else if (STATE.isRoundOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect')) {
                 initMaze(); // Next Round (Keep Score)
             }

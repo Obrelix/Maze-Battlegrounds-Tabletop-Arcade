@@ -1,4 +1,4 @@
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS, TIMING, COLORS } from './config.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS, TIMING, COLORS, DIFFICULTIES } from './config.js';
 import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
@@ -13,10 +13,11 @@ function startMatchSetup() {
     STATE.screen = 'PLAYER_SETUP';
     STATE.playerSetup = {
         activePlayer: 0,
+        difficultyIdx: 0,
         colorIdx: 0,
         nameCharIdx: 0,
         nameChars: [65, 65, 65],
-        phase: 'COLOR',
+        phase: 'DIFFICULTY',
         isDone: false
     };
 }
@@ -27,7 +28,8 @@ function startGame() {
     resetStateForMatch();
     updateHtmlUI();
     document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
-    setDifficulty('INSANE');
+    // setDifficulty('INSANE');
+    setDifficulty(STATE.difficulty);
     initMaze();
 }
 
@@ -260,8 +262,29 @@ function handlePlayerSetupInput() {
     const controls = ps.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
     const input = getHumanInput(ps.activePlayer, controls);
 
-    // ===== COLOR PHASE =====
-    if (ps.phase === 'COLOR') {
+    if(ps.phase === 'DIFFICULTY'){
+        if (input.up) { // UP: Previous color
+            ps.difficultyIdx = (ps.difficultyIdx - 1 + DIFFICULTIES.length) % DIFFICULTIES.length;
+            setupInputDelay = 8;
+        }
+        if (input.down) { // DOWN: Next color
+            ps.difficultyIdx = (ps.difficultyIdx + 1) % DIFFICULTIES.length;
+            setupInputDelay = 8;
+        }        
+        if (input.right || input.boom || input.beam || input.start) {
+            ps.phase = 'COLOR';            
+            STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
+            setupInputDelay = 15;
+        }
+        // if (input.left) {// LEFT: Go back to previous player (if not first player)
+        //     if (ps.activePlayer === 1) {
+        //         ps.activePlayer = 0;
+        //         ps.colorIdx = 0;  // Reset to default
+        //         ps.phase = 'DIFFICULTY';
+        //         setupInputDelay = 15;
+        //     }
+        // }
+    } else if (ps.phase === 'COLOR') { // ===== COLOR PHASE =====
         // UP: Previous color
         if (input.up) {
             ps.colorIdx = (ps.colorIdx - 1 + COLORS.length) % COLORS.length;
@@ -287,18 +310,15 @@ function handlePlayerSetupInput() {
         }
 
         // LEFT: Go back to previous player (if not first player)
-        if (input.left) {
-            if (ps.activePlayer === 1) {
-                ps.activePlayer = 0;
-                ps.colorIdx = 0;  // Reset to default
-                ps.phase = 'COLOR';
-                setupInputDelay = 15;
-            }
-        }
-    }
-
-    // ===== NAME PHASE =====
-    else if (ps.phase === 'NAME') {
+        // if (input.left) {
+        //     if (ps.activePlayer === 1) {
+        //         ps.activePlayer = 0;
+        //         ps.colorIdx = 0;  // Reset to default
+        //         ps.phase = 'COLOR';
+        //         setupInputDelay = 15;
+        //     }
+        // }
+    } else if (ps.phase === 'NAME') {// ===== NAME PHASE =====
         // UP: Change character forward
         if (input.up) {
             ps.nameChars[ps.nameCharIdx]++;
@@ -331,7 +351,7 @@ function handlePlayerSetupInput() {
                     ps.colorIdx = 1;  // Default to different color
                     ps.nameCharIdx = 0;
                     ps.nameChars = [65, 65, 65];
-                    ps.phase = 'COLOR';  // Start with color selection for P2
+                    ps.phase = 'DIFFICULTY';  // Start with color selection for P2
                     setupInputDelay = 20;
                 } else {
                     // All players done, start game

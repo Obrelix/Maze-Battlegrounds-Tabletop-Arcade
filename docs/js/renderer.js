@@ -1,4 +1,4 @@
-import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS } from './config.js';
+import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS, DIFFICULTIES } from './config.js';
 import { STATE, suddenDeathIsActive } from './state.js';
 import { gridIndex } from './grid.js';
 
@@ -573,13 +573,16 @@ export function renderPlayerSetup() {
     const pId = ps.activePlayer + 1;
     const playerLabel = `PLAYER ${pId}`;
     const playerColor = COLORS[ps.colorIdx].hex;
+    const difficulty = DIFFICULTIES[ps.difficultyIdx];
 
     // ===== PHASE 1: COLOR SELECTION =====
 
     let progressText = STATE.gameMode === 'MULTI' ? "MULTI PLAYERS" : "SINGLE PLAYER";
     drawText(progressText, 40, 3, "#888");
-
-    if (ps.phase === 'COLOR') {
+    if (ps.phase === 'DIFFICULTY') {        
+        drawText("CHOOSE DIFFICULTY", 32, 15, "#888");
+        drawText(difficulty.name, 30, 28, difficulty.hex);
+    } else if (ps.phase === 'COLOR') {
         drawText("CHOOSE COLOR", 42, 15, "#888");
         let previewX = 65;
         let previewY = 27;

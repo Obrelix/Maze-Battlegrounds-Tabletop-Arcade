@@ -163,3 +163,11 @@ export const COLORS = [
         { name: 'PURPLE', hex: '#aa00ffff' },
         { name: 'PINK', hex: '#ff00ffff' }
     ];
+
+export const DIFFICULTIES = [ 
+    { name: 'BEGINNER' , hex: '#00ff00ff' },
+    { name: 'INTERMEDIATE', hex: '#ffff00ff' }, 
+    { name: 'HARD', hex: '#ff5100ff' }, 
+    { name:  'INSANE', hex: '#ff0000ff' },
+    { name: 'DYNAMIC', hex: '#00c3ffff' }
+];
