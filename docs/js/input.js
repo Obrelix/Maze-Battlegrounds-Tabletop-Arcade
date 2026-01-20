@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG, TIMING } from './config.js';
 import { STATE } from './state.js';
 import { initMaze } from './grid.js';
 
@@ -14,7 +14,7 @@ export function resetIdleTimer() {
 }
 
 export function checkIdle() {
-    return Date.now() - lastInputTime > CONFIG.IDLE_THRESHOLD;
+    return Date.now() - lastInputTime > TIMING.IDLE_THRESHOLD;
 }
 
 export function setupInputs(startGame, startMatchSetup) {

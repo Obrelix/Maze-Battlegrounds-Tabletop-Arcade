@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG, COLORS } from './config.js';
 import { STATE } from './state.js';
 import { Cell } from './classes.js';
 
@@ -8,7 +8,7 @@ export function gridIndex(c, r) {
 }
 
 export function isWall(pixelX, pixelY) {
-    if (pixelX < CONFIG.MAZE_OFFSET_X || pixelX >= CONFIG.LOGICAL_W - CONFIG.HUD_WIDTH) return true;
+    if (pixelX < CONFIG.MAZE_OFFSET_X || pixelX >= CONFIG.LOGICAL_W - CONFIG.MAZE_OFFSET_X) return true;
     if (pixelY < 0 || pixelY >= CONFIG.LOGICAL_H) return true;
 
     let mx = pixelX - CONFIG.MAZE_OFFSET_X;
@@ -198,8 +198,8 @@ function calculateGameTime() {
 
 function spawnPortals() {
     // We want 2 portals: 
-    // Portal 1: Near Player 1 spawn (0,0) [CONFIG.PORTAL1_COLOR]
-    // Portal 2: Near Player 2 spawn (COLS-1, ROWS-1) [CONFIG.PORTAL2_COLOR]
+    // Portal 1: Near Player 1 spawn (0,0) 
+    // Portal 2: Near Player 2 spawn (COLS-1, ROWS-1) 
 
     // Constraints: Distance between 5 and 7 cells from spawn.
     const MIN_DIST = 14;
@@ -251,7 +251,7 @@ function spawnPortals() {
         r: p1.r,
         x: CONFIG.MAZE_OFFSET_X + p1.c * CONFIG.CELL_SIZE + 1.5,
         y: p1.r * CONFIG.CELL_SIZE + 1.5,
-        color: CONFIG.PORTAL1_COLOR
+        color: COLORS.find(x=> x.name === "CYAN").hex
     });
 
     // Push Portal 2
@@ -260,7 +260,7 @@ function spawnPortals() {
         r: p2.r,
         x: CONFIG.MAZE_OFFSET_X + p2.c * CONFIG.CELL_SIZE + 1.5,
         y: p2.r * CONFIG.CELL_SIZE + 1.5,
-        color: CONFIG.PORTAL2_COLOR
+        color: COLORS.find(x=> x.name === "BLUE").hex 
     });
 
     // --- 3. Apply Wall Clearing (Your requested fix) ---

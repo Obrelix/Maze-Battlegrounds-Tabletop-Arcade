@@ -1,68 +1,62 @@
 const FIXED_STEP_MS = 1000 / 50; //1000/ 32,// ~31.25 ms
 export const CONFIG = {
+    BLAST_RADIUS: 4.0,
+    FIXED_STEP_MS: FIXED_STEP_MS,
+    GAME_TIME: Math.round(2000000 / FIXED_STEP_MS),
+    MAZE_OFFSET_X: 8,
     LOGICAL_W: 128,
     LOGICAL_H: 64,
     PITCH: 10,
     LED_RADIUS: 3.5,
-    HUD_WIDTH: 8,
     CELL_SIZE: 3,
     ROWS: 21,
     COLS: 37,
-    MAZE_OFFSET_X: 8,
+    MAX_ENERGY: 150,
     MAX_SCORE: 5,
     MAX_MINES: 4,
-    FIXED_STEP_MS: FIXED_STEP_MS, 
-    GAME_TIME: Math.round(2000000 / FIXED_STEP_MS),
-    SUDDEN_DEATH_TIME: 1800,
-    GLITCH_DURATION: 180,
-    GLITCH_CHANCE: 0.3,
-    MINE_ARM_TIME: 1000,
-    MINE_COOLDOWN: 250,
-    AMMO_RESPAWN_DELAY: 300,
-    DETONATE_COST: 30,
-    BEAM_LENGTH: 20,
-    PARTICLE_COUNT: 20,
-    TRAIL_LENGTH: 15,
-    GLITCH_TIME: 4000,
-    STUN_DURATION: 300,
-    CHARGE_TIME: 3000,
-    CHARGE_PENALTY: 0.6,
-    C_BEAM_SPEED: 1.2,
-    C_BEAM_RANGE: 16,
-    C_BEAM_LENGTH: 6,
-    C_BEAM_WIDTH: 2,
-    GAMEPAD_THRESH: 0.5,
-    IDLE_THRESHOLD: 8000,
-    DEMO_RESET_TIMER: 500,
-    MAX_ENERGY: 150,
     BASE_SPEED: 0.6,
     MAX_SPEED: 1.5,
     BEAM_SPEED: 1.8,
-    BEAM_ENERGY_COST: 30,
-    CHARGED_BEAM_COST: 65,
-    SHIELD_DRAIN: (100 / (3 * 60)), // Drains full bar in 3 seconds (was 5)
-    SHIELD_ACTIVATION_COST: 10,
-    BOOST_DRAIN: 100 / (5 * 60),
-    BOOST_REGEN: (100 / (8 * 60)) * 0.3,
+    C_BEAM_SPEED: 1.2,
+    CHARGE_MOVEMENT_PENALTY: 0.6,
+    PORTAL_GLITCH_CHANCE: 0.3,
+    BEAM_LENGTH: 20,
+    TRAIL_LENGTH: 15,
+    C_BEAM_LENGTH: 6,
+    PARTICLE_COUNT: 20,
+    C_BEAM_RANGE: 16,
+    C_BEAM_WIDTH: 2,
+    GAMEPAD_THRESH: 0.5,
     BOOST_COOLDOWN_FRAMES: 120,
-    PORTAL1_COLOR: '#0000ffff',
-    PORTAL2_COLOR: '#00aaffff',
-    PLAYER_COLORS: [
-        { name: 'RED', hex: '#ff0000ff' },
-        { name: 'YELLOW', hex: '#d9ff00ff' },
-        { name: 'ORANGE', hex: '#ff8800ff' },
-        { name: 'CYAN', hex: '#00aaffff' },
-        { name: 'BLUE', hex: '#0400ffff' },
-        { name: 'BLACK', hex: '#000000ff' },
-        { name: 'WHITE', hex: '#ffffffff' },
-        { name: 'MAGENTA', hex: '#ff0040ff' },
-        { name: 'PURPLE', hex: '#aa00ffff' },
-        { name: 'PINK', hex: '#ff00ffff' }
-    ],
     STORAGE_KEY: 'LED_MAZE_HIGHSCORES',
     DEFAULT_NAMES: ['P-1', 'P-2'],
     SCROLL_X_VAL: -1,
     SCROLL_Y_VAL: +2
+};
+
+export const TIMING = {
+    SUDDEN_DEATH_TIME: 1800,        // Frames
+    CHARGE_DURATION: 3000,          // milliseconds
+    MINE_ARM_TIME: 1000,            // milliseconds
+    STUN_DURATION: 1500,            // milliseconds
+    GLITCH_DURATION: 3000,          // milliseconds
+    DEMO_RESET_TIMER: 500,          // milliseconds
+    AMMO_RESPAWN_DELAY: 1500,       // milliseconds
+    MINE_COOLDOWN : 250,            // milliseconds
+    IDLE_THRESHOLD: 8000,           // milliseconds
+};
+
+export const ENERGY_RATES = {
+    SHIELD_DRAIN: CONFIG.MAX_ENERGY / (3 * 60),       // 0.83 per tick
+    BOOST_DRAIN: CONFIG.MAX_ENERGY / (5 * 60),        // 0.5 per tick
+    BOOST_REGEN: (CONFIG.MAX_ENERGY / (8 * 60)) * 0.3 // 0.09375 per tick            
+};
+
+export const ENERGY_COSTS = {
+    BEAM: 30,
+    CHARGED_BEAM: 65,
+    SHIELD_ACTIVATION: 10,
+    DETONATION: 30,
 };
 
 export const CONTROLS_P1 = {
@@ -156,3 +150,16 @@ export const DIGIT_MAP = {
     8: [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1],
     9: [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1]
 };
+
+export const COLORS = [
+        { name: 'RED', hex: '#ff0000ff' },
+        { name: 'YELLOW', hex: '#d9ff00ff' },
+        { name: 'ORANGE', hex: '#ff8800ff' },
+        { name: 'CYAN', hex: '#00aaffff' },
+        { name: 'BLUE', hex: '#0000ffff' },
+        { name: 'BLACK', hex: '#000000ff' },
+        { name: 'WHITE', hex: '#ffffffff' },
+        { name: 'MAGENTA', hex: '#ff0040ff' },
+        { name: 'PURPLE', hex: '#aa00ffff' },
+        { name: 'PINK', hex: '#ff00ffff' }
+    ];

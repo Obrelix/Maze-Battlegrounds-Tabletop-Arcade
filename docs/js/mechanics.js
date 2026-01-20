@@ -1,4 +1,4 @@
-import { CONFIG, TAUNTS } from './config.js';
+import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES } from './config.js';
 import { STATE } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
 
@@ -7,7 +7,7 @@ import { isWall, destroyWallAt, gridIndex } from './grid.js';
 function handleDetonate(p, input, now) {
     // Detonate
     if (input.boom && !p.prevDetonateKey) {
-        if (p.boostEnergy >= CONFIG.DETONATE_COST) {
+        if (p.boostEnergy >= ENERGY_COSTS.DETONATION) {
             let minesFound = false;
             for (let i = STATE.mines.length - 1; i >= 0; i--) {
                 if (STATE.mines[i].owner === p.id || STATE.mines[i].owner === -1) {
@@ -16,7 +16,7 @@ function handleDetonate(p, input, now) {
                     minesFound = true;
                 }
             }
-            if (minesFound) p.boostEnergy -= CONFIG.DETONATE_COST;
+            if (minesFound) p.boostEnergy -= ENERGY_COSTS.DETONATION;
         }
     }
     p.prevDetonateKey = input.boom;
@@ -26,13 +26,13 @@ function handleShield(p, input, now) {
     // Shield
     if (input.shield && p.boostEnergy > 0) {
         if (!p.shieldActive) {
-            p.boostEnergy -= CONFIG.SHIELD_ACTIVATION_COST;
+            p.boostEnergy -= ENERGY_COSTS.SHIELD_ACTIVATION;
         }
         if (p.boostEnergy > 0 && !p.shieldActive) {
             STATE.sfx.shield();
             p.shieldActive = true;
         }
-        p.boostEnergy -= CONFIG.SHIELD_DRAIN;
+        p.boostEnergy -= ENERGY_RATES.SHIELD_DRAIN;
         // Clamp to 0 so we don't go negative
         if (p.boostEnergy < 0) p.boostEnergy = 0;
     } else {
@@ -42,12 +42,11 @@ function handleShield(p, input, now) {
 
 function handleBeamInput(p, input, now) {// Beam
     if (input.beam) {
-        p.chargeGrace = 0;
         if (!p.isCharging) {
             p.isCharging = true;
             p.chargeStartTime = now;
         }
-        if (now - p.chargeStartTime > CONFIG.CHARGE_TIME) {
+        if (p.chargeIsReady()) {
             fireChargedBeam(p);
             p.isCharging = false;
             p.chargeStartTime = 0;
@@ -56,32 +55,32 @@ function handleBeamInput(p, input, now) {// Beam
         }
     } else {
         if (p.isCharging) {
-            p.chargeGrace++;
-            if (now - p.chargeStartTime < CONFIG.CHARGE_TIME) fireBeam(p);
+            if (!p.chargeIsReady()) 
+                fireBeam(p);
             p.isCharging = false;
         }
         // Reset
         p.isCharging = false;
         p.chargeStartTime = 0;
-        p.chargeGrace = 0;
     }
 }
 
 function handleMovement(p, input, now) {
     // Movement
     let speed = CONFIG.BASE_SPEED;
-    if (p.stunTime > 0) {
+    if (p.stunIsActive > 0) {
         speed = CONFIG.BASE_SPEED * 0.5;
-        if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + CONFIG.BOOST_REGEN);
+        if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
     } else if (p.isCharging) {
-        speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_PENALTY;
-        p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + CONFIG.BOOST_REGEN);
+        speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_MOVEMENT_PENALTY;
+        p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
     } else {
         if (p.boostCooldown > 0) {
             p.boostCooldown--;
-            if (!p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + CONFIG.BOOST_REGEN);
+            if (!p.shieldActive) 
+                p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
         } else if (input.boost && p.boostEnergy > 0) {
-            p.boostEnergy -= CONFIG.BOOST_DRAIN;
+            p.boostEnergy -= ENERGY_RATES.BOOST_DRAIN;
             speed = CONFIG.MAX_SPEED;
             if (p.boostEnergy <= 0) p.boostEnergy = 0;
 
@@ -92,7 +91,7 @@ function handleMovement(p, input, now) {
             }
         } else {
             if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
-            else if (!p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + CONFIG.BOOST_REGEN);
+            else if (!p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
         }
     }
     p.currentSpeed = speed;
@@ -104,7 +103,7 @@ function handleMovement(p, input, now) {
     if (input.left) dx = -speed;
     if (input.right) dx = speed;
 
-    if (p.glitchTime > 0) {
+    if (p.glitchIsActive()) {
         dx = -dx;
         dy = -dy;
     }
@@ -167,7 +166,7 @@ function handleMovement(p, input, now) {
 
 function handleMineDrop(p, input, now) {
     // Mine Drop
-    if (input.mine && p.minesLeft > 0 && now - p.lastMineTime > CONFIG.MINE_COOLDOWN) {
+    if (input.mine && p.minesLeft > 0 && now - p.lastMineTime > TIMING.MINE_COOLDOWN) {
         STATE.sfx.mineDrop();
         p.lastMineTime = now;
         p.minesLeft--;
@@ -202,7 +201,7 @@ function handleGoal(p, input, now) {
         STATE.messages.roundColor = p.color;
         STATE.victimIdx = (p.id == 1) ? 0 : 1;
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
+        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
     }
 
 }
@@ -300,12 +299,11 @@ function spawnExplosionParticles(x, y) {
 }
 
 function applyPlayerExplosionDamage(x, y, reason) {
-    const BLAST_RADIUS = 4.0;
     // 1. Collect all victims first
     let hitIndices = [];
     if (!STATE.isRoundOver && !STATE.isGameOver) {
         STATE.players.forEach((p, idx) => {
-            if (Math.abs(p.x + 1 - (x + 1)) < BLAST_RADIUS && Math.abs(p.y + 1 - (y + 1)) < BLAST_RADIUS) {
+            if (Math.abs(p.x + 1 - (x + 1)) < CONFIG.BLAST_RADIUS && Math.abs(p.y + 1 - (y + 1)) < CONFIG.BLAST_RADIUS) {
                 if (!p.shieldActive && !p.isDead) {
                     hitIndices.push(idx);
                 }
@@ -348,7 +346,7 @@ export function triggerExplosion(x, y, reason = "EXPLODED") {
 }
 
 export function fireBeam(p) {
-    if (p.boostEnergy < CONFIG.BEAM_ENERGY_COST) return;
+    if (p.boostEnergy < ENERGY_COSTS.BEAM) return;
     if (p.beamIdx < p.beamPixels.length) return;
     let opponent = STATE.players[(p.id + 1) % 2];
 
@@ -364,7 +362,7 @@ export function fireBeam(p) {
     if (!start || !end) return;
 
     // Apply costs now that we have a valid path target
-    p.boostEnergy -= CONFIG.BEAM_ENERGY_COST;
+    p.boostEnergy -= ENERGY_COSTS.BEAM;
     STATE.sfx.shoot();
 
     // --- PATHFINDING (Existing Logic) ---
@@ -399,7 +397,7 @@ export function fireBeam(p) {
     // If no path to enemy (e.g., they are walled off perfectly), cancel shot
     if (!found) {
         // Refund energy if shot fails
-        p.boostEnergy += CONFIG.BEAM_ENERGY_COST;
+        p.boostEnergy += ENERGY_COSTS.BEAM;
         return;
     }
 
@@ -545,7 +543,7 @@ export function updateParticles() {
 }
 
 export function fireChargedBeam(p) {
-    if (p.boostEnergy < CONFIG.CHARGED_BEAM_COST) return;
+    if (p.boostEnergy < ENERGY_COSTS.CHARGED_BEAM) return;
 
     // 1. Identify Opponent
     let opponent = STATE.players[(p.id + 1) % 2];
@@ -569,7 +567,7 @@ export function fireChargedBeam(p) {
     let vy = (dy / dist) * CONFIG.C_BEAM_SPEED;
 
     // 4. Fire!
-    p.boostEnergy -= CONFIG.CHARGED_BEAM_COST;
+    p.boostEnergy -= ENERGY_COSTS.CHARGED_BEAM;
     STATE.sfx.chargedShoot();
 
     STATE.projectiles.push({
@@ -629,7 +627,7 @@ export function checkBeamCollisions() {
 }
 
 export function checkBeamActions(p, idx) {
-    if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH) 
+    if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH)
         p.beamIdx += CONFIG.BEAM_SPEED;
     let opponent = STATE.players[(idx + 1) % 2];
     let tipIdx = Math.floor(opponent.beamIdx);
@@ -637,8 +635,8 @@ export function checkBeamActions(p, idx) {
         let tip = opponent.beamPixels[tipIdx];
         if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
             if (!p.shieldActive) {
-                p.stunTime = CONFIG.STUN_DURATION;
-                p.glitchTime = CONFIG.STUN_DURATION;
+                p.stunStartTime = Date.now();
+                p.glitchStartTime = Date.now();
                 STATE.sfx.charge();
             }
             opponent.beamPixels = [];
@@ -684,8 +682,8 @@ export function checkPortalActions(p) {
                 p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
                 p.portalCooldown = 60;
                 p.speed = CONFIG.BASE_SPEED;
-                if (Math.random() < CONFIG.GLITCH_CHANCE) {
-                    p.glitchTime = CONFIG.GLITCH_DURATION;
+                if (Math.random() < CONFIG.PORTAL_GLITCH_CHANCE) {
+                    p.glitchStartTime = Date.now();
                 }
             }
         }
@@ -698,7 +696,7 @@ export function checkCrate(p) {
         p.boostEnergy = CONFIG.MAX_ENERGY;
         STATE.sfx.powerup();
         STATE.ammoCrate = null;
-        STATE.ammoRespawnTimer = 0;
+        STATE.ammoLastTakeTime = Date.now();
     }
 }
 

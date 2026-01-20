@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG, TIMING } from './config.js';
 
 export class Camera {
     constructor() {
@@ -170,24 +170,6 @@ export class Player {
         this.score = 0;
         this.goalC = 0;
         this.goalR = 0;
-        this.lastDir = {
-            x: 0,
-            y: 0
-        };
-        // AI Memory
-        this.lastPos = {
-            x: 0,
-            y: 0
-        };
-        this.botNextCell = null;
-        this.botRetargetTimer = 0;
-        this.ai = null;
-        this.stuckCounter = 0;
-        this.forceUnstuckTimer = 0;
-        this.unstuckDir = {
-            x: 0,
-            y: 0
-        };
         this.resetState();
     }
 
@@ -199,7 +181,6 @@ export class Player {
         this.boostEnergy = CONFIG.MAX_ENERGY;
         this.boostCooldown = 0;
         this.portalCooldown = 0;
-        this.stunTime = 0;
         this.shieldActive = false;
         this.currentSpeed = CONFIG.BASE_SPEED;
         this.prevDetonateKey = false;
@@ -207,22 +188,61 @@ export class Player {
         this.beamIdx = 0;
         this.isCharging = false;
         this.chargeStartTime = 0;
-        this.glitchTime = 0;
-        this.chargeGrace = 0;
-        this.lastDir = {
-            x: 0,
-            y: 0
-        };
+        this.glitchStartTime = 0;
+        this.stunStartTime = 0;
+        this.botPath = [];
+        this.botNextCell = null;
+        this.botRetargetTimer = 0;
+        this.forceUnstuckTimer = 0;
+        this.stuckCounter = 0;
+        this.isDead = false;
+        this.ai = null;
+        // AI Memory
         this.lastPos = {
             x: 0,
             y: 0
         };
-        this.botPath = [];
-        this.botNextCell = null;
-        this.botRetargetTimer = 0;
-        this.stuckCounter = 0;
-        this.forceUnstuckTimer = 0;
-        this.isDead = false;
-        this.ai = null;
+        this.lastDir = {
+            x: 0,
+            y: 0
+        };
+        this.unstuckDir = {
+            x: 0,
+            y: 0
+        };
     }
+
+    glitchRemaining(){
+        let timeDiff = Date.now() - this.glitchStartTime;
+        let result = TIMING.GLITCH_DURATION - timeDiff;
+        return result;
+    }
+
+    glitchIsActive() {
+        if (this.glitchStartTime !== 0) {
+            let timeDiff = Date.now() - this.glitchStartTime;
+            return timeDiff < TIMING.GLITCH_DURATION;
+        } else return false;
+    }
+
+    stunRemaining(){
+        let timeDiff = Date.now() - this.stunStartTime;
+        let result = TIMING.STUN_DURATION - timeDiff;
+        return result;
+    }
+
+    stunIsActive() {
+        if (this.stunStartTime !== 0) {
+            let timeDiff = Date.now() - this.stunStartTime;
+            return timeDiff < TIMING.STUN_DURATION;
+        } else return false;
+    }
+
+    chargeIsReady() {
+        if (this.chargeStartTime !== 0) {
+            let timeDiff = Date.now() - this.chargeStartTime;
+            return timeDiff >= TIMING.CHARGE_DURATION;
+        } else return false;
+    }
+
 }

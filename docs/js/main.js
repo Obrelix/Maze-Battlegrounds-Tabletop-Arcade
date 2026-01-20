@@ -1,5 +1,5 @@
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS } from './config.js';
-import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive } from './state.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS, TIMING, COLORS } from './config.js';
+import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput, setDifficulty } from './ai.js';
@@ -39,7 +39,7 @@ function finalizeRound() {
         STATE.sfx.roundOver(); // Play generic sound
         STATE.isRoundOver = true;
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
+        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
         // Reset Logic
         STATE.deathTimer = 0;
         STATE.isDraw = false;
@@ -79,7 +79,7 @@ function finalizeRound() {
 
     STATE.deathTimer = 0;
     if (STATE.isAttractMode) {
-        STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER; // Wait ~3 seconds (60 frames/sec * 3)
+        STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER; // Wait ~3 seconds (60 frames/sec * 3)
     }
 }
 
@@ -89,7 +89,7 @@ function handleTimeOut() {
         STATE.messages.round = "TIME OUT!";
         STATE.messages.roundColor = "#ffff00";
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode) STATE.demoResetTimer = CONFIG.DEMO_RESET_TIMER;
+        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
         return true;
     }
     return false;
@@ -117,14 +117,10 @@ function handleSuddenDeath() {
 function updateMinesAndCrates() {
     let now = Date.now();
     STATE.mines.forEach(m => {
-        if (!m.active && now - m.droppedAt > CONFIG.MINE_ARM_TIME) m.active = true;
+        if (!m.active && now - m.droppedAt > TIMING.MINE_ARM_TIME) m.active = true;
     });
-    if (!STATE.ammoCrate) {
-        STATE.ammoRespawnTimer++;
-        if (STATE.ammoRespawnTimer > CONFIG.AMMO_RESPAWN_DELAY) {
-            spawnAmmoCrate();
-            STATE.ammoRespawnTimer = 0;
-        }
+    if (shouldSpawnAmmoCrate()) {
+        spawnAmmoCrate();
     }
 }
 
@@ -213,8 +209,6 @@ function update() {
 
     STATE.players.forEach((p, idx) => {
         checkCrate(p);
-        if (p.stunTime > 0) p.stunTime--;
-        if (p.glitchTime > 0) p.glitchTime--;
         checkPortalActions(p);
         checkBoostTrail(p);
         checkBeamActions(p, idx);
@@ -270,20 +264,20 @@ function handlePlayerSetupInput() {
     if (ps.phase === 'COLOR') {
         // UP: Previous color
         if (input.up) {
-            ps.colorIdx = (ps.colorIdx - 1 + CONFIG.PLAYER_COLORS.length) % CONFIG.PLAYER_COLORS.length;
+            ps.colorIdx = (ps.colorIdx - 1 + COLORS.length) % COLORS.length;
             setupInputDelay = 8;
         }
 
         // DOWN: Next color
         if (input.down) {
-            ps.colorIdx = (ps.colorIdx + 1) % CONFIG.PLAYER_COLORS.length;
+            ps.colorIdx = (ps.colorIdx + 1) % COLORS.length;
             setupInputDelay = 8;
         }
 
         // RIGHT or ACTION: Confirm color, move to name entry
         if (input.right || input.boom || input.beam || input.start) {
             // Store color for this player
-            STATE.players[ps.activePlayer].color = CONFIG.PLAYER_COLORS[ps.colorIdx].hex;
+            STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
 
             // Move to NAME phase
             ps.phase = 'NAME';
@@ -375,9 +369,9 @@ function validateAndTrimName(name) {
 function updateHtmlUI() {
 
     let p1Name = STATE.players[0]?.name || "CPU";
-    let p1Color = STATE.players[0]?.color ?? CONFIG.PLAYER_COLORS[5]?.hex;
+    let p1Color = STATE.players[0]?.color ?? COLORS[5]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";
-    let p2Color = STATE.players[1]?.color ?? CONFIG.PLAYER_COLORS[1]?.hex;
+    let p2Color = STATE.players[1]?.color ?? COLORS[1]?.hex;
     document.getElementById('p1-header').style.color = p1Color;
     document.getElementById('p1-header').innerHTML = p1Name;
     document.getElementById('p2-header').style.color = p2Color;

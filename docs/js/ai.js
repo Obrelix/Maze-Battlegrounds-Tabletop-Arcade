@@ -110,7 +110,7 @@ function decideStrategy(player, opponent, currentConfig) {
   }
 
   // EXECUTE STUNNED
-  if (opponent.stunTime > 0 || opponent.glitchTime > 0) {
+  if (opponent.stunRemaining() > 0 || opponent.glitchRemaining() > 0) {
     return { x: opponent.x + opponent.size / 2, y: opponent.y + opponent.size / 2, type: 'EXECUTE', priority: 9, canCharge: true };
   }
 
@@ -206,7 +206,7 @@ function shouldChargeBeam(player, opponent, currentConfig) {
     return false;
   }
 
-  if (opponent.stunTime > 200) {
+  if (opponent.glitchRemaining() > 1000) {
     return true;
   }
 
@@ -323,12 +323,12 @@ function predictCornerCut(opponent, predictedX, predictedY) {
 function shouldExecuteCombo(player, opponent, currentConfig) {
   if (!currentConfig.COMBO_CHAINS_ENABLED) return null;
 
-  if (opponent.stunTime > 300 && player.boostEnergy > 65) {
+  if (opponent.stunRemaining() >= 500 && player.boostEnergy > 65) {
     return {
       type: 'STUN_CHARGE',
       actions: ['charge_beam'],
       priority: 10,
-      window: opponent.stunTime
+      window: opponent.stunRemaining()
     };
   }
 

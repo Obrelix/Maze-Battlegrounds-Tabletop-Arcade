@@ -1,6 +1,6 @@
-import { CONFIG, BITMAP_FONT, DIGIT_MAP } from './config.js';
+import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS } from './config.js';
 import { STATE, suddenDeathIsActive } from './state.js';
-import { isWall, gridIndex } from './grid.js';
+import { gridIndex } from './grid.js';
 
 const canvas = document.getElementById('ledMatrix');
 const ctx = canvas.getContext('2d');
@@ -241,7 +241,9 @@ export function renderGame() {
         let outColor = CONFIG.PORTAL2_COLOR;
         let effectColor = '#ffffffaa';
         const inOpacityHex = '60';
-        outColor = (idx === 0) ? (STATE.portalReverseColors ? CONFIG.PORTAL1_COLOR : CONFIG.PORTAL2_COLOR) : (STATE.portalReverseColors ? CONFIG.PORTAL2_COLOR : CONFIG.PORTAL1_COLOR);
+        let cyan = COLORS.find(x=> x.name === "CYAN").hex
+        let blue = COLORS.find(x=> x.name === "BLUE").hex 
+        outColor = (idx === 0) ? (STATE.portalReverseColors ? cyan : blue) : (STATE.portalReverseColors ? blue : cyan);
 
         // --- A. Draw Perimeter (Static Color) ---
         // Indices relative to tx, ty:
@@ -250,10 +252,10 @@ export function renderGame() {
         // (0,2)             (3,2)
         // (0,3) (1,3) (2,3) (3,3)
         const perimeter = [
-            { dx: 1, dy: 0 }, { dx: 2, dy: 0 },  // Top
+            { dx: 1, dy: 0 }, { dx: 2, dy: 0 }, // Top
             { dx: 0, dy: 1 }, { dx: 3, dy: 1 }, // Sides
             { dx: 0, dy: 2 }, { dx: 3, dy: 2 }, // Sides
-            { dx: 1, dy: 3 }, { dx: 2, dy: 3 },   // Bottom
+            { dx: 1, dy: 3 }, { dx: 2, dy: 3 }, // Bottom
         ];
 
         perimeter.forEach(offset => {
@@ -412,7 +414,8 @@ export function renderGame() {
 
         // --- 2. CHARGING EFFECT (Unchanged) ---
         if (p.isCharging) {
-            let r = (Date.now() - p.chargeStartTime) / CONFIG.CHARGE_TIME; if (r > 1) r = 1;
+            let r = (Date.now() - p.chargeStartTime) / TIMING.CHARGE_DURATION;
+            if (r > 1) r = 1;
             let cc = `hsl(${Math.floor((1 - r) * 120)},100%,50%)`;
             let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
             let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
@@ -437,9 +440,8 @@ export function renderGame() {
             });
             ctx.globalAlpha = 1.0;
         }
-
         // --- 5. NEW: GLITCH & STUN VISUALS ---
-        if (p.glitchTime > 0 || p.stunTime > 0) {
+        if (p.glitchIsActive() || p.stunIsActive()) {
             // 
             // EFFECT: "RGB Split" (Simulates Broken Controls)
             // const shake = Math.random(-3,1); // Pixel offset amount
@@ -457,7 +459,7 @@ export function renderGame() {
             // 20% Chance to draw the real white core on top
             if (Math.random() > 0.8) drawPlayerBody(p.x, p.y, '#FFFFFF');
 
-            if (p.stunTime > 0) {
+            if (p.stunIsActive()) {
                 // 
                 // EFFECT: "Static Shock" (Simulates Stun)
                 // Rapidly flash between Dim Grey and Bright White
@@ -570,7 +572,7 @@ export function renderPlayerSetup() {
     const ps = STATE.playerSetup;
     const pId = ps.activePlayer + 1;
     const playerLabel = `PLAYER ${pId}`;
-    const playerColor = CONFIG.PLAYER_COLORS[ps.colorIdx].hex;
+    const playerColor = COLORS[ps.colorIdx].hex;
 
     // ===== PHASE 1: COLOR SELECTION =====
 
@@ -587,7 +589,7 @@ export function renderPlayerSetup() {
             }
         }
         drawText(playerLabel, 30, 28, playerColor);
-        drawText(CONFIG.PLAYER_COLORS[ps.colorIdx].name, 77, 28, playerColor);
+        drawText(COLORS[ps.colorIdx].name, 77, 28, playerColor);
 
     } else if (ps.phase === 'NAME') {
         drawText("ENTER NAME", 46, 15, "#888");

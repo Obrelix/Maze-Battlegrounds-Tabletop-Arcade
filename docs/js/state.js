@@ -1,5 +1,5 @@
 import { SoundFX, Camera, Player } from './classes.js';
-import { CONFIG, CONTROLS_P1, CONTROLS_P2 } from './config.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS } from './config.js';
 
 export const STATE = {
     screen: 'MENU',
@@ -13,7 +13,7 @@ export const STATE = {
     portals: [],
     projectiles: [],
     ammoCrate: null,
-    ammoRespawnTimer: 0,
+    ammoLastTakeTime: 0,
     keys: {},
     gameTime: 0,
     maxGameTime: 0,
@@ -67,16 +67,21 @@ export function saveHighScore(name) {
 
 export function suddenDeathIsActive() {
     if (STATE.gameTime)
-        return STATE.gameTime <= CONFIG.SUDDEN_DEATH_TIME;
+        return STATE.gameTime <= TIMING.SUDDEN_DEATH_TIME;
+    else return false;
+}
+export function shouldSpawnAmmoCrate() {
+    if (STATE.gameTime && !STATE.ammoCrate)
+        return Date.now() - STATE.ammoLastTakeTime > TIMING.AMMO_RESPAWN_DELAY;
     else return false;
 }
 
 export function resetStateForMatch() {
     // Store current names if they exist
     let p1Name = STATE.players[0]?.name || "CPU";
-    let p1Color = STATE.players[0]?.color ?? CONFIG.PLAYER_COLORS[Math.floor(Math.random() * CONFIG.PLAYER_COLORS.length)]?.hex;
+    let p1Color = STATE.players[0]?.color ?? COLORS[Math.floor(Math.random() * COLORS.length)]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";
-    let p2Color = STATE.players[1]?.color ?? CONFIG.PLAYER_COLORS.filter(x=>x.hex!=p1Color)[Math.floor(Math.random() * CONFIG.PLAYER_COLORS.length)]?.hex;
+    let p2Color = STATE.players[1]?.color ?? COLORS.filter(x=>x.hex!=p1Color)[Math.floor(Math.random() * COLORS.length)]?.hex;
 
     // Create fresh players
     STATE.players = [
@@ -96,7 +101,6 @@ export function resetStateForMatch() {
     STATE.portals = [];
     STATE.projectiles = [];
     STATE.ammoCrate = null;
-    STATE.ammoRespawnTimer = 0;
     STATE.gameTime = CONFIG.GAME_TIME;
     STATE.maxGameTime = CONFIG.GAME_TIME;
     STATE.deathTimer = 0;
