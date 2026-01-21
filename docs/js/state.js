@@ -72,6 +72,7 @@ export function suddenDeathIsActive() {
         return STATE.gameTime <= TIMING.SUDDEN_DEATH_TIME;
     else return false;
 }
+
 export function shouldSpawnAmmoCrate() {
     if (STATE.gameTime && !STATE.ammoCrate)
         return Date.now() - STATE.ammoLastTakeTime > TIMING.AMMO_RESPAWN_DELAY;
@@ -84,7 +85,8 @@ export function resetStateForMatch() {
     let p1Name = STATE.players[0]?.name || "CPU";
     let p1Color = STATE.players[0]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";
-    let p2Color = STATE.players[1]?.color ?? CPUColors.filter(x => x.hex != p1Color)[Math.floor(Math.random() * CPUColors.length - 1)]?.hex;
+    CPUColors = CPUColors.filter(x => x.hex !== p1Color);
+    let p2Color = STATE.players[1]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
 
     // Create fresh players
     STATE.players = [

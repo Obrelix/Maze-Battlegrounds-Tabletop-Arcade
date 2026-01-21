@@ -1,4 +1,4 @@
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS, TIMING, COLORS, DIFFICULTIES } from './config.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
 import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
@@ -8,6 +8,7 @@ import {
     applyPlayerActions, updateProjectiles, updateParticles, checkBoostTrail,
     checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions
 } from './mechanics.js';
+
 function startMatchSetup() {
     resetStateForMatch();
     STATE.screen = 'PLAYER_SETUP';
@@ -42,7 +43,8 @@ function finalizeRound() {
         STATE.sfx.roundOver(); // Play generic sound
         STATE.isRoundOver = true;
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        if (STATE.isAttractMode) 
+            STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
         // Reset Logic
         STATE.deathTimer = 0;
         STATE.isDraw = false;
@@ -54,10 +56,9 @@ function finalizeRound() {
     let winnerIdx = (victimIdx === 0) ? 1 : 0;
 
     STATE.players[winnerIdx].score++;
-    // CHECK FOR MATCH WIN
-    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
-        // ... (Existing Win Sound/Message) ...
-
+    
+    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) { // CHECK FOR MATCH WIN
+        STATE.sfx.win();
         // SAVE HIGH SCORE
         let winnerName = STATE.players[winnerIdx].name;
         if (winnerName !== "CPU") {
@@ -129,7 +130,7 @@ function updateMinesAndCrates() {
 
 function update() {
     if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
-        STATE.gpData = pollGamepads(startGame);
+        STATE.gpData = pollGamepads(startGame , startMatchSetup);
     if (STATE.screen === 'HIGHSCORES') {
         // Allow exiting high scores
         if (STATE.keys['Digit1'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
@@ -234,16 +235,15 @@ function update() {
     updateParticles();
 }
 
-let lastUpdateTime = performance.now();
-let accumulator = 0;
+GAME.lastUpdateTime = performance.now();
 function loop(now) {
     if (now === undefined) now = performance.now();
-    accumulator += now - lastUpdateTime;
+    GAME.accumulator += now - GAME.lastUpdateTime;
 
-    lastUpdateTime = now;
-    while (accumulator >= CONFIG.FIXED_STEP_MS) {
+    GAME.lastUpdateTime = now;
+    while (GAME.accumulator >= CONFIG.FIXED_STEP_MS) {
         update();
-        accumulator -= CONFIG.FIXED_STEP_MS;
+        GAME.accumulator -= CONFIG.FIXED_STEP_MS;
     }
     if (STATE.screen === 'MENU') renderMenu();
     else if (STATE.screen === 'PLAYER_SETUP') renderPlayerSetup();
@@ -251,11 +251,10 @@ function loop(now) {
     else renderGame();
     requestAnimationFrame(loop);
 }
-let setupInputDelay = 0;
 
 function handlePlayerSetupInput() {
-    if (setupInputDelay > 0) {
-        setupInputDelay--;
+    if (GAME.setupInputDelay > 0) {
+        GAME.setupInputDelay--;
         return;
     }
 
@@ -266,28 +265,28 @@ function handlePlayerSetupInput() {
     if (ps.phase === 'DIFFICULTY' && ps.activePlayer === 0 && STATE.gameMode !== 'MULTI') {
         if (input.up) { // UP: Previous color
             ps.difficultyIdx = (ps.difficultyIdx - 1 + DIFFICULTIES.length) % DIFFICULTIES.length;
-            setupInputDelay = 8;
+            GAME.setupInputDelay = 8;
         }
         if (input.down) { // DOWN: Next color
             ps.difficultyIdx = (ps.difficultyIdx + 1) % DIFFICULTIES.length;
-            setupInputDelay = 8;
+            GAME.setupInputDelay = 8;
         }
         if (input.right || input.boom || input.beam || input.start) {
             ps.phase = 'COLOR';
             STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
-            setupInputDelay = 15;
+            GAME.setupInputDelay = 15;
         }
     } else if (ps.phase === 'COLOR') { // ===== COLOR PHASE =====
         // UP: Previous color
         if (input.up) {
             ps.colorIdx = (ps.colorIdx - 1 + COLORS.length) % COLORS.length;
-            setupInputDelay = 8;
+            GAME.setupInputDelay = 8;
         }
 
         // DOWN: Next color
         if (input.down) {
             ps.colorIdx = (ps.colorIdx + 1) % COLORS.length;
-            setupInputDelay = 8;
+            GAME.setupInputDelay = 8;
         }
 
         // RIGHT or ACTION: Confirm color, move to name entry
@@ -299,7 +298,7 @@ function handlePlayerSetupInput() {
             ps.phase = 'NAME';
             ps.nameCharIdx = 0;
             ps.nameChars = [65, 65, 65];
-            setupInputDelay = 15;
+            GAME.setupInputDelay = 15;
         }
 
         if (input.left) {
@@ -307,7 +306,7 @@ function handlePlayerSetupInput() {
                 ps.activePlayer = 0;
                 ps.colorIdx = 0;  // Reset to default
                 ps.phase = 'COLOR';
-                setupInputDelay = 15;
+                GAME.setupInputDelay = 15;
             }
         }
     } else if (ps.phase === 'NAME') {// ===== NAME PHASE =====
@@ -315,14 +314,14 @@ function handlePlayerSetupInput() {
         if (input.up) {
             ps.nameChars[ps.nameCharIdx]++;
             if (ps.nameChars[ps.nameCharIdx] > 90) ps.nameChars[ps.nameCharIdx] = 65;
-            setupInputDelay = 10;
+            GAME.setupInputDelay = 10;
         }
 
         // DOWN: Change character backward
         if (input.down) {
             ps.nameChars[ps.nameCharIdx]--;
             if (ps.nameChars[ps.nameCharIdx] < 65) ps.nameChars[ps.nameCharIdx] = 90;
-            setupInputDelay = 10;
+            GAME.setupInputDelay = 10;
         }
 
         // RIGHT: Next character position or submit
@@ -330,7 +329,7 @@ function handlePlayerSetupInput() {
             if (ps.nameCharIdx < 2) {
                 // Move to next character
                 ps.nameCharIdx++;
-                setupInputDelay = 15;
+                GAME.setupInputDelay = 15;
             } else {
                 // Finished with name, check if more players
                 let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars))
@@ -344,7 +343,7 @@ function handlePlayerSetupInput() {
                     ps.nameCharIdx = 0;
                     ps.nameChars = [65, 65, 65];
                     ps.phase = 'COLOR';  // Start with color selection for P2
-                    setupInputDelay = 20;
+                    GAME.setupInputDelay = 20;
                 } else {
                     // All players done, start game
                     startGame();
@@ -356,12 +355,12 @@ function handlePlayerSetupInput() {
         if (input.left) {
             if (ps.nameCharIdx > 0) {
                 ps.nameCharIdx--;
-                setupInputDelay = 15;
+                GAME.setupInputDelay = 15;
             } else {
                 // Go back to color selection
                 ps.phase = 'COLOR';
                 ps.colorIdx = ps.activePlayer === 0 ? 0 : 1;
-                setupInputDelay = 15;
+                GAME.setupInputDelay = 15;
             }
         }
     }
@@ -393,7 +392,6 @@ function updateHtmlUI() {
     document.getElementById('p2-panel').style.border = `1px solid ${p2Color.slice(0, 7)}63`;
     document.getElementById('p2-panel').style.boxShadow = `inset 0 0 15px ${p2Color.slice(0, 7)}23`;
 }
-
 
 window.addEventListener('load', () => {
     setupInputs(startGame, startMatchSetup);

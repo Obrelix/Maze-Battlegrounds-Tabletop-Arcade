@@ -2,7 +2,7 @@
 
 A DIY head‑to‑head tabletop arcade console powered by a Raspberry Pi Zero 2 W and a P2.5 128×64 RGB LED Matrix.
 
-This repository contains the source code for **Maze Battlegrounds**—a fast‑paced tactical 1v1 shooter designed specifically for low‑resolution LED displays—along with the hardware specifications to build the physical machine.
+This repository contains the source code for **Maze Battlegrounds**, a fast‑paced tactical 1v1 shooter designed specifically for low‑resolution LED displays—along with the hardware specifications to build the physical machine.
 
 **Status:** Early Alpha – mechanics, balance, and UX are under active development and testing, but the core loop is fully playable in the browser.
 
@@ -43,7 +43,7 @@ The HUD and canvas layout mimic the final tabletop hardware: a 128×64 P2.5 RGB 
 
 ### Energy system
 
-Players have a single **Energy** bar (0–100) that slowly regenerates and is shared by all actions:
+Players have a single **Energy** bar (0–150) that slowly regenerates and is shared by all actions:
 
 - **Tap Beam** – Quick, low‑cost stun attack (30 energy)
 - **Charged Beam** – Hold ~3 seconds for lethal wall‑breaking shot (65 energy)
@@ -80,11 +80,11 @@ Players have a single **Energy** bar (0–100) that slowly regenerates and is sh
 #### Ammo Crates
 - Green crates spawn randomly on the map
 - Refill **mines to max** (4) when collected
-- Respawn every 300ms if empty
+- Respawn every 1500ms if empty
 
 #### Portals
 - Two portals (blue and cyan) link two points on the map; entering one teleports you to the other
-- Each portal use has a **30% chance to "glitch"** your controls, inverting movement for a few seconds
+- Each portal use has a **30% chance of glitching** your controls, inverting movement for a few seconds
 - Animated 4×4 LED display with rotating center pattern
 
 #### Glitch effect

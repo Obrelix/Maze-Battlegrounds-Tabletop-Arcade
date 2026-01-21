@@ -1,4 +1,4 @@
-const FIXED_STEP_MS = 1000 / 50; //1000/ 32,// ~31.25 ms
+const FIXED_STEP_MS = 1000 / 45; //1000/ 32,// ~31.25 ms
 export const CONFIG = {
     BLAST_RADIUS: 4.0,
     FIXED_STEP_MS: FIXED_STEP_MS,
@@ -15,8 +15,8 @@ export const CONFIG = {
     MAX_SCORE: 5,
     MAX_MINES: 4,
     BASE_SPEED: 0.6,
-    MAX_SPEED: 1.5,
-    BEAM_SPEED: 1.8,
+    MAX_SPEED: 1.4,
+    BEAM_SPEED: 2.5,
     C_BEAM_SPEED: 1.2,
     CHARGE_MOVEMENT_PENALTY: 0.6,
     PORTAL_GLITCH_CHANCE: 0.3,
@@ -31,7 +31,13 @@ export const CONFIG = {
     STORAGE_KEY: 'LED_MAZE_HIGHSCORES',
     DEFAULT_NAMES: ['P-1', 'P-2'],
     SCROLL_X_VAL: -1,
-    SCROLL_Y_VAL: +2
+    SCROLL_Y_VAL: +2,
+};
+
+export const GAME = {
+    setupInputDelay: 0,
+    lastUpdateTime: 0,
+    accumulator: 0
 };
 
 export const TIMING = {
@@ -42,14 +48,14 @@ export const TIMING = {
     GLITCH_DURATION: 3000,          // milliseconds
     DEMO_RESET_TIMER: 500,          // milliseconds
     AMMO_RESPAWN_DELAY: 1500,       // milliseconds
-    MINE_COOLDOWN : 250,            // milliseconds
+    MINE_COOLDOWN: 250,            // milliseconds
     IDLE_THRESHOLD: 8000,           // milliseconds
 };
 
 export const ENERGY_RATES = {
-    SHIELD_DRAIN: CONFIG.MAX_ENERGY / (3 * 60),       // 0.83 per tick
-    BOOST_DRAIN: CONFIG.MAX_ENERGY / (5 * 60),        // 0.5 per tick
-    BOOST_REGEN: (CONFIG.MAX_ENERGY / (8 * 60)) * 0.3 // 0.09375 per tick            
+    SHIELD_DRAIN: CONFIG.MAX_ENERGY / (4 * 60),       // 0.83 per tick
+    BOOST_DRAIN: CONFIG.MAX_ENERGY / (6 * 60),        // 0.5 per tick
+    BOOST_REGEN: (CONFIG.MAX_ENERGY / (12 * 60)) // 0.09375 per tick            
 };
 
 export const ENERGY_COSTS = {
@@ -152,22 +158,22 @@ export const DIGIT_MAP = {
 };
 
 export const COLORS = [
-        { name: 'RED', hex: '#ff0000ff' },
-        { name: 'YELLOW', hex: '#d9ff00ff' },
-        { name: 'ORANGE', hex: '#ff8800ff' },
-        { name: 'CYAN', hex: '#00aaffff' },
-        { name: 'BLUE', hex: '#0000ffff' },
-        { name: 'BLACK', hex: '#000000ff' },
-        { name: 'WHITE', hex: '#ffffffff' },
-        { name: 'MAGENTA', hex: '#ff0040ff' },
-        { name: 'PURPLE', hex: '#aa00ffff' },
-        { name: 'PINK', hex: '#ff00ffff' }
-    ];
+    { name: 'RED', hex: '#ff0000ff' },
+    { name: 'YELLOW', hex: '#d9ff00ff' },
+    { name: 'ORANGE', hex: '#ff8800ff' },
+    { name: 'CYAN', hex: '#00aaffff' },
+    { name: 'BLUE', hex: '#0000ffff' },
+    { name: 'BLACK', hex: '#000000ff' },
+    { name: 'WHITE', hex: '#ffffffff' },
+    { name: 'MAGENTA', hex: '#ff0040ff' },
+    { name: 'PURPLE', hex: '#aa00ffff' },
+    { name: 'PINK', hex: '#ff00ffff' }
+];
 
-export const DIFFICULTIES = [ 
-    { name: 'BEGINNER' , hex: '#00ff00ff' },
-    { name: 'INTERMEDIATE', hex: '#ffff00ff' }, 
-    { name: 'HARD', hex: '#ff5100ff' }, 
-    { name:  'INSANE', hex: '#ff0000ff' },
+export const DIFFICULTIES = [
+    { name: 'BEGINNER', hex: '#00ff00ff' },
+    { name: 'INTERMEDIATE', hex: '#ffff00ff' },
+    { name: 'HARD', hex: '#ff5100ff' },
+    { name: 'INSANE', hex: '#ff0000ff' },
     // { name: 'DYNAMIC', hex: '#00c3ffff' }
 ];

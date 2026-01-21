@@ -127,9 +127,6 @@ function renderHUD(wallColor) {
     drawDigit(rx, 9, parseInt(s[2]), wallColor, -90);
     drawDigit(rx, 4, parseInt(p2.score.toString().padStart(2, '0')[0]), p2.color, -90);
     drawDigit(rx, 0, parseInt(p2.score.toString().padStart(2, '0')[1]), p2.color, -90);
-
-    // This ensures the HUD doesn't shake with the world
-    ctx.restore();
 }
 
 export function preRenderBackground() {
