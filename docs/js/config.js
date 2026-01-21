@@ -1,4 +1,4 @@
-const FIXED_STEP_MS = 1000 / 45; //1000/ 32,// ~31.25 ms
+const FIXED_STEP_MS = 1000 / 60; //1000/ 32,// ~31.25 ms
 export const CONFIG = {
     BLAST_RADIUS: 4.0,
     FIXED_STEP_MS: FIXED_STEP_MS,
