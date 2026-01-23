@@ -32,9 +32,9 @@ export function setupInputs(startGame, startMatchSetup) {
         }
 
         if (STATE.screen === 'PLAYING') {
-            if (STATE.isGameOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect')) {
+            if (STATE.isGameOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect' || k === 'Space' || k === 'Enter')) {
                 startGame(); // Full Reset
-            } else if (STATE.isRoundOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect')) {
+            } else if (STATE.isRoundOver && (k === 'KeyR' || k === 'KeyStart' || k === 'KeySelect'|| k === 'Space' || k === 'Enter')) {
                 initMaze(); // Next Round (Keep Score)
             }
         }
