@@ -487,9 +487,9 @@ export function renderGame() {
     // 8. Draw Particles
     renderHUD(wallColor);
     if (STATE.isAttractMode) {
-        if (Math.floor(Date.now() / 800) % 2 === 0) { // Blink slowly
-            drawText("DEMO MODE", 46, 25, "#ff0000aa");
-            drawText("PRESS ANY BUTTON", 32, 35, "#ffff00aa");
+        if (Math.floor(Date.now() / 1200) % 2 === 0) { // Blink slowly
+            drawText("DEMO MODE", 48, 25, "#ff0000aa");
+            drawText("PRESS ANY BUTTON", 34, 35, "#ffff00aa");
         }
     }
     // 9. OVERLAY TEXT & DIMMER
@@ -500,15 +500,15 @@ export function renderGame() {
         if (STATE.isGameOver) {
             const winColor = STATE.victimIdx == 0 ? STATE.players[1]?.color : STATE.players[0]?.color;
             const tauntColor = STATE.victimIdx == 1 ? STATE.players[1]?.color : STATE.players[0]?.color;
-            if (Math.floor(Date.now() / 300) % 2 === 0)
+            if (Math.floor(Date.now() / 500) % 2 === 0)
                 drawText(STATE.messages.win, 49, 8, winColor);
-            let msg = `P${STATE.victimIdx + 1}: '${STATE.messages.taunt}'`
+            let msg = `${STATE.players[STATE.victimIdx].name}: '${STATE.messages.taunt}'`
             drawText(msg, STATE.scrollX, 29, tauntColor);
-            drawText("PRESS 'R' TO RESET", 30, 52, "#888");
+            if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS ANY TO RESET", 30, 52, "#6f6deb");
         } else {
             drawText("ROUND OVER", 46, 8, "#fff");
             drawText(STATE.messages.round, STATE.scrollX, 29, STATE.messages.roundColor);
-            if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS 'START'", 42, 52, "#ffff00");
+            if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS ANY BUTTON", 34, 52, "#ffff00");
         }
     }
 }

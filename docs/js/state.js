@@ -86,7 +86,8 @@ export function resetStateForMatch() {
     let p1Color = STATE.players[0]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";
     CPUColors = CPUColors.filter(x => x.hex !== p1Color);
-    let p2Color = STATE.players[1]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
+    let randomColor2 = CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex
+    let p2Color = STATE.gameMode === 'MULTI' ? (STATE.players[1]?.color ?? randomColor2) : randomColor2;
 
     // Create fresh players
     STATE.players = [
