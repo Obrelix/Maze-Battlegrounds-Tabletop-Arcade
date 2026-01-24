@@ -43,7 +43,7 @@ function finalizeRound() {
         STATE.sfx.roundOver(); // Play generic sound
         STATE.isRoundOver = true;
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode) 
+        if (STATE.isAttractMode)
             STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
         // Reset Logic
         STATE.deathTimer = 0;
@@ -56,7 +56,7 @@ function finalizeRound() {
     let winnerIdx = (victimIdx === 0) ? 1 : 0;
 
     STATE.players[winnerIdx].score++;
-    
+
     if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) { // CHECK FOR MATCH WIN
         STATE.sfx.win();
         // SAVE HIGH SCORE
@@ -130,7 +130,7 @@ function updateMinesAndCrates() {
 
 function update() {
     if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
-        STATE.gpData = pollGamepads(startGame , startMatchSetup);
+        STATE.gpData = pollGamepads(startGame, startMatchSetup);
     if (STATE.screen === 'HIGHSCORES') {
         // Allow exiting high scores
         if (STATE.keys['Digit1'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
@@ -261,8 +261,8 @@ function handlePlayerSetupInput() {
     const ps = STATE.playerSetup;
     const controls = ps.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
     const input = getHumanInput(ps.activePlayer, controls);
-
-    if (ps.phase === 'DIFFICULTY' && ps.activePlayer === 0 && STATE.gameMode !== 'MULTI') {
+    const isMulty = STATE.gameMode === 'MULTI';
+    if (ps.phase === 'DIFFICULTY' && ps.activePlayer === 0 && !isMulty) {
         if (input.up) { // UP: Previous color
             ps.difficultyIdx = (ps.difficultyIdx - 1 + DIFFICULTIES.length) % DIFFICULTIES.length;
             GAME.setupInputDelay = 8;
@@ -306,6 +306,9 @@ function handlePlayerSetupInput() {
                 ps.activePlayer = 0;
                 ps.colorIdx = 0;  // Reset to default
                 ps.phase = 'COLOR';
+                GAME.setupInputDelay = 15;
+            } else if (!isMulty) {
+                ps.phase = 'DIFFICULTY';
                 GAME.setupInputDelay = 15;
             }
         }

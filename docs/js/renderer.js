@@ -238,8 +238,8 @@ export function renderGame() {
         let outColor = CONFIG.PORTAL2_COLOR;
         let effectColor = '#ffffffaa';
         const inOpacityHex = '60';
-        let cyan = COLORS.find(x=> x.name === "CYAN").hex
-        let blue = COLORS.find(x=> x.name === "BLUE").hex 
+        let cyan = COLORS.find(x => x.name === "CYAN").hex
+        let blue = COLORS.find(x => x.name === "BLUE").hex
         outColor = (idx === 0) ? (STATE.portalReverseColors ? cyan : blue) : (STATE.portalReverseColors ? blue : cyan);
 
         // --- A. Draw Perimeter (Static Color) ---
@@ -577,49 +577,49 @@ export function renderPlayerSetup() {
     const playerLabel = `PLAYER ${pId}`;
     const playerColor = COLORS[ps.colorIdx].hex;
     const difficulty = DIFFICULTIES[ps.difficultyIdx];
-
-    // ===== PHASE 1: COLOR SELECTION =====
-
-    let progressText = STATE.gameMode === 'MULTI' ? "MULTI PLAYERS" : "SINGLE PLAYER";
+    let previewX = 70;
+    const blink = Math.floor(Date.now() / 200) % 2 === 0;
+    const isMulty = STATE.gameMode === 'MULTI';
+    let progressText = isMulty ? "MULTI PLAYERS" : "SINGLE PLAYER";
+    let previewColorY = 28;
+    let previewNameY = 38;
     drawText(progressText, 40, 3, "#888");
-    if (ps.phase === 'DIFFICULTY') {        
-        drawText("CHOOSE DIFFICULTY", 32, 15, "#888");
-        drawText(difficulty.name, 45, 28, difficulty.hex);
-    } else if (ps.phase === 'COLOR') {
-        drawText("CHOOSE COLOR", 42, 15, "#888");
-        let previewX = 65;
-        let previewY = 27;
-        for (let x = 0; x < 8; x++) {
-            for (let y = 0; y < 8; y++) {
-                drawLED(previewX + x, previewY + y, playerColor);
-            }
-        }
-        drawText(playerLabel, 30, 28, playerColor);
-        drawText(COLORS[ps.colorIdx].name, 77, 28, playerColor);
+    if (isMulty) {
+        drawText(playerLabel, 49, 11, playerColor);
+        previewColorY = 24;
+        previewNameY = 36;
+    } else {
+        drawText("DIFFICULTY: ", 23, 20, "#888");
+        drawText(difficulty.name, previewX, 20, (blink && ps.phase === 'DIFFICULTY') ? "#555" : difficulty.hex);
+    }
 
-    } else if (ps.phase === 'NAME') {
-        drawText("ENTER NAME", 46, 15, "#888");
-        let startX = 53;
-        let charSpacing = 10;
-        for (let i = 0; i < 3; i++) {
-            let char = String.fromCharCode(ps.nameChars[i]);
-            let isActive = (i === ps.nameCharIdx);
-            let displayColor = isActive ? playerColor : "#555";
-            drawText(char, startX + (i * charSpacing), 27, displayColor);
-            // Draw underline for active character
-            if (isActive) {
-                let underlineX = startX + (i * charSpacing);
-                let underlineY = 32;
-                if (Math.floor(Date.now() / 200) % 2 === 0) {
-                    drawLED(underlineX, underlineY, playerColor);
-                    drawLED(underlineX + 1, underlineY, playerColor);
-                    drawLED(underlineX + 2, underlineY, playerColor);
-                }
+    drawText("COLOR: ", 43,  previewColorY + 1, "#888");
+    for (let x = 0; x < 7; x++) {
+        for (let y = 0; y < 7; y++) {
+            drawLED(previewX + x, previewColorY + y, (blink && ps.phase === 'COLOR') ? "#555" : playerColor);
+        }
+    }
+    drawText(COLORS[ps.colorIdx].name, previewX + 11, previewColorY + 1, (blink && ps.phase === 'COLOR') ? "#555" : playerColor);
+
+    drawText("NAME: ", 47, previewNameY, "#888");
+    let charSpacing = 6;
+    for (let i = 0; i < 3; i++) {
+        let char = String.fromCharCode(ps.nameChars[i]);
+        let isActive = (i === ps.nameCharIdx) && ps.phase === 'NAME';
+        let displayColor = isActive ? playerColor : "#555";
+        drawText(char, previewX + (i * charSpacing), previewNameY, displayColor);
+        // Draw underline for active character
+        if (isActive) {
+            let underlineX = previewX + (i * charSpacing);
+            if (blink) {
+                drawLED(underlineX, previewNameY + 7, playerColor);
+                drawLED(underlineX + 1, previewNameY + 7, playerColor);
+                drawLED(underlineX + 2, previewNameY + 7, playerColor);
             }
         }
     }
-    drawText("UP/DOWN: CHANGE ", 5, 45, "#61ca5d");
-    drawText("RIGHT: NEXT", 80, 45, "#bb4e4e");
+    drawText("UP/DOWN: CHANGE ", 5, 56, "#61ca5d");
+    drawText("RIGHT: NEXT", 76, 56, "#bb4e4e");
 }
 
 export function renderMenu() {
