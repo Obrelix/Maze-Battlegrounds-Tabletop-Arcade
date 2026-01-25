@@ -133,7 +133,7 @@ function update() {
         STATE.gpData = pollGamepads(startGame, startMatchSetup);
     if (STATE.screen === 'HIGHSCORES') {
         // Allow exiting high scores
-        if (STATE.keys['Digit1'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
+        if (STATE.keys['Digit1'] || STATE.keys['Digit2'] ||STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
             STATE.screen = 'MENU';
         }
         return;

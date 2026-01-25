@@ -152,12 +152,15 @@ function initTouchControls(startGame, startMatchSetup) {
             const code = btn.getAttribute('data-key');
             STATE.keys[code] = true;
 
-            if ((STATE.isGameOver || STATE.isRoundOver) && (code === 'KeyR' || code === 'KeyStart' || code === 'KeySelect')) {
+            if ((STATE.isGameOver || STATE.isRoundOver)) {
                 if (STATE.isGameOver) startGame(); 
                 else initMaze();
             }
-            if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
-        }, { passive: false });
+            if (STATE.screen === 'MENU') { 
+                STATE.gameMode = 'SINGLE'; 
+                startMatchSetup(); 
+            }
+        }, {passive: false });
 
         btn.addEventListener('touchend', (e) => {
             e.preventDefault();

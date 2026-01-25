@@ -556,7 +556,7 @@ export function renderHighScores() {
 
     // Instructions
     if (Math.floor(Date.now() / 500) % 2 === 0) {
-        drawText("PRESS '1' TO BACK", 30, 58, "#666");
+        drawText("PRESS ANY TO BACK", 30, 58, "#666");
     }
 }
 

@@ -18,6 +18,9 @@ export const DIFFICULTY_PRESETS = {
     MIN_BEAM_ENERGY: 50,              // Rarely spams beams
     MIN_CHARGE_ENERGY: 85,            // Rarely charged beams
     SHIELD_HP_THRESHOLD: 35,          // Shields early (wastes energy)
+    SHIELD_CHANCE: 0.4,               // Shields chance
+    REACTION_DELAY: 0.2,              // Reaction delay
+    PREDICTION_ERROR: 0.2,            // Prediction Error
     AGGRESSIVE_DISTANCE: 15,          // Keeps distance
     HUNT_THRESHOLD: 45,               // Hesitant to hunt
     DEFENSE_THRESHOLD: 35,            // Retreats often
@@ -34,6 +37,9 @@ export const DIFFICULTY_PRESETS = {
     MIN_BEAM_ENERGY: 35,              // Regular beam attacks
     MIN_CHARGE_ENERGY: 70,            // Opportunistic charges
     SHIELD_HP_THRESHOLD: 30,          // Shields when threatened
+    SHIELD_CHANCE: 0.6,               // Shields chance
+    REACTION_DELAY: 0.15,             // Reaction delay
+    PREDICTION_ERROR: 0.15,           // Prediction Error
     AGGRESSIVE_DISTANCE: 12,          // Medium engagement range
     HUNT_THRESHOLD: 60,               // Hunts when winning
     DEFENSE_THRESHOLD: 20,            // Retreats when desperate
@@ -50,6 +56,9 @@ export const DIFFICULTY_PRESETS = {
     MIN_BEAM_ENERGY: 25,              // Aggressive beam spam
     MIN_CHARGE_ENERGY: 60,            // Frequent charged beams
     SHIELD_HP_THRESHOLD: 25,          // Shields only when critical
+    SHIELD_CHANCE: 0.8,               // Shields chance
+    REACTION_DELAY: 0.075,              // Reaction delay
+    PREDICTION_ERROR: 0.1,            // Prediction Error
     AGGRESSIVE_DISTANCE: 8,           // Closes distance fast
     HUNT_THRESHOLD: 75,               // Hunts relentlessly
     DEFENSE_THRESHOLD: 15,            // Doesn't retreat easily
@@ -66,6 +75,9 @@ export const DIFFICULTY_PRESETS = {
     MIN_BEAM_ENERGY: 15,              // Beam spam at all times
     MIN_CHARGE_ENERGY: 50,            // Charged beams constantly
     SHIELD_HP_THRESHOLD: 20,          // Almost never shields
+    SHIELD_CHANCE: 1,                 // Shields chance
+    REACTION_DELAY: 0,                // Reaction delay
+    PREDICTION_ERROR: 0,              // Prediction Error
     AGGRESSIVE_DISTANCE: 5,           // Always in melee range
     HUNT_THRESHOLD: 85,               // Hunts at all times
     DEFENSE_THRESHOLD: 10,            // Never retreats

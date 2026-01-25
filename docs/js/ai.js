@@ -532,7 +532,7 @@ export function getCpuInput(player, opponent) {
     cmd.down = moveDir.dy > 0;
   }
 
-  if (energyStrat.shield) cmd.shield = true;
+  if (energyStrat.shield && Math.random() <= currentConfig.SHIELD_CHANCE) cmd.shield = true;
   if (player.boostEnergy > 20 && energyStrat.boost) cmd.boost = true;
 
   // if (player.boostEnergy > 15) {
@@ -614,13 +614,13 @@ export function setDifficulty(difficulty = 'INTERMEDIATE', tacticalStyle = null)
     ...styleConfig,
     ADVANCED_MINING_ENABLED: true,
     TACTICAL_CHARGING_ENABLED: true,
-    ADAPTIVE_DIFFICULTY_ENABLED: difficulty !== 'BEGINNER',
-    PREDICTIVE_MOVEMENT_ENABLED: true,
-    COMBO_CHAINS_ENABLED: difficulty !== 'BEGINNER',
+    ADAPTIVE_DIFFICULTY_ENABLED: difficulty !== 'INSANE',
+    PREDICTIVE_MOVEMENT_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
+    COMBO_CHAINS_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
     CORNER_CUT_DETECTION: difficulty !== 'BEGINNER',
-    RESOURCE_DENIAL_ENABLED: difficulty !== 'BEGINNER',
+    RESOURCE_DENIAL_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
     PREDICTION_WINDOW: difficulty === 'INSANE' ? 25 : difficulty === 'HARD' ? 20 : 15,
-    BASE_AGGRESSION: difficulty === 'INSANE' ? 0.95 : difficulty === 'HARD' ? 0.75 : 0.5,
+    BASE_AGGRESSION: difficulty === 'INSANE' ? 0.98 : difficulty === 'HARD' ? 0.75 : 0.3,
     AGGRESSION_SCALE_UP: 1.4,
     AGGRESSION_SCALE_DOWN: 0.8,
     MINE_STRATEGY: difficulty === 'INSANE' ? 'AGGRESSIVE' : difficulty === 'HARD' ? 'BALANCED' : 'DEFENSIVE',
