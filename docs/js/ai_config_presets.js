@@ -9,81 +9,78 @@
 // ============================================================
 
 export const DIFFICULTY_PRESETS = {
-  
+
   /**
    * BEGINNER - CPU plays carefully, makes mistakes
    * Best for: Learning the game, casual play
    */
   BEGINNER: {
+    NAME: 'BEGINNER',
     MIN_BEAM_ENERGY: 50,              // Rarely spams beams
     MIN_CHARGE_ENERGY: 85,            // Rarely charged beams
     SHIELD_HP_THRESHOLD: 35,          // Shields early (wastes energy)
-    SHIELD_CHANCE: 0.4,               // Shields chance
-    REACTION_DELAY: 0.2,              // Reaction delay
-    PREDICTION_ERROR: 0.2,            // Prediction Error
     AGGRESSIVE_DISTANCE: 15,          // Keeps distance
     HUNT_THRESHOLD: 45,               // Hesitant to hunt
     DEFENSE_THRESHOLD: 35,            // Retreats often
     MINE_ARM_DISTANCE: 8,             // Mines placed far out
     COMBO_COOLDOWN: 180,              // Almost never combos
     TACTICAL_PROBABILITY: 0.3,        // Simple decision making
+    REACTION_INTERVAL: 20,      // "Thinks" only 3 times per second (60fps/20)
+    MOVEMENT_ERROR_CHANCE: 0.25, // 25% chance to move randomly instead of smartly},
   },
-
   /**
    * INTERMEDIATE - CPU plays smart and aggressive
    * Best for: Competitive play, standard difficulty
    */
   INTERMEDIATE: {
+    NAME: 'INTERMEDIATE',
     MIN_BEAM_ENERGY: 35,              // Regular beam attacks
     MIN_CHARGE_ENERGY: 70,            // Opportunistic charges
     SHIELD_HP_THRESHOLD: 30,          // Shields when threatened
-    SHIELD_CHANCE: 0.6,               // Shields chance
-    REACTION_DELAY: 0.15,             // Reaction delay
-    PREDICTION_ERROR: 0.15,           // Prediction Error
     AGGRESSIVE_DISTANCE: 12,          // Medium engagement range
     HUNT_THRESHOLD: 60,               // Hunts when winning
     DEFENSE_THRESHOLD: 20,            // Retreats when desperate
     MINE_ARM_DISTANCE: 6,             // Strategic mine placement
     COMBO_COOLDOWN: 120,              // Occasional combos
     TACTICAL_PROBABILITY: 0.6,        // Adaptive tactics
+    REACTION_INTERVAL: 10,       // "Thinks" 6 times per second
+    MOVEMENT_ERROR_CHANCE: 0.05, // 5% chance to slip up},
   },
-
   /**
    * HARD - CPU plays like a pro player
    * Best for: Skilled players, arcade mode
    */
   HARD: {
+    NAME: 'HARD',
     MIN_BEAM_ENERGY: 25,              // Aggressive beam spam
     MIN_CHARGE_ENERGY: 60,            // Frequent charged beams
     SHIELD_HP_THRESHOLD: 25,          // Shields only when critical
-    SHIELD_CHANCE: 0.8,               // Shields chance
-    REACTION_DELAY: 0.075,              // Reaction delay
-    PREDICTION_ERROR: 0.1,            // Prediction Error
     AGGRESSIVE_DISTANCE: 8,           // Closes distance fast
     HUNT_THRESHOLD: 75,               // Hunts relentlessly
     DEFENSE_THRESHOLD: 15,            // Doesn't retreat easily
     MINE_ARM_DISTANCE: 4,             // Precision mine placement
     COMBO_COOLDOWN: 60,               // Frequent combos
     TACTICAL_PROBABILITY: 0.8,        // Advanced tactics
+    REACTION_INTERVAL: 4,       // Very fast updates
+    MOVEMENT_ERROR_CHANCE: 0.0, // Precision movement},
   },
-
   /**
    * INSANE - CPU plays perfectly (almost cheating)
    * Best for: Extreme challenge, show-off AI
    */
   INSANE: {
+    NAME: 'INSANE',
     MIN_BEAM_ENERGY: 15,              // Beam spam at all times
     MIN_CHARGE_ENERGY: 50,            // Charged beams constantly
     SHIELD_HP_THRESHOLD: 20,          // Almost never shields
-    SHIELD_CHANCE: 1,                 // Shields chance
-    REACTION_DELAY: 0,                // Reaction delay
-    PREDICTION_ERROR: 0,              // Prediction Error
     AGGRESSIVE_DISTANCE: 5,           // Always in melee range
     HUNT_THRESHOLD: 85,               // Hunts at all times
     DEFENSE_THRESHOLD: 10,            // Never retreats
     MINE_ARM_DISTANCE: 3,             // Perfect mine placement
     COMBO_COOLDOWN: 40,               // Combo spam
     TACTICAL_PROBABILITY: 0.95,       // Perfect decision making
+    REACTION_INTERVAL: 0,       // Thinks every single frame (God mode)
+    MOVEMENT_ERROR_CHANCE: 0.0,
   },
 };
 
@@ -96,12 +93,13 @@ export const DIFFICULTY_PRESETS = {
  * Mix and match with difficulty presets
  */
 export const TACTICAL_STYLES = {
-  
+
   /**
    * AGGRESSIVE - Focus on hunting and beams
    * Sacrifices defense for offense
    */
   AGGRESSIVE: {
+    NAME: 'AGGRESSIVE',
     MIN_BEAM_ENERGY: 20,
     MIN_CHARGE_ENERGY: 55,
     SHIELD_HP_THRESHOLD: 20,
@@ -115,6 +113,7 @@ export const TACTICAL_STYLES = {
    * Prioritizes not dying over killing
    */
   DEFENSIVE: {
+    NAME: 'DEFENSIVE',
     MIN_BEAM_ENERGY: 50,
     MIN_CHARGE_ENERGY: 80,
     SHIELD_HP_THRESHOLD: 40,
@@ -128,6 +127,7 @@ export const TACTICAL_STYLES = {
    * Prefers tactical plays over direct combat
    */
   MINE_SPECIALIST: {
+    NAME: 'MINE_SPECIALIST',
     MIN_BEAM_ENERGY: 40,
     MIN_CHARGE_ENERGY: 75,
     SHIELD_HP_THRESHOLD: 35,
@@ -141,6 +141,7 @@ export const TACTICAL_STYLES = {
    * Waits for perfect moments to fire devastating beams
    */
   BEAM_MASTER: {
+    NAME: 'BEAM_MASTER',
     MIN_BEAM_ENERGY: 45,
     MIN_CHARGE_ENERGY: 65,
     HUNT_THRESHOLD: 65,
@@ -154,6 +155,7 @@ export const TACTICAL_STYLES = {
    * Good all-rounder, no weaknesses
    */
   BALANCED: {
+    NAME: 'BALANCED',
     MIN_BEAM_ENERGY: 35,
     MIN_CHARGE_ENERGY: 70,
     SHIELD_HP_THRESHOLD: 30,
@@ -217,19 +219,19 @@ export const TACTICAL_STYLES = {
  */
 export function getDynamicDifficulty(playerScore, cpuScore, roundsPlayed) {
   const scoreDiff = cpuScore - playerScore;
-  
+
   // Player is crushing the CPU (2+ points behind)
   if (scoreDiff <= -2) {
     console.log("🔥 Player dominating - increasing CPU difficulty!");
     return DIFFICULTY_PRESETS.HARD;
   }
-  
+
   // Player is losing badly (2+ points ahead)
   if (scoreDiff >= 2) {
     console.log("😅 CPU dominating - decreasing difficulty for fun!");
     return DIFFICULTY_PRESETS.BEGINNER;
   }
-  
+
   // Close match - keep it balanced
   return DIFFICULTY_PRESETS.INTERMEDIATE;
 }

@@ -50,7 +50,13 @@ export const STATE = {
         phase: 'DIFFICULTY',       // 'DIFFICULTY', 'COLOR' or 'NAME'
         isDone: false
     },
-    difficulty: 'INSANE'
+    difficulty: 'INSANE',
+    aiMentalModel: {
+        strategy: null,
+        moveDir: { dx: 0, dy: 0 },
+        energyStrat: { shield: false, boost: false },
+        lastThinkTime: 0
+    }
 };
 
 export function saveHighScore(name) {

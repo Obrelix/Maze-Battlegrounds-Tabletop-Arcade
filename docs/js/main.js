@@ -27,11 +27,19 @@ function startGame() {
     if (STATE.sfx) STATE.sfx.init();
     STATE.screen = 'PLAYING';
     resetStateForMatch();
-    updateHtmlUI();
     document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
     // setDifficulty('INSANE');
     const ps = STATE.playerSetup;
-    setDifficulty(DIFFICULTIES[ps.difficultyIdx].name);
+    const chosen = DIFFICULTIES[ps.difficultyIdx].name;
+    if (chosen === "DYNAMIC") {
+        // start at INTERMEDIATE for dynamic mode
+        setDifficulty("INTERMEDIATE");
+        STATE.difficulty = "DYNAMIC";
+    } else {
+        STATE.difficulty = chosen;
+        setDifficulty(chosen);
+    }
+    updateHtmlUI();
     initMaze();
 }
 
@@ -370,9 +378,9 @@ function updateHtmlUI() {
     let p2Name = STATE.players[1]?.name || "CPU";
     let p2Color = STATE.players[1]?.color ?? COLORS[1]?.hex;
     document.getElementById('p1-header').style.color = p1Color;
-    document.getElementById('p1-header').innerHTML = p1Name;
+    document.getElementById('p1-header').innerHTML = p1Name === "CPU" ? `${p1Name} - ${STATE.difficulty}`: p1Name;
     document.getElementById('p2-header').style.color = p2Color;
-    document.getElementById('p2-header').innerHTML = p2Name;
+    document.getElementById('p2-header').innerHTML = p2Name === "CPU" ? `${p2Name} - ${STATE.difficulty}`: p2Name;
     document.getElementById('p1-panel').style.border = `1px solid ${p1Color.slice(0, 7)}63`;
     document.getElementById('p1-panel').style.boxShadow = `inset 0 0 15px ${p1Color.slice(0, 7)}23`;
     document.getElementById('p2-panel').style.border = `1px solid ${p2Color.slice(0, 7)}63`;
