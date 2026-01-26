@@ -133,15 +133,19 @@ function update() {
         STATE.gpData = pollGamepads(startGame, startMatchSetup);
     if (STATE.screen === 'HIGHSCORES') {
         // Allow exiting high scores
-        if (STATE.keys['Digit1'] || STATE.keys['Digit2'] ||STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
+        if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
             STATE.screen = 'MENU';
         }
         return;
     }
     if (STATE.screen === 'PLAYER_SETUP') {
+        document.getElementById('joystick-zone').style.display = "none";
+        document.getElementById('cross-zone').style.display = "grid";
         handlePlayerSetupInput();
         return;
     }
+    document.getElementById('joystick-zone').style.display = "flex";
+    document.getElementById('cross-zone').style.display = "none";
     if (STATE.screen === 'MENU') {
         if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
         if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startMatchSetup(); }
@@ -257,51 +261,41 @@ function handlePlayerSetupInput() {
         GAME.setupInputDelay--;
         return;
     }
-
     const ps = STATE.playerSetup;
     const controls = ps.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
     const input = getHumanInput(ps.activePlayer, controls);
     const isMulty = STATE.gameMode === 'MULTI';
     if (ps.phase === 'DIFFICULTY' && ps.activePlayer === 0 && !isMulty) {
-        if (input.up) { // UP: Previous color
+        if (input.left) { // UP: Previous diff
             ps.difficultyIdx = (ps.difficultyIdx - 1 + DIFFICULTIES.length) % DIFFICULTIES.length;
             GAME.setupInputDelay = 8;
         }
-        if (input.down) { // DOWN: Next color
+        if (input.right) { // DOWN: Next diff
             ps.difficultyIdx = (ps.difficultyIdx + 1) % DIFFICULTIES.length;
             GAME.setupInputDelay = 8;
         }
-        if (input.right || input.boom || input.beam || input.start) {
+        if (input.down || input.boom || input.beam || input.start) {
             ps.phase = 'COLOR';
             STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
             GAME.setupInputDelay = 15;
         }
     } else if (ps.phase === 'COLOR') { // ===== COLOR PHASE =====
-        // UP: Previous color
-        if (input.up) {
+        if (input.left) {// UP: Previous color
             ps.colorIdx = (ps.colorIdx - 1 + COLORS.length) % COLORS.length;
             GAME.setupInputDelay = 8;
         }
-
-        // DOWN: Next color
-        if (input.down) {
+        if (input.right) { // DOWN: Next color
             ps.colorIdx = (ps.colorIdx + 1) % COLORS.length;
             GAME.setupInputDelay = 8;
         }
-
-        // RIGHT or ACTION: Confirm color, move to name entry
-        if (input.right || input.boom || input.beam || input.start) {
-            // Store color for this player
-            STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
-
-            // Move to NAME phase
-            ps.phase = 'NAME';
+        if (input.down || input.boom || input.beam || input.start) { // RIGHT or ACTION: Confirm color, move to name entry
+            STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;// Store color for this player
+            ps.phase = 'NAME'; // Move to NAME phase
             ps.nameCharIdx = 0;
-            ps.nameChars = [65, 65, 65];
+            ps.nameChars = ps.nameChars ?? [65, 65, 65];
             GAME.setupInputDelay = 15;
         }
-
-        if (input.left) {
+        if (input.up) {
             if (ps.activePlayer === 1) {
                 ps.activePlayer = 0;
                 ps.colorIdx = 0;  // Reset to default
@@ -313,33 +307,24 @@ function handlePlayerSetupInput() {
             }
         }
     } else if (ps.phase === 'NAME') {// ===== NAME PHASE =====
-        // UP: Change character forward
-        if (input.up) {
+        if (input.up) { // UP: Change character forward
             ps.nameChars[ps.nameCharIdx]++;
             if (ps.nameChars[ps.nameCharIdx] > 90) ps.nameChars[ps.nameCharIdx] = 65;
             GAME.setupInputDelay = 10;
         }
-
-        // DOWN: Change character backward
-        if (input.down) {
+        if (input.down) { // DOWN: Change character backward
             ps.nameChars[ps.nameCharIdx]--;
             if (ps.nameChars[ps.nameCharIdx] < 65) ps.nameChars[ps.nameCharIdx] = 90;
             GAME.setupInputDelay = 10;
         }
-
-        // RIGHT: Next character position or submit
-        if (input.right || input.boom || input.beam || input.start) {
+        if (input.right || input.boom || input.beam || input.start) { // RIGHT: Next character position or submit
             if (ps.nameCharIdx < 2) {
-                // Move to next character
-                ps.nameCharIdx++;
+                ps.nameCharIdx++; // Move to next character
                 GAME.setupInputDelay = 15;
             } else {
-                // Finished with name, check if more players
-                let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars))
+                let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars)) // Finished with name, check if more players
                 STATE.players[ps.activePlayer].name = finalName;
-
-                // Check if we need to set up next player
-                if (ps.activePlayer === 0 && STATE.gameMode === 'MULTI') {
+                if (ps.activePlayer === 0 && STATE.gameMode === 'MULTI') { // Check if we need to set up next player
                     // Move to Player 2
                     ps.activePlayer = 1;
                     ps.colorIdx = 1;  // Default to different color
@@ -353,9 +338,7 @@ function handlePlayerSetupInput() {
                 }
             }
         }
-
-        // LEFT: Previous character or go back to color selection
-        if (input.left) {
+        if (input.left) { // LEFT: Previous character or go back to color selection
             if (ps.nameCharIdx > 0) {
                 ps.nameCharIdx--;
                 GAME.setupInputDelay = 15;
