@@ -32,11 +32,20 @@ function drawText(str, x, y, color) {
     for (let i = 0; i < str.length; i++) {
         let map = BITMAP_FONT[str[i]];
         if (map) {
-            for (let p = 0; p < 15; p++) {
-                if (map[p]) drawLED(cx + (p % 3), y + Math.floor(p / 3), color);
+            if (str[i] === '←' || str[i] === '→') {
+                for (let p = 0; p < 25; p++) {
+                    if (map[p]) drawLED(cx + (p % 5), y + Math.floor(p / 5), color);
+                }
+                cx += 6;
+            } else if(str[i] === ' '){
+                cx += 3;
+            }else {
+                for (let p = 0; p < 15; p++) {
+                    if (map[p]) drawLED(cx + (p % 3), y + Math.floor(p / 3), color);
+                }
+                cx += 4;
             }
         }
-        cx += 4;
     }
 }
 
@@ -583,9 +592,9 @@ export function renderPlayerSetup() {
     let progressText = isMulty ? "MULTI PLAYERS" : "SINGLE PLAYER";
     let previewColorY = 28;
     let previewNameY = 38;
-    drawText(progressText, 40, 3, "#888");
+    drawText(progressText, isMulty ?44: 40, 3, "#888");
     if (isMulty) {
-        drawText(playerLabel, 49, 11, playerColor);
+        drawText(playerLabel, 52, 11, playerColor);
         previewColorY = 24;
         previewNameY = 36;
     } else {
@@ -593,7 +602,7 @@ export function renderPlayerSetup() {
         drawText(difficulty.name, previewX, 20, (blink && ps.phase === 'DIFFICULTY') ? "#555" : difficulty.hex);
     }
 
-    drawText("COLOR: ", 43,  previewColorY + 1, "#888");
+    drawText("COLOR: ", 43, previewColorY + 1, "#888");
     for (let x = 0; x < 7; x++) {
         for (let y = 0; y < 7; y++) {
             drawLED(previewX + x, previewColorY + y, (blink && ps.phase === 'COLOR') ? "#555" : playerColor);
@@ -618,8 +627,11 @@ export function renderPlayerSetup() {
             }
         }
     }
-    drawText("UP/DOWN: CHANGE ", 5, 56, "#61ca5d");
-    drawText("RIGHT: NEXT", 76, 56, "#bb4e4e");
+    drawText("↑ ↓", 12, 50, "#61ca5d");
+    drawText("CHANGE ", 5, 56, "#61ca5d");
+    drawText("←", 95, 50, "#bb4e4e");
+    drawText("→", 114, 50, "#bb4e4e");
+    drawText("PREV NEXT", 90, 56, "#bb4e4e");
 }
 
 export function renderMenu() {
