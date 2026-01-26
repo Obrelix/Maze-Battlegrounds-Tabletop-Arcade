@@ -32,7 +32,7 @@ export function setupInputs(startGame, startMatchSetup) {
         }
 
         if (STATE.screen === 'PLAYING') {
-            if (STATE.isGameOver ) {
+            if (STATE.isGameOver) {
                 startGame(); // Full Reset
             } else if (STATE.isRoundOver) {
                 initMaze(); // Next Round (Keep Score)
@@ -153,14 +153,14 @@ function initTouchControls(startGame, startMatchSetup) {
             STATE.keys[code] = true;
 
             if ((STATE.isGameOver || STATE.isRoundOver)) {
-                if (STATE.isGameOver) startGame(); 
+                if (STATE.isGameOver) startGame();
                 else initMaze();
             }
-            if (STATE.screen === 'MENU') { 
-                STATE.gameMode = 'SINGLE'; 
-                startMatchSetup(); 
+            if (STATE.screen === 'MENU') {
+                STATE.gameMode = 'SINGLE';
+                startMatchSetup();
             }
-        }, {passive: false });
+        }, { passive: false });
 
         btn.addEventListener('touchend', (e) => {
             e.preventDefault();
@@ -170,43 +170,48 @@ function initTouchControls(startGame, startMatchSetup) {
     });
 
     // if (window.innerWidth > 1024) return; 
+    initJoystick();
+}
 
+function initJoystick() {
     const joystickZone = document.getElementById('joystick-zone');
+    if (joystickZone !== undefined) {
+        const manager = nipplejs.create({
+            zone: joystickZone,
+            mode: 'static',
+            position: { left: '50%', top: '50%' },
+            color: 'white',
+            size: 85
+        });
 
-    const manager = nipplejs.create({
-        zone: joystickZone,
-        mode: 'static',
-        position: { left: '50%', top: '50%' },
-        color: 'white',
-        size: 85
-    });
-
-    function resetMoveKeys() {
-        STATE.keys['KeyW'] = false;
-        STATE.keys['KeyS'] = false;
-        STATE.keys['KeyA'] = false;
-        STATE.keys['KeyD'] = false;
-    }
-
-    manager.on('start', () => {
-        if (STATE.sfx) STATE.sfx.init();
-    });
-
-    manager.on('move', (evt, data) => {
-        resetIdleTimer();
-        resetMoveKeys();
-        if (data.direction) {
-            const dir = data.direction;
-            if (dir.angle === 'up' || dir.y === 'up') STATE.keys['KeyW'] = true;
-            if (dir.angle === 'down' || dir.y === 'down') STATE.keys['KeyS'] = true;
-            if (dir.angle === 'left' || dir.x === 'left') STATE.keys['KeyA'] = true;
-            if (dir.angle === 'right' || dir.x === 'right') STATE.keys['KeyD'] = true;
-
-            if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
+        function resetMoveKeys() {
+            STATE.keys['KeyW'] = false;
+            STATE.keys['KeyS'] = false;
+            STATE.keys['KeyA'] = false;
+            STATE.keys['KeyD'] = false;
         }
-    });
 
-    manager.on('end', (evt, data) => {
-        resetMoveKeys();
-    });
+        manager.on('start', () => {
+            if (STATE.sfx) STATE.sfx.init();
+        });
+
+        manager.on('move', (evt, data) => {
+            resetIdleTimer();
+            resetMoveKeys();
+            if (data.direction) {
+                const dir = data.direction;
+                if (dir.angle === 'up' || dir.y === 'up') STATE.keys['KeyW'] = true;
+                if (dir.angle === 'down' || dir.y === 'down') STATE.keys['KeyS'] = true;
+                if (dir.angle === 'left' || dir.x === 'left') STATE.keys['KeyA'] = true;
+                if (dir.angle === 'right' || dir.x === 'right') STATE.keys['KeyD'] = true;
+
+                if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
+            }
+        });
+
+        manager.on('end', (evt, data) => {
+            resetMoveKeys();
+        });
+
+    }
 }
