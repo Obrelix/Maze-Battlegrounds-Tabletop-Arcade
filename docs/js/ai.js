@@ -100,18 +100,36 @@ function decideStrategy(player, opponent, currentConfig) {
   let distToEnemy = Math.hypot(opponent.x - player.x, opponent.y - player.y);
 
   let aggression = currentConfig.BASE_AGGRESSION || 0.6;
-  // const scoreDiff = opponent.score - player.score;
-  // if (scoreDiff >= 2) aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3);
-  // if (scoreDiff <= -2) aggression *= (currentConfig.AGGRESSION_SCALE_DOWN || 0.8);
-  aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3)
+  if (currentConfig.NAME !== 'INSANE') {
+    const scoreDiff = opponent.score - player.score;
+    if (scoreDiff >= 2) aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3);
+    if (scoreDiff <= -2) aggression *= (currentConfig.AGGRESSION_SCALE_DOWN || 0.8);
+  } else if (currentConfig.NAME !== 'BEGINNER') {
+    aggression = 0.4;
+  } else
+    aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3)
   // PANIC DEFENSE
-  if (enemyDistToTheirGoal < 10 || (enemyDistToTheirGoal + 80 < myDistToGoal)) {
+  if (enemyDistToTheirGoal < 10 || (enemyDistToTheirGoal + 80 < myDistToGoal) && currentConfig.NAME !== 'BEGINNER') {
     return { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 10 };
   }
 
   // EXECUTE STUNNED
-  if (opponent.stunRemaining() > 0 || opponent.glitchRemaining() > 0) {
+  if ((opponent.stunRemaining() > 0 || opponent.glitchRemaining() > 0) && currentConfig.NAME !== 'BEGINNER') {
     return { x: opponent.x + opponent.size / 2, y: opponent.y + opponent.size / 2, type: 'EXECUTE', priority: 9, canCharge: true };
+  }
+
+
+  // PREDICTIVE INTERCEPT
+  if (player.boostEnergy > 15 && currentConfig.NAME !== 'BEGINNER') {
+    let predictedPos = predictPlayerMovement(opponent, currentConfig);
+    let distToPredicted = Math.hypot(predictedPos.x - player.x, predictedPos.y - player.y);
+    let huntThreshold = currentConfig.HUNT_THRESHOLD || 60;
+    // if (scoreDiff > 0) 
+    // huntThreshold *= 1.2;
+
+    if (distToPredicted < huntThreshold && aggression > 0.5) {
+      return { x: predictedPos.x, y: predictedPos.y, type: 'HUNT', priority: 7, aggressive: true };
+    }
   }
 
   // RESOURCE DENIAL
@@ -121,19 +139,6 @@ function decideStrategy(player, opponent, currentConfig) {
     let enemyDistToAmmo = Math.hypot(ammo.x - opponent.x, ammo.y - opponent.y);
     if (distToAmmo < enemyDistToAmmo * 1.2 && distToAmmo < 40) {
       return { x: ammo.x, y: ammo.y, type: 'SCAVENGE', priority: 8 };
-    }
-  }
-
-  // PREDICTIVE INTERCEPT
-  if (player.boostEnergy > 15) {
-    let predictedPos = predictPlayerMovement(opponent, currentConfig);
-    let distToPredicted = Math.hypot(predictedPos.x - player.x, predictedPos.y - player.y);
-    let huntThreshold = currentConfig.HUNT_THRESHOLD || 60;
-    // if (scoreDiff > 0) 
-    // huntThreshold *= 1.2;
-
-    if (distToPredicted < huntThreshold && aggression > 0.5) {
-      return { x: predictedPos.x, y: predictedPos.y, type: 'HUNT', priority: 7, aggressive: true };
     }
   }
 
@@ -250,12 +255,12 @@ function predictPlayerMovement(opponent, currentConfig) {
 
   let predictionFrames = currentConfig.PREDICTION_WINDOW || 15;
 
-  if (currentConfig.TACTICAL_PROBABILITY > 0.7) {
-    predictionFrames = 20;
-  }
-  if (currentConfig.TACTICAL_PROBABILITY > 0.9) {
-    predictionFrames = 25;
-  }
+  // if (currentConfig.TACTICAL_PROBABILITY > 0.7) {
+  //   predictionFrames = 20;
+  // }
+  // if (currentConfig.TACTICAL_PROBABILITY > 0.9) {
+  //   predictionFrames = 25;
+  // }
 
   let predictedX = opponent.x + (opponent.lastDir.x * predictionFrames);
   let predictedY = opponent.y + (opponent.lastDir.y * predictionFrames);
@@ -347,12 +352,36 @@ function shouldExecuteCombo(player, opponent, currentConfig) {
 // 6. MOVEMENT DIRECTION
 // ============================================================
 
+// ai.js - MOVEMENT LOGIC UPDATE
+
 function getSmartMovementDirection(player, target, currentConfig) {
+  // 1. HUMAN ERROR SIMULATION
+  // If the AI is "confused" or making a mistake, return a random valid direction
+  // We attach a 'confusionTimer' to the player to make mistakes last a few frames, not just flicker
+  if (player.confusionTimer > 0) {
+    player.confusionTimer--;
+    if (player.confusedDir) return player.confusedDir;
+  }
+
+  // Roll for error (only if not already confused)
+  if (currentConfig.MOVEMENT_ERROR_CHANCE > 0 && Math.random() < currentConfig.MOVEMENT_ERROR_CHANCE * 0.1) { // scaled down per frame
+     player.confusionTimer = Math.floor(Math.random() * 10) + 5; // Be confused for 5-15 frames
+     // Pick a random direction
+     let dirs = [{dx:1,dy:0}, {dx:-1,dy:0}, {dx:0,dy:1}, {dx:0,dy:-1}];
+     player.confusedDir = dirs[Math.floor(Math.random() * dirs.length)];
+     // Scale speed
+     player.confusedDir.dx *= CONFIG.BASE_SPEED;
+     player.confusedDir.dy *= CONFIG.BASE_SPEED;
+     return player.confusedDir;
+  }
+
+  // 2. STANDARD PATHFINDING (Existing Logic)
   let path = findPathToTarget(player, target.x, target.y);
 
   let dxRaw = target.x - player.x;
   let dyRaw = target.y - player.y;
 
+  // Direct line if very close
   if (Math.hypot(dxRaw, dyRaw) < CONFIG.CELL_SIZE * 1.5) {
     let dist = Math.hypot(dxRaw, dyRaw);
     if (dist < 0.5) return { dx: 0, dy: 0 };
@@ -362,6 +391,7 @@ function getSmartMovementDirection(player, target, currentConfig) {
   if (path.length < 2) return { dx: 0, dy: 0 };
 
   let targetIndex = 1;
+  // Corner smoothing logic (existing)
   if (path.length > 2) {
     let c1 = path[1];
     let p1x = CONFIG.MAZE_OFFSET_X + c1.c * CONFIG.CELL_SIZE + 1.5;
@@ -418,13 +448,14 @@ function adjustDifficultyDynamically(playerScore, cpuScore, currentConfig) {
   return currentConfig;
 }
 
-function getEnergyStrategy(player, opponent) {
+function getEnergyStrategy(player, opponent, currentConfig) {
+  if (currentConfig.NAME === 'BEGINNER') return { boost: Math.random() > 0.9, boost: Math.random() > 0.9 };
   let dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
   // let scoreDiff = opponent.score - player.score;
 
-  if (dist < 10 && player.boostEnergy > 25) return { shield: true, boost: false };
-  if (player.boostEnergy > 65) return { shield: false, boost: false };
-  if (player.boostEnergy > 50) return { shield: false, boost: true };
+  if (dist < 8 && player.boostEnergy > 30) return { shield: true, boost: false };
+  if (player.boostEnergy > 65) return { shield: false, boost: true };
+  if (player.boostEnergy < 35) return { shield: false, boost: false };
 
   return { shield: false, boost: Math.random() < 0.4 };
 }
@@ -463,18 +494,22 @@ function getUnstuckDirection() {
 
 export function getCpuInput(player, opponent) {
   let cmd = {
-    up: false,
-    down: false,
-    left: false,
-    right: false,
-    boost: false,
-    beam: false,
-    shield: false,
-    mine: false,
-    boom: false,
-    start: false
+    up: false, down: false, left: false, right: false,
+    boost: false, beam: false, shield: false, mine: false, boom: false, start: false
   };
-  // STUCK DETECTION
+
+  if (!player || !opponent) return cmd;
+
+  // --- 0. CONFIG LOADING ---
+  let currentConfig = (typeof window !== 'undefined' && window.AI_CONFIG)
+    ? window.AI_CONFIG
+    : LOCAL_AI_CONFIG;
+
+  if (currentConfig.ADAPTIVE_DIFFICULTY_ENABLED) {
+    currentConfig = adjustDifficultyDynamically(player.score, opponent.score, currentConfig);
+  }
+
+  // --- 1. STUCK DETECTION (Always runs to prevent bugs) ---
   if (isPlayerStuck(player)) {
     player.stuckCounter = (player.stuckCounter || 0) + 1;
     if (player.stuckCounter > 15) {
@@ -486,7 +521,6 @@ export function getCpuInput(player, opponent) {
     player.stuckCounter = 0;
   }
 
-  // FORCE UNSTUCK
   if (player.forceUnstuckTimer > 0) {
     player.forceUnstuckTimer--;
     let dir = player.unstuckDir || { x: 0, y: 0 };
@@ -494,33 +528,64 @@ export function getCpuInput(player, opponent) {
     if (dir.x > 0) cmd.right = true;
     if (dir.y < 0) cmd.up = true;
     if (dir.y > 0) cmd.down = true;
-    return cmd;
+    // When unstucking, don't do complex logic
+    return cmd; 
   }
 
-  if (!player || !opponent) return cmd;
-  let energyStrat = getEnergyStrategy(player, opponent);
-  let currentConfig = (typeof window !== 'undefined' && window.AI_CONFIG)
-    ? window.AI_CONFIG
-    : LOCAL_AI_CONFIG;
 
-  if (currentConfig.ADAPTIVE_DIFFICULTY_ENABLED) {
-    currentConfig = adjustDifficultyDynamically(player.score, opponent.score, currentConfig);
+  // --- 2. REACTION LATENCY (The Humanizer) ---
+  // We initialize the "Mental Model" if it doesn't exist. 
+  // This stores what the AI *thinks* it should do, which persists between reaction frames.
+  if (!player.aiMentalModel) {
+      player.aiMentalModel = {
+          strategy: null,
+          moveDir: { dx: 0, dy: 0 },
+          energyStrat: { shield: false, boost: false },
+          lastThinkTime: 0
+      };
   }
 
-  const IS_INSANE = (currentConfig.TACTICAL_PROBABILITY > 0.9);
+  // Check if it's time to "Think" again
+  const now = Date.now(); // or use frame counter
+  const framesSinceThink = (STATE.gameTime || 0) - player.aiMentalModel.lastThinkTime;
+  
+  // Note: STATE.gameTime counts down, so we use absolute difference or a separate counter.
+  // Actually, standard Date.now() or a frame counter on the player is safer.
+  player.aiFrameCounter = (player.aiFrameCounter || 0) + 1;
+  
+  const shouldThink = player.aiFrameCounter % (currentConfig.REACTION_INTERVAL || 1) === 0;
 
-  let strategy = decideStrategy(player, opponent, currentConfig);
-  let moveDir = getSmartMovementDirection(player, strategy, currentConfig);
+  if (shouldThink) {
+      // === THE THINKING PHASE ===
+      // This is where the heavy logic happens, but ONLY every X frames.
+      
+      // A. Decide High-Level Strategy
+      player.aiMentalModel.strategy = decideStrategy(player, opponent, currentConfig);
+      
+      // B. Decide Energy Usage
+      player.aiMentalModel.energyStrat = getEnergyStrategy(player, opponent, currentConfig);
+      
+      // C. Calculate Pathfinding Vector
+      player.aiMentalModel.moveDir = getSmartMovementDirection(player, player.aiMentalModel.strategy, currentConfig);
+      
+      // D. Tactical Adjustments (Mine avoidance)
+      // We do this inside 'Think' so the AI can actually run INTO mines if reaction time is slow!
+      STATE.mines.forEach(mine => {
+        let dist = Math.hypot(mine.x - player.x, mine.y - player.y);
+        if (dist < 4.5) {
+          let pushX = player.x - mine.x;
+          let pushY = player.y - mine.y;
+          player.aiMentalModel.moveDir.dx += pushX * 2.0;
+          player.aiMentalModel.moveDir.dy += pushY * 2.0;
+        }
+      });
+  }
 
-  STATE.mines.forEach(mine => {
-    let dist = Math.hypot(mine.x - player.x, mine.y - player.y);
-    if (dist < 4.5) {
-      let pushX = player.x - mine.x;
-      let pushY = player.y - mine.y;
-      moveDir.dx += pushX * 2.0;
-      moveDir.dy += pushY * 2.0;
-    }
-  });
+  // --- 3. EXECUTION PHASE ---
+  // Apply the mental model to the controls
+  let moveDir = player.aiMentalModel.moveDir;
+  let energyStrat = player.aiMentalModel.energyStrat;
+  let strategy = player.aiMentalModel.strategy;
 
   const DEADZONE = 0.05;
   if (Math.abs(moveDir.dx) > DEADZONE) {
@@ -532,68 +597,44 @@ export function getCpuInput(player, opponent) {
     cmd.down = moveDir.dy > 0;
   }
 
+  // Actions (Shield/Boost)
   if (energyStrat.shield && Math.random() <= currentConfig.SHIELD_CHANCE) cmd.shield = true;
   if (player.boostEnergy > 20 && energyStrat.boost) cmd.boost = true;
 
-  // if (player.boostEnergy > 15) {
-  //   let isMoving = Math.abs(moveDir.dx) > 0.1 || Math.abs(moveDir.dy) > 0.1;
-  //   if (isMoving) {
-  //     if (strategy.type === 'BLOCK_GOAL' || strategy.type === 'EXECUTE' || strategy.type === 'SCAVENGE') {
-  //       cmd.boost = true;
-  //     }
-  //     if (strategy.type === 'HUNT' && Math.hypot(player.x - opponent.x, player.y - opponent.y) > 10) {
-  //       cmd.boost = true;
-  //     }
-  //   }
-  // }
-
-  // if (player.boostEnergy > 5) {
-  //   let imminentDanger = false;
-  //   STATE.projectiles.forEach(p => {
-  //     if (p.owner !== player.id) {
-  //       let dist = Math.hypot(p.x - player.x, p.y - player.y);
-  //       if (dist < 4.0) imminentDanger = true;
-  //     }
-  //   });
-  //   if (imminentDanger) cmd.shield = true;
-  // }
+  // Immediate Actions (Detonate/Combo) - These can bypass reaction delay for fairness 
+  // (otherwise AI never detonates on time), OR you can put them inside the think loop for more realism.
+  // I'll leave detonation as "reflexive" (instant) but shooting as "deliberate".
+  
   if (shouldDetonateNearbyMines(player, opponent)) cmd.boom = true;
-  let combo = shouldExecuteCombo(player, opponent, currentConfig);
-  if (combo) {
-    combo.actions.forEach(action => {
-      if (action === 'charge_beam') cmd.beam = true;
-      if (action === 'boost') cmd.boost = true;
-    });
-  }
 
+  // Beam Logic - Uses Config Thresholds
   if (player.boostEnergy > currentConfig.MIN_BEAM_ENERGY) {
     let shouldFire = false;
-
-    if (currentConfig.TACTICAL_CHARGING_ENABLED && strategy.canCharge) {
+    // We use the Strategy target to decide firing, not instant position, to allow dodging
+    if (currentConfig.TACTICAL_CHARGING_ENABLED && strategy?.canCharge) {
       shouldFire = shouldChargeBeam(player, opponent, currentConfig);
     } else {
       shouldFire = shouldFireBeamBasic(player, opponent);
     }
-
+    // Fire chance (prevents machine-gun perfection)
     if (shouldFire && Math.random() < 0.95) cmd.beam = true;
   }
 
+  // Mine Drop Logic
   let distToEnemy = Math.hypot(player.x - opponent.x, player.y - opponent.y);
   if (player.minesLeft > 0 && distToEnemy < 8.0 && Math.random() < 0.25) {
     cmd.mine = true;
   }
 
+  // Advanced Mine Logic
   if (cmd.mine && currentConfig.ADVANCED_MINING_ENABLED) {
     let strategicPos = calculateAdvancedMinePositions(player, opponent, currentConfig);
     player._suggestedMinePos = strategicPos;
   }
 
-  STATE.mines.forEach(mine => {
-    if ((mine.owner === player.id || mine.owner === -1) && !mine.active) return;
-    let d = Math.hypot(mine.x - opponent.x, mine.y - opponent.y);
-    if (d < 3.5) cmd.boom = true;
-  });
+  // Update State for next frame
   player.lastPos = { x: player.x, y: player.y };
+  
   return cmd;
 }
 
@@ -612,17 +653,20 @@ export function setDifficulty(difficulty = 'INTERMEDIATE', tacticalStyle = null)
   let enhancedConfig = {
     ...baseConfig,
     ...styleConfig,
-    ADVANCED_MINING_ENABLED: true,
-    TACTICAL_CHARGING_ENABLED: true,
-    ADAPTIVE_DIFFICULTY_ENABLED: difficulty !== 'INSANE',
+    ADVANCED_MINING_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
+    TACTICAL_CHARGING_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
+    SHIELD_CHANCE: difficulty === 'INSANE' ? 1 : difficulty === 'HARD' ? 0.80 : difficulty === 'INTERMEDIATE' ? 0.60 : difficulty === 'BEGINNER' ? 0.30 : 0.80,                 // Shields chance
+    REACTION_DELAY: difficulty === 'INSANE' ? 0 : difficulty === 'HARD' ? 50 : difficulty === 'INTERMEDIATE' ? 150 : difficulty === 'BEGINNER' ? 300 : 50,                // Reaction delay
+    PREDICTION_ERROR: difficulty === 'INSANE' ? 0 : difficulty === 'HARD' ? 50 : difficulty === 'INTERMEDIATE' ? 150 : difficulty === 'BEGINNER' ? 300 : 50,              // Prediction Error
+    ADAPTIVE_DIFFICULTY_ENABLED: difficulty !== 'INSANE' && difficulty !== 'BEGINNER',
     PREDICTIVE_MOVEMENT_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
     COMBO_CHAINS_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
     CORNER_CUT_DETECTION: difficulty !== 'BEGINNER',
     RESOURCE_DENIAL_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
-    PREDICTION_WINDOW: difficulty === 'INSANE' ? 25 : difficulty === 'HARD' ? 20 : 15,
-    BASE_AGGRESSION: difficulty === 'INSANE' ? 0.98 : difficulty === 'HARD' ? 0.75 : 0.3,
-    AGGRESSION_SCALE_UP: 1.4,
-    AGGRESSION_SCALE_DOWN: 0.8,
+    PREDICTION_WINDOW: difficulty === 'INSANE' ? 35 : difficulty === 'HARD' ? 20 : difficulty === 'INTERMEDIATE' ? 15 : difficulty === 'BEGINNER' ? 5 : 20,
+    BASE_AGGRESSION: difficulty === 'INSANE' ? 0.98 : difficulty === 'HARD' ? 0.75 : difficulty === 'INTERMEDIATE' ? 0.35 : difficulty === 'BEGINNER' ? 0.15 : 0.6,
+    AGGRESSION_SCALE_UP: difficulty === 'INSANE' ? 1.7 : difficulty === 'HARD' ? 1.4 : difficulty === 'INTERMEDIATE' ? 1 : difficulty === 'BEGINNER' ? 0.5 : 1,
+    AGGRESSION_SCALE_DOWN: difficulty === 'INSANE' ? 0.2 : difficulty === 'HARD' ? 0.3 : difficulty === 'INTERMEDIATE' ? 0.4 : difficulty === 'BEGINNER' ? 0.8 : 0.8,
     MINE_STRATEGY: difficulty === 'INSANE' ? 'AGGRESSIVE' : difficulty === 'HARD' ? 'BALANCED' : 'DEFENSIVE',
   };
 
