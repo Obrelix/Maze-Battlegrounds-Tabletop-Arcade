@@ -62,22 +62,18 @@ function finalizeRound() {
     // --- STANDARD WINNER LOGIC ---
     let victimIdx = STATE.victimIdx;
     let winnerIdx = (victimIdx === 0) ? 1 : 0;
-
     STATE.players[winnerIdx].score++;
-
-    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) { // CHECK FOR MATCH WIN
-        STATE.sfx.win();
-        // SAVE HIGH SCORE
-        let winnerName = STATE.players[winnerIdx].name;
-        if (winnerName !== "CPU") {
-            saveHighScore(winnerName);
-        }
+    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) { 
     }
     STATE.messages.round = `${STATE.players[victimIdx]?.name} '${STATE.messages.deathReason}!'`;
     STATE.messages.roundColor = STATE.players[victimIdx].color;
 
-    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
+    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {// CHECK FOR MATCH WIN
         STATE.sfx.win();
+        let winnerName = STATE.players[winnerIdx].name;
+        if (winnerName !== "CPU") {
+            saveHighScore(); // SAVE HIGH SCORE
+        }
         STATE.isGameOver = true;
         STATE.messages.win = `${STATE.players[winnerIdx]?.name} WINS!`;
         STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
@@ -97,6 +93,7 @@ function finalizeRound() {
 
 function handleTimeOut() {
     if (STATE.gameTime <= 0) {
+        STATE.sfx.roundOver();
         STATE.isRoundOver = true;
         STATE.messages.round = "TIME OUT!";
         STATE.messages.roundColor = "#ffff00";
@@ -378,9 +375,9 @@ function updateHtmlUI() {
     let p2Name = STATE.players[1]?.name || "CPU";
     let p2Color = STATE.players[1]?.color ?? COLORS[1]?.hex;
     document.getElementById('p1-header').style.color = p1Color;
-    document.getElementById('p1-header').innerHTML = p1Name === "CPU" ? `${p1Name} - ${STATE.difficulty}`: p1Name;
+    document.getElementById('p1-header').innerHTML = p1Name === "CPU" ? `${p1Name} - ${STATE.difficulty}` : p1Name;
     document.getElementById('p2-header').style.color = p2Color;
-    document.getElementById('p2-header').innerHTML = p2Name === "CPU" ? `${p2Name} - ${STATE.difficulty}`: p2Name;
+    document.getElementById('p2-header').innerHTML = p2Name === "CPU" ? `${p2Name} - ${STATE.difficulty}` : p2Name;
     document.getElementById('p1-panel').style.border = `1px solid ${p1Color.slice(0, 7)}63`;
     document.getElementById('p1-panel').style.boxShadow = `inset 0 0 15px ${p1Color.slice(0, 7)}23`;
     document.getElementById('p2-panel').style.border = `1px solid ${p2Color.slice(0, 7)}63`;

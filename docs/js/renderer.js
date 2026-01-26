@@ -37,9 +37,9 @@ function drawText(str, x, y, color) {
                     if (map[p]) drawLED(cx + (p % 5), y + Math.floor(p / 5), color);
                 }
                 cx += 6;
-            } else if(str[i] === ' '){
+            } else if (str[i] === ' ') {
                 cx += 3;
-            }else {
+            } else {
                 for (let p = 0; p < 15; p++) {
                     if (map[p]) drawLED(cx + (p % 3), y + Math.floor(p / 3), color);
                 }
@@ -535,7 +535,7 @@ export function renderHighScores() {
     }
 
     // Title
-    drawText("LEADERBOARD", 40, 3, "#ffff00");
+    drawText("LEADERBOARD", 43, 3, "#ffff00");
 
     // High scores list
     if (!STATE.highScores || STATE.highScores.length === 0) {
@@ -544,28 +544,31 @@ export function renderHighScores() {
     } else {
         STATE.highScores.forEach((entry, idx) => {
             // Calculate Y position based on rank
-            let yPos = 12 + (idx * 8);
+            let yPos = 12 + (idx * 6);
 
             // Color based on rank (gold, silver, bronze)
             let rankColor = idx === 0 ? "#ffff00" : (idx === 1 ? "#ff8800" : "#888");
-            let nameColor = idx === 0 ? "#ffff00" : (idx === 1 ? "#ff8800" : "#aaa");
+            let nameColor = entry.winColor;
+            let oppColor = entry.oppColor;
 
-            // Rank number
+            // Rank number3
             drawText(`${idx + 1}.`, 5, yPos, rankColor);
-
             // Player name (max 3 chars)
             let displayName = entry.name.substring(0, 3).toUpperCase();
-            drawText(displayName, 20, yPos, nameColor);
+            drawText(displayName, 14, yPos, nameColor);
+            drawText("VS", 29, yPos, "#666");
+            let oppName = entry.opponent;
+            drawText(oppName, 40, yPos, oppColor);
+            // Score
+            let score = Math.round((entry.score- entry.oppScore) * entry.multiplier);
+            drawText(`Score:${score}`, 97, yPos, rankColor);
 
-            // Wins count
-            let winsStr = entry.wins.toString();
-            drawText(`W:${winsStr}`, 45, yPos, nameColor);
         });
     }
 
     // Instructions
     if (Math.floor(Date.now() / 500) % 2 === 0) {
-        drawText("PRESS ANY TO BACK", 30, 58, "#666");
+        drawText("PRESS ANY TO BACK", 30, 57, "#666");
     }
 }
 
@@ -592,7 +595,7 @@ export function renderPlayerSetup() {
     let progressText = isMulty ? "MULTI PLAYERS" : "SINGLE PLAYER";
     let previewColorY = 28;
     let previewNameY = 38;
-    drawText(progressText, isMulty ?44: 40, 3, "#888");
+    drawText(progressText, isMulty ? 44 : 40, 3, "#888");
     if (isMulty) {
         drawText(playerLabel, 52, 11, playerColor);
         previewColorY = 24;

@@ -12,7 +12,7 @@ export const CONFIG = {
     ROWS: 21,
     COLS: 37,
     MAX_ENERGY: 150,
-    MAX_SCORE: 5,
+    MAX_SCORE: 1,
     MAX_MINES: 4,
     BASE_SPEED: 0.6,
     MAX_SPEED: 1.4,
@@ -180,5 +180,5 @@ export const DIFFICULTIES = [
     { name: 'INTERMEDIATE', hex: '#ffff00ff' },
     { name: 'HARD', hex: '#ff5100ff' },
     { name: 'INSANE', hex: '#ff0000ff' },
-    // { name: 'DYNAMIC', hex: '#00c3ffff' }
+    { name: 'DYNAMIC', hex: '#00c3ffff' }
 ];

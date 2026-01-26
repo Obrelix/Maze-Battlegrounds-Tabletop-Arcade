@@ -15,7 +15,8 @@ export const DIFFICULTY_PRESETS = {
    * Best for: Learning the game, casual play
    */
   BEGINNER: {
-    NAME: 'BEGINNER',
+    NAME: 'BEGINNER', 
+    COLOR:"#00ff00ff",
     MIN_BEAM_ENERGY: 50,              // Rarely spams beams
     MIN_CHARGE_ENERGY: 85,            // Rarely charged beams
     SHIELD_HP_THRESHOLD: 35,          // Shields early (wastes energy)
@@ -27,13 +28,15 @@ export const DIFFICULTY_PRESETS = {
     TACTICAL_PROBABILITY: 0.3,        // Simple decision making
     REACTION_INTERVAL: 20,      // "Thinks" only 3 times per second (60fps/20)
     MOVEMENT_ERROR_CHANCE: 0.25, // 25% chance to move randomly instead of smartly},
+    HIGHSCORE_MULTIPLIER: 0.25
   },
   /**
    * INTERMEDIATE - CPU plays smart and aggressive
    * Best for: Competitive play, standard difficulty
    */
   INTERMEDIATE: {
-    NAME: 'INTERMEDIATE',
+    NAME: 'INTERMEDIATE', 
+    COLOR:"#ffff00ff" ,
     MIN_BEAM_ENERGY: 35,              // Regular beam attacks
     MIN_CHARGE_ENERGY: 70,            // Opportunistic charges
     SHIELD_HP_THRESHOLD: 30,          // Shields when threatened
@@ -45,13 +48,15 @@ export const DIFFICULTY_PRESETS = {
     TACTICAL_PROBABILITY: 0.6,        // Adaptive tactics
     REACTION_INTERVAL: 10,       // "Thinks" 6 times per second
     MOVEMENT_ERROR_CHANCE: 0.05, // 5% chance to slip up},
+    HIGHSCORE_MULTIPLIER: 0.4
   },
   /**
    * HARD - CPU plays like a pro player
    * Best for: Skilled players, arcade mode
    */
   HARD: {
-    NAME: 'HARD',
+    NAME: 'HARD', 
+    COLOR:"#ff5100ff",
     MIN_BEAM_ENERGY: 25,              // Aggressive beam spam
     MIN_CHARGE_ENERGY: 60,            // Frequent charged beams
     SHIELD_HP_THRESHOLD: 25,          // Shields only when critical
@@ -63,13 +68,15 @@ export const DIFFICULTY_PRESETS = {
     TACTICAL_PROBABILITY: 0.8,        // Advanced tactics
     REACTION_INTERVAL: 4,       // Very fast updates
     MOVEMENT_ERROR_CHANCE: 0.0, // Precision movement},
+    HIGHSCORE_MULTIPLIER: 0.8
   },
   /**
    * INSANE - CPU plays perfectly (almost cheating)
    * Best for: Extreme challenge, show-off AI
    */
   INSANE: {
-    NAME: 'INSANE',
+    NAME: 'INSANE', 
+    COLOR:"#ff0000ff",
     MIN_BEAM_ENERGY: 15,              // Beam spam at all times
     MIN_CHARGE_ENERGY: 50,            // Charged beams constantly
     SHIELD_HP_THRESHOLD: 20,          // Almost never shields
@@ -81,7 +88,13 @@ export const DIFFICULTY_PRESETS = {
     TACTICAL_PROBABILITY: 0.95,       // Perfect decision making
     REACTION_INTERVAL: 0,       // Thinks every single frame (God mode)
     MOVEMENT_ERROR_CHANCE: 0.0,
+    HIGHSCORE_MULTIPLIER: 1
   },
+  DYNAMIC: {
+    NAME: 'DYNAMIC', 
+    COLOR:"#00c3ffff",
+    HIGHSCORE_MULTIPLIER: 0.85  
+  }
 };
 
 // ============================================================

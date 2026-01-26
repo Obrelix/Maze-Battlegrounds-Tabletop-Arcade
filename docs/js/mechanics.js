@@ -1,5 +1,5 @@
 import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES } from './config.js';
-import { STATE } from './state.js';
+import { STATE, saveHighScore } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
 
 //// Helper functions 
@@ -55,7 +55,7 @@ function handleBeamInput(p, input, now) {// Beam
         }
     } else {
         if (p.isCharging) {
-            if (!p.chargeIsReady()) 
+            if (!p.chargeIsReady())
                 fireBeam(p);
             p.isCharging = false;
         }
@@ -77,7 +77,7 @@ function handleMovement(p, input, now) {
     } else {
         if (p.boostCooldown > 0) {
             p.boostCooldown--;
-            if (!p.shieldActive) 
+            if (!p.shieldActive)
                 p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
         } else if (input.boost && p.boostEnergy > 0) {
             p.boostEnergy -= ENERGY_RATES.BOOST_DRAIN;
@@ -190,11 +190,18 @@ function handleGoal(p, input, now) {
     if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
         p.score += 1;
         if (p.score >= CONFIG.MAX_SCORE) {
+            STATE.sfx.win();
+            STATE.victimIdx = STATE.players.find(x=>x.id !== p.id).id;
+            let winnerName = p.name;
+            if (winnerName !== "CPU") {
+                saveHighScore(); // SAVE HIGH SCORE
+            }
             STATE.isGameOver = true;
             STATE.messages.win = `${STATE.players[p.id]?.name} WINS!`;
             STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
             STATE.messages.winColor = p.color;
         } else {
+            STATE.sfx.roundOver();
             STATE.isRoundOver = true;
             STATE.messages.round = `${STATE.players[p.id]?.name} SCORES!`;
         }

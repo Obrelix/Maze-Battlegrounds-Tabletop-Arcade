@@ -1,5 +1,6 @@
 import { SoundFX, Camera, Player } from './classes.js';
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS } from './config.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES } from './config.js';
+import { DIFFICULTY_PRESETS } from './ai_config_presets.js';
 
 export const STATE = {
     screen: 'MENU',
@@ -37,9 +38,9 @@ export const STATE = {
     gpData: null,
     portalReverseColors: false,
     highScores: JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY)) || [
-        { name: "ZEUS", wins: 10 },
-        { name: "ARES", wins: 5 },
-        { name: "HERA", wins: 3 }
+        { name: "ZEU", winColor: "#aa00ffff", oppColor: "#ff0000ff", score: 10, oppScore: 6, opponent: "CPU-INSANE", multiplier: 1 },
+        { name: "ARE", winColor: "#ffffffff", oppColor: "#ff5100ff", score: 8, oppScore: 5, opponent: "CPU-HARD", multiplier: 0.8 },
+        { name: "HER", winColor: "#00aaffff", oppColor: "#ffff00ff", score: 8, oppScore: 5, opponent: "CPU-INTERME", multiplier: 0.4 }
     ],
     playerSetup: {
         activePlayer: 0,      // 0 for P1, 1 for P2
@@ -59,16 +60,33 @@ export const STATE = {
     }
 };
 
-export function saveHighScore(name) {
-    let entry = STATE.highScores.find(e => e.name === name);
+export function saveHighScore() {
+    let victimIdx = STATE.victimIdx;
+    let winnerIdx = (victimIdx === 0) ? 1 : 0;
+    let winner = STATE.players[winnerIdx];
+    let opponent = STATE.players[victimIdx];
+    const ps = STATE.playerSetup;
+    const diff = DIFFICULTY_PRESETS[DIFFICULTIES[ps.difficultyIdx].name];
+    let victimName = opponent.name === "CPU" ? `CPU-${diff.NAME.substring(0, 7)}` : `${opponent.name}`;
+    let entry = STATE.highScores.find(e => e.name === winner.name && e.opponent === victimName && e.multiplier == diff.HIGHSCORE_MULTIPLIER);
+    let oppColor = opponent.name === "CPU" ? diff.COLOR : opponent.color;
     if (entry) {
-        entry.wins++;
+        entry.score += winner.score;
+        entry.oppScore += opponent.score;
     } else {
-        STATE.highScores.push({ name: name, wins: 1 });
+        STATE.highScores.push({
+            name: winner.name,
+            winColor: winner.color,
+            oppColor: oppColor,
+            score: winner.score,
+            oppScore: opponent.score,
+            opponent: victimName,
+            multiplier: diff.HIGHSCORE_MULTIPLIER
+        });
     }
     // Sort by wins (descending) and keep top 5
-    STATE.highScores.sort((a, b) => b.wins - a.wins);
-    STATE.highScores = STATE.highScores.slice(0, 5);
+    STATE.highScores.sort((a, b) => ((b.score - b.oppScore) * b.multiplier) - ((a.score - a.oppScore) * a.multiplier));
+    STATE.highScores = STATE.highScores.slice(0, 10);
 
     localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(STATE.highScores));
 }
