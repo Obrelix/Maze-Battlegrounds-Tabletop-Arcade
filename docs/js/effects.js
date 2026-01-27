@@ -1,4 +1,4 @@
-import { CONFIG, TAUNTS } from './config.js';
+import { CONFIG } from './config.js';
 import { STATE } from './state.js';
 
 // --- SFX Wrappers ---
@@ -116,23 +116,6 @@ export function checkBoostTrail(p) {
 }
 
 // --- Messages ---
-
-export function setGoalMessages(p) {
-    STATE.sfx.roundOver();
-    STATE.isRoundOver = true;
-    STATE.messages.round = `${STATE.players[p.id]?.name} SCORES!`;
-    STATE.messages.roundColor = p.color;
-    STATE.scrollX = CONFIG.LOGICAL_W + 5;
-}
-
-export function setGameOverMessages(p) {
-    STATE.sfx.win();
-    STATE.messages.win = `${STATE.players[p.id]?.name} WINS!`;
-    STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
-    STATE.messages.winColor = p.color;
-    STATE.messages.roundColor = p.color;
-    STATE.scrollX = CONFIG.LOGICAL_W + 5;
-}
 
 export function setDeathMessages(reason) {
     STATE.messages.deathReason = reason || "ELIMINATED";

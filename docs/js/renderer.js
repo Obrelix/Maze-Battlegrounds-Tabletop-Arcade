@@ -161,26 +161,7 @@ export function preRenderBackground() {
     isBgRendered = true;
 }
 
-export function renderGame() {
-    // --- FIX 1: Update Camera Physics ---
-    STATE.camera.update();
-
-    // 1. Draw Background
-    if (!isBgRendered) preRenderBackground();
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // SAVE CONTEXT BEFORE SHAKING
-    ctx.save();
-    ctx.translate(STATE.camera.x, STATE.camera.y); // Apply Shake
-
-    // Draw Background Image
-    ctx.drawImage(bgCanvas, 0, 0);
-
-    let timeRatio = STATE.maxGameTime > 0 ? Math.max(0, Math.min(1, STATE.gameTime / STATE.maxGameTime)) : 0;
-    let hue = Math.floor(timeRatio * 180);
-    let wallColor = `hsl(${hue}, 100%, 50%)`;
-
-    // 2. Draw Maze Walls
+function drawMazeWalls(wallColor) {
     STATE.maze.forEach(c => {
         let x = c.c * CONFIG.CELL_SIZE + CONFIG.MAZE_OFFSET_X;
         let y = c.r * CONFIG.CELL_SIZE;
@@ -224,8 +205,9 @@ export function renderGame() {
             drawLED(x + 3, y + 3, wallColor);
         }
     });
+}
 
-    // 3. Draw Goals
+function drawGoals() {
     let gc = Math.floor(STATE.frameCount / 12) % 2 === 0 ? '#fff' : '#444';
     STATE.players.forEach(p => {
         let gx = CONFIG.MAZE_OFFSET_X + p.goalC * CONFIG.CELL_SIZE + 1;
@@ -235,50 +217,35 @@ export function renderGame() {
         drawLED(gx, gy + 1, gc);
         drawLED(gx + 1, gy + 1, gc);
     });
-    // 4. Draw Portals (4x4 Animated)
+}
+
+function drawPortals() {
     if (STATE.gameTime % 30 === 0) STATE.portalReverseColors = !STATE.portalReverseColors;
     STATE.portals.forEach((p, idx) => {
-        // Calculate Top-Left corner of the 4x4 grid
-        // p.x/p.y is the center of a 3x3 cell (e.g. 1.5). 
-        // We subtract 1.5 to align the 4x4 box perfectly centered on the cell.
-        // It will cover the 3x3 cell + 1 extra row/col.
         let tx = Math.floor(p.x - 1.5);
         let ty = Math.floor(p.y - 1.5);
         let effectColor = '#ffffffaa';
         const inOpacityHex = 0x60;
         let outColor = (idx === 0) ? (STATE.portalReverseColors ? STATE.cyanColor : STATE.blueColor) : (STATE.portalReverseColors ? STATE.blueColor : STATE.cyanColor);
 
-        // --- A. Draw Perimeter (Static Color) ---
-        // Indices relative to tx, ty:
-        // (0,0) (1,0) (2,0) (3,0)
-        // (0,1)             (3,1)
-        // (0,2)             (3,2)
-        // (0,3) (1,3) (2,3) (3,3)
         const perimeter = [
-            { dx: 1, dy: 0 }, { dx: 2, dy: 0 }, // Top
-            { dx: 0, dy: 1 }, { dx: 3, dy: 1 }, // Sides
-            { dx: 0, dy: 2 }, { dx: 3, dy: 2 }, // Sides
-            { dx: 1, dy: 3 }, { dx: 2, dy: 3 }, // Bottom
+            { dx: 1, dy: 0 }, { dx: 2, dy: 0 },
+            { dx: 0, dy: 1 }, { dx: 3, dy: 1 },
+            { dx: 0, dy: 2 }, { dx: 3, dy: 2 },
+            { dx: 1, dy: 3 }, { dx: 2, dy: 3 },
         ];
 
         perimeter.forEach(offset => {
             drawLED(tx + offset.dx, ty + offset.dy, outColor);
         });
 
-        // --- B. Draw Center (4 LEDs Rotating) ---
-        // Inner 2x2 Square relative coords:
-        // (1,1) (2,1)
-        // (1,2) (2,2)
-        // We map them to a circular sequence for the animation
         const centerSeq = [
-            { dx: 1, dy: 1 }, // Top-Left
-            { dx: 2, dy: 1 }, // Top-Right
-            { dx: 2, dy: 2 }, // Bottom-Right
-            { dx: 1, dy: 2 }  // Bottom-Left
+            { dx: 1, dy: 1 },
+            { dx: 2, dy: 1 },
+            { dx: 2, dy: 2 },
+            { dx: 1, dy: 2 }
         ];
 
-        // Animation Timing
-        // We cycle through 0, 1, 2, 3 based on time
         let tick = Math.floor(STATE.frameCount / 6);
         let activeIdx = tick % 4;
 
@@ -287,7 +254,6 @@ export function renderGame() {
 
         centerSeq.forEach((pos, idx) => {
             if (idx === activeIdx) {
-                // The "Moving" pixel is White (Bright)
                 drawLED(tx + pos.dx, ty + pos.dy, effectColor);
             } else if (idx === activeIdx - 1) {
                 drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${dimHex}`);
@@ -300,113 +266,79 @@ export function renderGame() {
             } else if (activeIdx === 1 && idx === 3) {
                 drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${dimmerHex}`);
             } else {
-                // The trail pixels are dimmer versions of the portal color
-                // OR different colors to make it look like a swirling vortex
-                drawLED(tx + pos.dx, ty + pos.dy, '#000'); // Dark center hole
+                drawLED(tx + pos.dx, ty + pos.dy, '#000');
             }
         });
     });
+}
 
-    // Draw Ammo (Unchanged)
-    if (STATE.ammoCrate) {
-        let moveColor = 'rgba(255, 255, 255, 0.9)';
-        let effectColor = 'rgba(0, 255, 21, 0.8)';
-        let tx = STATE.ammoCrate.x;
-        let ty = STATE.ammoCrate.y;
-        const cellCeq = [
-            { dx: 0, dy: 1 },  // Bottom-Left
-            { dx: 1, dy: 1 }, // Bottom-Right
-            { dx: 1, dy: 0 }, // Top-Right
-            { dx: 0, dy: 0 }, // Top-Left
-        ];
-        let tick = Math.floor(STATE.frameCount / 6);
-        let activeIdx = tick % 4;
-        cellCeq.forEach((pos, idx) => {
-            if (idx === activeIdx) {
-                drawLED(tx + pos.dx, ty + pos.dy, moveColor);
-            } else {
-                drawLED(tx + pos.dx, ty + pos.dy, effectColor);
-            }
-        });
-        // // Indices relative to tx, ty:
-        // // (-1, -1) (0, -1) (1, -1) (2, -1)
-        // // (-1,  0) (0,  0) (1,  0) (2,  0)
-        // // (-1,  1) (0,  1) (1,  1) (2,  1)
-        // // (-1,  2) (0,  2) (1,  2) (2,  2)
-        // const perimeter = [
-        //     { dx: -1, dy: -1 }, { dx:  0, dy: -1 }, { dx: 1, dy: -1 }, { dx: 2, dy: -1 },  
-        //     { dx:  2, dy:  0 }, { dx:  2, dy:  1 }, { dx: 2, dy:  2 },
-        //     { dx:  1, dy:  2 }, { dx:  0, dy:  2 }, { dx: -1, dy: 2 },
-        //     { dx: -1, dy:  1 }, { dx: -1, dy: 0 } 
-        // ];
-        // activeIdx = tick % 3;
-        // let pos = perimeter[activeIdx];
-        // drawLED(tx + pos.dx, ty + pos.dy, perimColor);
-        // activeIdx += 3;
-        // pos = perimeter[activeIdx];
-        // drawLED(tx + pos.dx, ty + pos.dy, perimColor);
-        // activeIdx += 3;
-        // pos = perimeter[activeIdx];
-        // drawLED(tx + pos.dx, ty + pos.dy, perimColor);
-        // activeIdx += 3;
-        // pos = perimeter[activeIdx];
-        // drawLED(tx + pos.dx, ty + pos.dy, perimColor);
+function drawAmmoCrate() {
+    if (!STATE.ammoCrate) return;
+    let moveColor = 'rgba(255, 255, 255, 0.9)';
+    let effectColor = 'rgba(0, 255, 21, 0.8)';
+    let tx = STATE.ammoCrate.x;
+    let ty = STATE.ammoCrate.y;
+    const cellSeq = [
+        { dx: 0, dy: 1 },
+        { dx: 1, dy: 1 },
+        { dx: 1, dy: 0 },
+        { dx: 0, dy: 0 },
+    ];
+    let tick = Math.floor(STATE.frameCount / 6);
+    let activeIdx = tick % 4;
+    cellSeq.forEach((pos, idx) => {
+        if (idx === activeIdx) {
+            drawLED(tx + pos.dx, ty + pos.dy, moveColor);
+        } else {
+            drawLED(tx + pos.dx, ty + pos.dy, effectColor);
+        }
+    });
+}
 
-    }
-
-    // 5. Draw Mines & Projectiles
+function drawMines() {
     STATE.mines.forEach(m => drawLED(m.x + m.visX, m.y + m.visY, m.active ? (STATE.frameCount % 12 < 6 ? '#f00' : '#800') : '#444'));
-    // ... Mines drawing code above ...
+}
 
-    // --- 5b. PROJECTILE RENDER (Rasterized Rotated Rectangle) ---
+function drawProjectiles() {
     STATE.projectiles.forEach(p => {
-        // 1. Math Setup
         let mag = Math.hypot(p.vx, p.vy);
         if (mag === 0) return;
 
-        let nx = p.vx / mag; // Direction
+        let nx = p.vx / mag;
         let ny = p.vy / mag;
-
-        let px = -ny;        // Perpendicular (Width)
+        let px = -ny;
         let py = nx;
 
         let halfLen = CONFIG.C_BEAM_LENGTH / 2;
-        let halfWidth = CONFIG.C_BEAM_WIDTH / 2; // Try 1.5 or 2.0 in Config for a thick beam
+        let halfWidth = CONFIG.C_BEAM_WIDTH / 2;
 
-        // 2. Optimization: Only scan relevant grid cells
         let scanRadius = halfLen + 3;
         let minX = Math.floor(p.x - scanRadius);
         let maxX = Math.ceil(p.x + scanRadius);
         let minY = Math.floor(p.y - scanRadius);
         let maxY = Math.ceil(p.y + scanRadius);
 
-        let color = (STATE.frameCount % 4 < 2) ? '#ffffff' : p.color; // Flash White/Color
+        let color = (STATE.frameCount % 4 < 2) ? '#ffffff' : p.color;
 
-        // 3. Loop through physical LEDs (Integers)
         for (let y = minY; y <= maxY; y++) {
             for (let x = minX; x <= maxX; x++) {
-
-                // Vector from beam center to this LED
                 let dx = x - p.x;
                 let dy = y - p.y;
-
-                // Project this vector onto the beam's axes
-                let distLength = Math.abs((dx * nx) + (dy * ny)); // Distance along length
-                let distWidth = Math.abs((dx * px) + (dy * py));  // Distance along width
-
-                // 4. Hit Test
+                let distLength = Math.abs((dx * nx) + (dy * ny));
+                let distWidth = Math.abs((dx * px) + (dy * py));
                 if (distLength <= halfLen && distWidth <= halfWidth) {
-                    // We pass integer X,Y here, so drawLED will align perfectly
                     drawLED(x, y, color);
                 }
             }
         }
     });
+}
 
+function drawPlayers() {
     STATE.players.forEach(p => {
         if (p.isDead) return;
 
-        // --- 1. BEAM RENDERING (Unchanged) ---
+        // Beam trail
         for (let k = 0; k < CONFIG.BEAM_LENGTH; k++) {
             let i = Math.floor(p.beamIdx) - k;
             if (i >= 0 && i < p.beamPixels.length) {
@@ -416,7 +348,7 @@ export function renderGame() {
             }
         }
 
-        // --- 2. CHARGING EFFECT (Unchanged) ---
+        // Charging effect
         if (p.isCharging) {
             let r = (STATE.frameCount - p.chargeStartTime) / TIMING.CHARGE_DURATION;
             if (r > 1) r = 1;
@@ -427,79 +359,62 @@ export function renderGame() {
             for (let i = 0; i < n; i++) drawLED(sx + perim[i].x, sy + perim[i].y, cc);
         }
 
-        // --- 3. SHIELD EFFECT (Unchanged) ---
+        // Shield effect
         if (p.shieldActive) {
             let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
             let perim = [{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 2, y: 3 }, { x: 1, y: 3 }, { x: 0, y: 2 }, { x: 0, y: 1 }];
             for (let i = 0; i < 8; i++) drawLED(sx + perim[i].x, sy + perim[i].y, '#88f');
         }
 
-        // --- 4. TRAIL EFFECT (Unchanged) ---
+        // Boost trail
         if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) {
             p.trail.forEach((t, i) => {
                 const alpha = (i / p.trail.length) * 0.4;
                 ctx.globalAlpha = alpha;
                 drawLED(Math.floor(t.x), Math.floor(t.y), p.color);
-                // drawLED(Math.floor(t.x) + 1, Math.floor(t.y) + 1, p.color); 11
             });
             ctx.globalAlpha = 1.0;
         }
-        // --- 5. NEW: GLITCH & STUN VISUALS ---
+
+        // Glitch & stun visuals
         if (p.glitchIsActive(STATE.frameCount) || p.stunIsActive(STATE.frameCount)) {
-            // 
-            // EFFECT: "RGB Split" (Simulates Broken Controls)
-            // const shake = Math.random(-3,1); // Pixel offset amount
             const min = -1, max = 1;
-            // Draw RED Ghost (Offset Randomly)
             let rX = (Math.floor(Math.random() * (max - min + 1) + min));
             let rY = (Math.floor(Math.random() * (max - min + 1) + min));
             drawPlayerBody(p.x + rX, p.y + rY, '#FF0000');
 
-            // Draw CYAN Ghost (Offset Opposite)
             let cX = Math.floor(Math.random() * (max - min + 1) + min);
             let cY = Math.floor(Math.random() * (max - min + 1) + min);
             drawPlayerBody(p.x + cX, p.y + cY, '#00FFFF');
 
-            // 20% Chance to draw the real white core on top
             if (Math.random() > 0.8) drawPlayerBody(p.x, p.y, '#FFFFFF');
 
             if (p.stunIsActive(STATE.frameCount)) {
-                // 
-                // EFFECT: "Static Shock" (Simulates Stun)
-                // Rapidly flash between Dim Grey and Bright White
                 let flashColor = (Math.floor(STATE.frameCount / 2) % 2 === 0) ? '#444444' : '#FFFFFF';
                 drawPlayerBody(p.x, p.y, flashColor);
             }
-            // Draw random "sparks" around the player
-            // for (let i = 0; i < 3; i++) {
-            //     // Pick a random spot near the player
-            //     let sx = p.x + (Math.random() * 3) ;
-            //     let sy = p.y + (Math.random() * 3) - 0.5;
-            //     // Draw a single yellow/white spark pixel
-            //     drawLED(Math.floor(sx), Math.floor(sy), Math.random() > 0.5 ? '#FFFF00' : '#FFFFFF');
-            // }
-
         } else {
-            // NORMAL RENDER
-            let color = p.color; // Simplified lookup
+            let color = p.color;
             if (p && p.boostEnergy < 25 && Math.floor(STATE.frameCount / 6) % 2 === 0) {
-                color = '#555'; // Flash grey if exhaustedx
+                color = '#555';
             }
             drawPlayerBody(p.x, p.y, color);
         }
     });
+}
 
-    // 7. Draw Particles
+function drawParticles() {
     STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
-    // 8. Draw Particles
-    renderHUD(wallColor);
+}
+
+function drawOverlays() {
+    renderHUD(getWallColor());
     if (STATE.isAttractMode) {
-        if (Math.floor(Date.now() / 1200) % 2 === 0) { // Blink slowly
+        if (Math.floor(Date.now() / 1200) % 2 === 0) {
             drawText("DEMO MODE", 48, 25, "#ff0000aa");
             drawText("PRESS ANY BUTTON", 34, 35, "#ffff00aa");
         }
     }
-    // 9. OVERLAY TEXT & DIMMER
     if (STATE.isPaused) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -524,6 +439,35 @@ export function renderGame() {
             if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS ANY BUTTON", 34, 52, "#ffff00");
         }
     }
+}
+
+function getWallColor() {
+    let timeRatio = STATE.maxGameTime > 0 ? Math.max(0, Math.min(1, STATE.gameTime / STATE.maxGameTime)) : 0;
+    let hue = Math.floor(timeRatio * 180);
+    return `hsl(${hue}, 100%, 50%)`;
+}
+
+export function renderGame() {
+    STATE.camera.update();
+
+    if (!isBgRendered) preRenderBackground();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(STATE.camera.x, STATE.camera.y);
+    ctx.drawImage(bgCanvas, 0, 0);
+
+    let wallColor = getWallColor();
+
+    drawMazeWalls(wallColor);
+    drawGoals();
+    drawPortals();
+    drawAmmoCrate();
+    drawMines();
+    drawProjectiles();
+    drawPlayers();
+    drawParticles();
+    drawOverlays();
 }
 
 export function renderHighScores() {

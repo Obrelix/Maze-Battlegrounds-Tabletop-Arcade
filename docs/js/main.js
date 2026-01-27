@@ -1,11 +1,11 @@
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
-import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
+import { STATE, resetStateForMatch, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput } from './ai/controller.js';
 import { setDifficulty } from './ai/difficulty.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
-import { applyPlayerActions, updateProjectiles, checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions } from './mechanics.js';
+import { resolveRound, applyPlayerActions, updateProjectiles, checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions } from './mechanics.js';
 import { updateParticles, checkBoostTrail } from './effects.js';
 import { validateState } from './debug.js';
 
@@ -44,61 +44,17 @@ function startGame() {
 }
 
 function finalizeRound() {
-    // --- HANDLE DRAW ---
     if (STATE.isDraw) {
-        STATE.messages.round = "DOUBLE KO! DRAW!";
-        STATE.messages.roundColor = "#ffffff";
-        STATE.sfx.roundOver(); // Play generic sound
-        STATE.isRoundOver = true;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode)
-            STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
-        // Reset Logic
-        STATE.deathTimer = 0;
-        STATE.isDraw = false;
+        resolveRound(null, 'DRAW');
         return;
     }
-
-    // --- STANDARD WINNER LOGIC ---
-    let victimIdx = STATE.victimIdx;
-    let winnerIdx = (victimIdx === 0) ? 1 : 0;
-    STATE.players[winnerIdx].score++;
-    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
-    }
-    STATE.messages.round = `${STATE.players[victimIdx]?.name} '${STATE.messages.deathReason}!'`;
-    STATE.messages.roundColor = STATE.players[victimIdx].color;
-
-    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {// CHECK FOR MATCH WIN
-        STATE.sfx.win();
-        let winnerName = STATE.players[winnerIdx].name;
-        if (winnerName !== "CPU") {
-            saveHighScore(); // SAVE HIGH SCORE
-        }
-        STATE.isGameOver = true;
-        STATE.messages.win = `${STATE.players[winnerIdx]?.name} WINS!`;
-        STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
-        STATE.messages.winColor = STATE.players[winnerIdx].color;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
-    } else {
-        STATE.sfx.roundOver();
-        STATE.isRoundOver = true;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
-    }
-
-    STATE.deathTimer = 0;
-    if (STATE.isAttractMode) {
-        STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER; // Wait ~3 seconds (60 frames/sec * 3)
-    }
+    let winnerIdx = (STATE.victimIdx === 0) ? 1 : 0;
+    resolveRound(winnerIdx, 'COMBAT');
 }
 
 function handleTimeOut() {
     if (STATE.gameTime <= 0) {
-        STATE.sfx.roundOver();
-        STATE.isRoundOver = true;
-        STATE.messages.round = "TIME OUT!";
-        STATE.messages.roundColor = "#ffff00";
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        resolveRound(null, 'TIMEOUT');
         return true;
     }
     return false;

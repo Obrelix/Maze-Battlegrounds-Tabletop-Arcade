@@ -1,4 +1,4 @@
-import { CONFIG, TIMING, ENERGY_COSTS, ENERGY_RATES } from './config.js';
+import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES } from './config.js';
 import { STATE, saveHighScore } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
 import {
@@ -7,7 +7,7 @@ import {
     playWinSfx, playRoundOverSfx, playPowerupSfx, playBoostSfx,
     shakeCamera, spawnDeathParticles, spawnExplosionParticles,
     spawnWallHitParticle, spawnMuzzleFlashParticles,
-    setGameOverMessages, setGoalMessages, setDeathMessages
+    setDeathMessages
 } from './effects.js';
 
 //// Helper functions
@@ -192,26 +192,11 @@ function handleMineDrop(p, input, now) {
 }
 
 function handleGoal(p, input, now) {
-    // Goal
     let gx = CONFIG.MAZE_OFFSET_X + (p.goalC * CONFIG.CELL_SIZE) + 1;
     let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
     if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
-        p.score += 1;
-        if (p.score >= CONFIG.MAX_SCORE) {
-            STATE.victimIdx = STATE.players.find(x=>x.id !== p.id).id;
-            let winnerName = p.name;
-            if (winnerName !== "CPU") {
-                saveHighScore(); // SAVE HIGH SCORE
-            }
-            STATE.isGameOver = true;
-            setGameOverMessages(p);
-        } else {
-            setGoalMessages(p);
-            STATE.victimIdx = (p.id == 1) ? 0 : 1;
-        }
-        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        resolveRound(p.id, 'GOAL');
     }
-
 }
 
 function checkPlayerCollision(p, dx, dy) {
@@ -306,6 +291,70 @@ function handleWallDestruction(x, y) {
 }
 
 //// Helper functions END
+
+/**
+ * Central round resolution. All round-ending paths funnel through here.
+ * @param {number|null} winnerIdx - Index of the winning player (null for draw/timeout)
+ * @param {string} reason - 'GOAL', 'DRAW', 'TIMEOUT', or 'COMBAT'
+ */
+export function resolveRound(winnerIdx, reason) {
+    // --- DRAW ---
+    if (reason === 'DRAW') {
+        STATE.messages.round = "DOUBLE KO! DRAW!";
+        STATE.messages.roundColor = "#ffffff";
+        playRoundOverSfx();
+        STATE.isRoundOver = true;
+        STATE.scrollX = CONFIG.LOGICAL_W + 5;
+        STATE.deathTimer = 0;
+        STATE.isDraw = false;
+        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        return;
+    }
+
+    // --- TIMEOUT ---
+    if (reason === 'TIMEOUT') {
+        playRoundOverSfx();
+        STATE.isRoundOver = true;
+        STATE.messages.round = "TIME OUT!";
+        STATE.messages.roundColor = "#ffff00";
+        STATE.scrollX = CONFIG.LOGICAL_W + 5;
+        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        return;
+    }
+
+    // --- STANDARD WIN (goal or combat) ---
+    let winner = STATE.players[winnerIdx];
+    let victimIdx = (winnerIdx === 0) ? 1 : 0;
+    STATE.victimIdx = victimIdx;
+    winner.score++;
+
+    // Set round message based on reason
+    if (reason === 'GOAL') {
+        STATE.messages.round = `${winner.name} SCORES!`;
+        STATE.messages.roundColor = winner.color;
+    } else {
+        STATE.messages.round = `${STATE.players[victimIdx]?.name} '${STATE.messages.deathReason}!'`;
+        STATE.messages.roundColor = STATE.players[victimIdx].color;
+    }
+
+    if (winner.score >= CONFIG.MAX_SCORE) {
+        playWinSfx();
+        if (winner.name !== "CPU") saveHighScore();
+        STATE.isGameOver = true;
+        STATE.messages.win = `${winner.name} WINS!`;
+        STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+        STATE.messages.winColor = winner.color;
+        STATE.messages.roundColor = winner.color;
+        STATE.scrollX = CONFIG.LOGICAL_W + 5;
+    } else {
+        playRoundOverSfx();
+        STATE.isRoundOver = true;
+        STATE.scrollX = CONFIG.LOGICAL_W + 5;
+    }
+
+    STATE.deathTimer = 0;
+    if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+}
 
 export function triggerExplosion(x, y, reason = "EXPLODED") {
     playExplosionSfx();
