@@ -1,8 +1,16 @@
-import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES } from './config.js';
+import { CONFIG, TIMING, ENERGY_COSTS, ENERGY_RATES } from './config.js';
 import { STATE, saveHighScore } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
+import {
+    playShieldSfx, playChargeSfx, playMineDropSfx, playShootSfx,
+    playChargedShootSfx, playExplosionSfx, playDeathSfx,
+    playWinSfx, playRoundOverSfx, playPowerupSfx, playBoostSfx,
+    shakeCamera, spawnDeathParticles, spawnExplosionParticles,
+    spawnWallHitParticle, spawnMuzzleFlashParticles,
+    setGameOverMessages, setGoalMessages, setDeathMessages
+} from './effects.js';
 
-//// Helper functions 
+//// Helper functions
 
 function handleDetonate(p, input, now) {
     // Detonate
@@ -29,7 +37,7 @@ function handleShield(p, input, now) {
             p.boostEnergy -= ENERGY_COSTS.SHIELD_ACTIVATION;
         }
         if (p.boostEnergy > 0 && !p.shieldActive) {
-            STATE.sfx.shield();
+            playShieldSfx();
             p.shieldActive = true;
         }
         p.boostEnergy -= ENERGY_RATES.SHIELD_DRAIN;
@@ -51,7 +59,7 @@ function handleBeamInput(p, input, now) {// Beam
             p.isCharging = false;
             p.chargeStartTime = 0;
         } else if (p.isCharging && now % 6 === 0) {
-            STATE.sfx.charge();
+            playChargeSfx();
         }
     } else {
         if (p.isCharging) {
@@ -87,7 +95,7 @@ function handleMovement(p, input, now) {
             // Play sound every 100ms (prevents stuttering)
             if (now - p.lastBoostTime > TIMING.BOOST_SOUND_THROTTLE) {
                 p.lastBoostTime = now;
-                STATE.sfx.boost();
+                playBoostSfx();
             }
         } else {
             if (p.boostEnergy <= 0) p.boostCooldown = CONFIG.BOOST_COOLDOWN_FRAMES;
@@ -167,7 +175,7 @@ function handleMovement(p, input, now) {
 function handleMineDrop(p, input, now) {
     // Mine Drop
     if (input.mine && p.minesLeft > 0 && now - p.lastMineTime > TIMING.MINE_COOLDOWN) {
-        STATE.sfx.mineDrop();
+        playMineDropSfx();
         p.lastMineTime = now;
         p.minesLeft--;
         STATE.mines.push({
@@ -190,24 +198,17 @@ function handleGoal(p, input, now) {
     if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
         p.score += 1;
         if (p.score >= CONFIG.MAX_SCORE) {
-            STATE.sfx.win();
             STATE.victimIdx = STATE.players.find(x=>x.id !== p.id).id;
             let winnerName = p.name;
             if (winnerName !== "CPU") {
                 saveHighScore(); // SAVE HIGH SCORE
             }
             STATE.isGameOver = true;
-            STATE.messages.win = `${STATE.players[p.id]?.name} WINS!`;
-            STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
-            STATE.messages.winColor = p.color;
+            setGameOverMessages(p);
         } else {
-            STATE.sfx.roundOver();
-            STATE.isRoundOver = true;
-            STATE.messages.round = `${STATE.players[p.id]?.name} SCORES!`;
+            setGoalMessages(p);
         }
-        STATE.messages.roundColor = p.color;
         STATE.victimIdx = (p.id == 1) ? 0 : 1;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
         if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
     }
 
@@ -231,8 +232,8 @@ function handleMultiDeath(indices, reason) {
 
     // Set global death state
     STATE.deathTimer = 50;
-    STATE.messages.deathReason = reason || "ELIMINATED";
-    STATE.sfx.death();
+    setDeathMessages(reason);
+    playDeathSfx();
 
     // Check for Draw
     if (indices.length > 1) {
@@ -246,18 +247,7 @@ function handleMultiDeath(indices, reason) {
     indices.forEach(idx => {
         let p = STATE.players[idx];
         p.isDead = true;
-
-        // Visual effects for each player
-        for (let i = 0; i < 30; i++) {
-            STATE.particles.push({
-                x: p.x + 1,
-                y: p.y + 1,
-                vx: (Math.random() - 0.5) * 4,
-                vy: (Math.random() - 0.5) * 4,
-                life: 1.5,
-                color: p.color
-            });
-        }
+        spawnDeathParticles(p);
     });
 }
 
@@ -268,41 +258,14 @@ function handlePlayerDeath(victimIdx, reason) {
     STATE.players[victimIdx].isDead = true;
     STATE.victimIdx = victimIdx;
     // 2. Store the reason in the global state (add this property implicitly)
-    STATE.messages.deathReason = reason || "ELIMINATED BY A SNEAKY BUG";
-    // 3. Start the Death Timer 
+    setDeathMessages(reason || "ELIMINATED BY A SNEAKY BUG");
+    // 3. Start the Death Timer
     STATE.deathTimer = 50;
 
     // 4. Extra visual effects
     let p = STATE.players[victimIdx];
-    STATE.sfx.death();
-
-    for (let i = 0; i < 30; i++) {
-        STATE.particles.push({
-            x: p.x + 1,
-            y: p.y + 1,
-            vx: (Math.random() - 0.5) * 4,
-            vy: (Math.random() - 0.5) * 4,
-            life: 1.5,
-            color: p.color
-        });
-    }
-}
-
-function spawnExplosionParticles(x, y) {
-    const PARTICLE_COUNT = 30;
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-        let angle = Math.random() * Math.PI * 2;
-        let speed = Math.random() * 3.5;
-        STATE.particles.push({
-            x: x + 1,
-            y: y + 1,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            decay: 0.02 + Math.random() * 0.03,
-            life: 1.0,
-            color: '#ffffff'
-        });
-    }
+    playDeathSfx();
+    spawnDeathParticles(p);
 }
 
 function applyPlayerExplosionDamage(x, y, reason) {
@@ -345,8 +308,8 @@ function handleWallDestruction(x, y) {
 //// Helper functions END
 
 export function triggerExplosion(x, y, reason = "EXPLODED") {
-    STATE.sfx.explosion();
-    STATE.camera.shake(15);
+    playExplosionSfx();
+    shakeCamera(15);
     handleWallDestruction(x, y);
     spawnExplosionParticles(x, y);
     applyPlayerExplosionDamage(x, y, reason);
@@ -370,7 +333,7 @@ export function fireBeam(p) {
 
     // Apply costs now that we have a valid path target
     p.boostEnergy -= ENERGY_COSTS.BEAM;
-    STATE.sfx.shoot();
+    playShootSfx();
 
     // --- PATHFINDING (Existing Logic) ---
     // Reset pathfinding flags
@@ -478,15 +441,7 @@ export function updateProjectiles() {
             let gc = Math.floor((tipX - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
             let gr = Math.floor(tipY / CONFIG.CELL_SIZE);
             destroyWallAt(gc, gr);
-            STATE.particles.push({
-                x: tipX,
-                y: tipY,
-                vx: proj.vx * 0.5,
-                vy: proj.vy * 0.5,
-                decay: 0.02 + Math.random() * 0.04,
-                life: 0.8,
-                color: '#555'
-            });
+            spawnWallHitParticle(tipX, tipY, proj.vx * 0.5, proj.vy * 0.5);
         }
 
         for (let mIdx = STATE.mines.length - 1; mIdx >= 0; mIdx--) {
@@ -522,33 +477,6 @@ export function updateProjectiles() {
 
 }
 
-export function updateParticles() {
-    for (let i = STATE.particles.length - 1; i >= 0; i--) {
-        let p = STATE.particles[i];
-
-        // Move
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // 1. ADD FRICTION (Air Resistance)
-        // This makes particles burst fast then slow down nicely
-        p.vx *= 0.85;
-        p.vy *= 0.85;
-
-        // Decay life
-        p.life -= p.decay;
-
-        // 2. DYNAMIC COLOR RAMP (Heat Cooling)
-        // White -> Yellow -> Orange -> Red -> Fade
-        if (p.life > 0.8) p.color = '#ffffff';       // White Hot
-        else if (p.life > 0.5) p.color = '#ffff00';  // Yellow
-        else if (p.life > 0.25) p.color = '#ff9900'; // Orange
-        else p.color = '#660000';                    // Dark Red (Smoke)
-
-        if (p.life <= 0) STATE.particles.splice(i, 1);
-    }
-}
-
 export function fireChargedBeam(p) {
     if (p.boostEnergy < ENERGY_COSTS.CHARGED_BEAM) return;
 
@@ -575,7 +503,7 @@ export function fireChargedBeam(p) {
 
     // 4. Fire!
     p.boostEnergy -= ENERGY_COSTS.CHARGED_BEAM;
-    STATE.sfx.chargedShoot();
+    playChargedShootSfx();
 
     STATE.projectiles.push({
         x: startX,
@@ -591,26 +519,7 @@ export function fireChargedBeam(p) {
     // p.x -= vx * 2;
     // p.y -= vy * 2;
 
-    for (let i = 0; i < 10; i++) {
-        STATE.particles.push({
-            x: startX,
-            y: startY,
-            vx: (Math.random() - 0.5) * 3,
-            vy: (Math.random() - 0.5) * 3,
-            life: 2,
-            decay: 0.02 + Math.random() * 0.03,
-            color: '#fff'
-        });
-    }
-}
-
-export function checkBoostTrail(p) {
-    if (p.boostEnergy > 0 && p.currentSpeed > CONFIG.BASE_SPEED) {
-        p.trail.push({ x: p.x, y: p.y });
-        if (p.trail.length > CONFIG.TRAIL_LENGTH) p.trail.shift();
-    } else if (p.trail.length > 0) {
-        p.trail.shift();  // Remove oldest point
-    }
+    spawnMuzzleFlashParticles(startX, startY);
 }
 
 export function checkBeamCollisions() {
@@ -644,7 +553,7 @@ export function checkBeamActions(p, idx) {
             if (!p.shieldActive) {
                 p.stunStartTime = STATE.frameCount;
                 p.glitchStartTime = STATE.frameCount;
-                STATE.sfx.charge();
+                playChargeSfx();
             }
             opponent.beamPixels = [];
             opponent.beamIdx = 9999;
@@ -701,9 +610,8 @@ export function checkCrate(p) {
     if (STATE.ammoCrate && Math.abs((p.x + 1) - (STATE.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (STATE.ammoCrate.y + 1)) < 2) {
         p.minesLeft = CONFIG.MAX_MINES;
         p.boostEnergy = CONFIG.MAX_ENERGY;
-        STATE.sfx.powerup();
+        playPowerupSfx();
         STATE.ammoCrate = null;
         STATE.ammoLastTakeTime = STATE.frameCount;
     }
 }
-
