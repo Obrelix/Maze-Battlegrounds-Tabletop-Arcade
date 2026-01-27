@@ -641,6 +641,69 @@ export function getDifficultyPreset(difficulty = 'INTERMEDIATE') {
   return DIFFICULTY_PRESETS[difficulty] || DIFFICULTY_PRESETS.INTERMEDIATE;
 }
 
+const DIFFICULTY_FEATURES = {
+  BEGINNER: {
+    ADVANCED_MINING_ENABLED: false,
+    TACTICAL_CHARGING_ENABLED: false,
+    SHIELD_CHANCE: 0.30,
+    ADAPTIVE_DIFFICULTY_ENABLED: false,
+    PREDICTIVE_MOVEMENT_ENABLED: false,
+    COMBO_CHAINS_ENABLED: false,
+    CORNER_CUT_DETECTION: false,
+    RESOURCE_DENIAL_ENABLED: false,
+    PREDICTION_WINDOW: 5,
+    BASE_AGGRESSION: 0.15,
+    AGGRESSION_SCALE_UP: 0.5,
+    AGGRESSION_SCALE_DOWN: 0.8,
+    MINE_STRATEGY: 'DEFENSIVE',
+  },
+  INTERMEDIATE: {
+    ADVANCED_MINING_ENABLED: false,
+    TACTICAL_CHARGING_ENABLED: false,
+    SHIELD_CHANCE: 0.60,
+    ADAPTIVE_DIFFICULTY_ENABLED: true,
+    PREDICTIVE_MOVEMENT_ENABLED: false,
+    COMBO_CHAINS_ENABLED: false,
+    CORNER_CUT_DETECTION: true,
+    RESOURCE_DENIAL_ENABLED: false,
+    PREDICTION_WINDOW: 15,
+    BASE_AGGRESSION: 0.35,
+    AGGRESSION_SCALE_UP: 1,
+    AGGRESSION_SCALE_DOWN: 0.4,
+    MINE_STRATEGY: 'DEFENSIVE',
+  },
+  HARD: {
+    ADVANCED_MINING_ENABLED: true,
+    TACTICAL_CHARGING_ENABLED: true,
+    SHIELD_CHANCE: 0.80,
+    ADAPTIVE_DIFFICULTY_ENABLED: true,
+    PREDICTIVE_MOVEMENT_ENABLED: true,
+    COMBO_CHAINS_ENABLED: true,
+    CORNER_CUT_DETECTION: true,
+    RESOURCE_DENIAL_ENABLED: true,
+    PREDICTION_WINDOW: 20,
+    BASE_AGGRESSION: 0.75,
+    AGGRESSION_SCALE_UP: 1.4,
+    AGGRESSION_SCALE_DOWN: 0.3,
+    MINE_STRATEGY: 'BALANCED',
+  },
+  INSANE: {
+    ADVANCED_MINING_ENABLED: true,
+    TACTICAL_CHARGING_ENABLED: true,
+    SHIELD_CHANCE: 1,
+    ADAPTIVE_DIFFICULTY_ENABLED: false,
+    PREDICTIVE_MOVEMENT_ENABLED: true,
+    COMBO_CHAINS_ENABLED: true,
+    CORNER_CUT_DETECTION: true,
+    RESOURCE_DENIAL_ENABLED: true,
+    PREDICTION_WINDOW: 35,
+    BASE_AGGRESSION: 0.98,
+    AGGRESSION_SCALE_UP: 1.7,
+    AGGRESSION_SCALE_DOWN: 0.2,
+    MINE_STRATEGY: 'AGGRESSIVE',
+  },
+};
+
 export function setDifficulty(difficulty = 'INTERMEDIATE', tacticalStyle = null) {
   const baseConfig = DIFFICULTY_PRESETS[difficulty] || DIFFICULTY_PRESETS.INTERMEDIATE;
   let styleConfig = {};
@@ -649,22 +712,12 @@ export function setDifficulty(difficulty = 'INTERMEDIATE', tacticalStyle = null)
     styleConfig = TACTICAL_STYLES[tacticalStyle];
   }
 
+  const features = DIFFICULTY_FEATURES[difficulty] || DIFFICULTY_FEATURES.INTERMEDIATE;
+
   let enhancedConfig = {
     ...baseConfig,
     ...styleConfig,
-    ADVANCED_MINING_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
-    TACTICAL_CHARGING_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
-    SHIELD_CHANCE: difficulty === 'INSANE' ? 1 : difficulty === 'HARD' ? 0.80 : difficulty === 'INTERMEDIATE' ? 0.60 : difficulty === 'BEGINNER' ? 0.30 : 0.80,
-    ADAPTIVE_DIFFICULTY_ENABLED: difficulty !== 'INSANE' && difficulty !== 'BEGINNER',
-    PREDICTIVE_MOVEMENT_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
-    COMBO_CHAINS_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
-    CORNER_CUT_DETECTION: difficulty !== 'BEGINNER',
-    RESOURCE_DENIAL_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
-    PREDICTION_WINDOW: difficulty === 'INSANE' ? 35 : difficulty === 'HARD' ? 20 : difficulty === 'INTERMEDIATE' ? 15 : difficulty === 'BEGINNER' ? 5 : 20,
-    BASE_AGGRESSION: difficulty === 'INSANE' ? 0.98 : difficulty === 'HARD' ? 0.75 : difficulty === 'INTERMEDIATE' ? 0.35 : difficulty === 'BEGINNER' ? 0.15 : 0.6,
-    AGGRESSION_SCALE_UP: difficulty === 'INSANE' ? 1.7 : difficulty === 'HARD' ? 1.4 : difficulty === 'INTERMEDIATE' ? 1 : difficulty === 'BEGINNER' ? 0.5 : 1,
-    AGGRESSION_SCALE_DOWN: difficulty === 'INSANE' ? 0.2 : difficulty === 'HARD' ? 0.3 : difficulty === 'INTERMEDIATE' ? 0.4 : difficulty === 'BEGINNER' ? 0.8 : 0.8,
-    MINE_STRATEGY: difficulty === 'INSANE' ? 'AGGRESSIVE' : difficulty === 'HARD' ? 'BALANCED' : 'DEFENSIVE',
+    ...features,
   };
 
   if (typeof window !== 'undefined') {
