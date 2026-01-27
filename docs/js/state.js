@@ -23,6 +23,7 @@ export const STATE = {
     isRoundOver: false,
     deathTimer: 0,
     victimIdx: -1,
+    isPaused: false,
     isDraw: false,
     messages: {
         deathReason: "",
@@ -141,6 +142,7 @@ export function resetStateForMatch() {
     STATE.maxGameTime = CONFIG.GAME_TIME;
     STATE.deathTimer = 0;
     STATE.victimIdx = -1;
+    STATE.isPaused = false;
     STATE.isDraw = false;
     STATE.messages = {
         deathReason: "",

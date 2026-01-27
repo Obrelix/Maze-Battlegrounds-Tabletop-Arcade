@@ -132,9 +132,10 @@ function updateMinesAndCrates() {
 }
 
 function update() {
-    STATE.frameCount++;
     if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
         STATE.gpData = pollGamepads(startGame, startMatchSetup);
+    if (STATE.isPaused) return;
+    STATE.frameCount++;
     if (STATE.screen === 'HIGHSCORES') {
         // Allow exiting high scores
         if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {

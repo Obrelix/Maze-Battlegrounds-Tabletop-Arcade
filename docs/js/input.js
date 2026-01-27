@@ -27,11 +27,16 @@ export function setupInputs(startGame, startMatchSetup) {
         STATE.keys[k] = true;
 
         if (k === 'Escape') {
-            STATE.screen = 'MENU';
-            document.getElementById('statusText').innerText = "SELECT MODE";
+            if (STATE.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !STATE.isAttractMode) {
+                STATE.isPaused = !STATE.isPaused;
+            } else {
+                STATE.isPaused = false;
+                STATE.screen = 'MENU';
+                document.getElementById('statusText').innerText = "SELECT MODE";
+            }
         }
 
-        if (STATE.screen === 'PLAYING') {
+        if (STATE.screen === 'PLAYING' && !STATE.isPaused) {
             if (STATE.isGameOver) {
                 startGame(); // Full Reset
             } else if (STATE.isRoundOver) {
@@ -98,6 +103,14 @@ export function pollGamepads(startGame, startMatchSetup) {
         const isSelect = gp.buttons[8]?.pressed; // Select
         const isAnyButton = gp.buttons.some(b => b.pressed);
 
+        // PAUSE TOGGLE (Start button, edge-detected)
+        if (STATE.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !STATE.isAttractMode) {
+            if (isStart && !gp._prevStart) {
+                STATE.isPaused = !STATE.isPaused;
+            }
+        }
+        gp._prevStart = isStart;
+
         // MENU -> START GAME
         if (STATE.screen === 'MENU') {
             if (isAnyButton || targetState.up || targetState.down) {
@@ -109,7 +122,7 @@ export function pollGamepads(startGame, startMatchSetup) {
         }
 
         // GAME OVER / ROUND OVER -> RESET
-        if (STATE.isGameOver || STATE.isRoundOver) {
+        if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
             if (isStart || isSelect || targetState.shield) { // 'Shield' is often top button (Restart)
                 if (STATE.isGameOver) startGame();
                 else initMaze();
@@ -155,7 +168,7 @@ function initTouchControls(startGame, startMatchSetup) {
             const code = btn.getAttribute('data-key');
             STATE.keys[code] = true;
 
-            if ((STATE.isGameOver || STATE.isRoundOver)) {
+            if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
                 if (STATE.isGameOver) startGame();
                 else initMaze();
             }

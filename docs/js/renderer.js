@@ -500,7 +500,13 @@ export function renderGame() {
         }
     }
     // 9. OVERLAY TEXT & DIMMER
-    if (STATE.isGameOver || STATE.isRoundOver) {
+    if (STATE.isPaused) {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawText("PAUSED", 52, 25, "#ffffff");
+        if (Math.floor(Date.now() / 500) % 2 === 0)
+            drawText("PRESS ESC TO RESUME", 28, 40, "#ffff00");
+    } else if (STATE.isGameOver || STATE.isRoundOver) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
