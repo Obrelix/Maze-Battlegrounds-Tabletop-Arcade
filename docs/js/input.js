@@ -161,11 +161,12 @@ export function getHumanInput(playerIdx, controls) {
 function initTouchControls(startGame, startMatchSetup) {
     const buttons = document.querySelectorAll('.btn');
     buttons.forEach(btn => {
+        const code = btn.getAttribute('data-key');
+
         btn.addEventListener('touchstart', (e) => {
             resetIdleTimer();
             e.preventDefault();
             if (STATE.sfx) STATE.sfx.init();
-            const code = btn.getAttribute('data-key');
             STATE.keys[code] = true;
 
             if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
@@ -178,14 +179,20 @@ function initTouchControls(startGame, startMatchSetup) {
             }
         }, { passive: false });
 
-        btn.addEventListener('touchend', (e) => {
+        const release = (e) => {
             e.preventDefault();
-            const code = btn.getAttribute('data-key');
+            // Only release if no remaining touches are on this button
+            const touches = e.touches;
+            for (let i = 0; i < touches.length; i++) {
+                if (document.elementFromPoint(touches[i].clientX, touches[i].clientY) === btn) return;
+            }
             STATE.keys[code] = false;
-        }, { passive: false });
+        };
+
+        btn.addEventListener('touchend', release, { passive: false });
+        btn.addEventListener('touchcancel', release, { passive: false });
     });
 
-    // if (window.innerWidth > 1024) return; 
     initJoystick();
 }
 
