@@ -3,6 +3,7 @@ import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES } from '
 import { DIFFICULTY_PRESETS } from './ai_config_presets.js';
 
 export const STATE = {
+    frameCount: 0,
     screen: 'MENU',
     gameMode: 'SINGLE',
     isAttractMode: false,
@@ -101,7 +102,7 @@ export function suddenDeathIsActive() {
 
 export function shouldSpawnAmmoCrate() {
     if (STATE.gameTime && !STATE.ammoCrate)
-        return Date.now() - STATE.ammoLastTakeTime > TIMING.AMMO_RESPAWN_DELAY;
+        return STATE.frameCount - STATE.ammoLastTakeTime > TIMING.AMMO_RESPAWN_DELAY;
     else return false;
 }
 
@@ -125,6 +126,7 @@ export function resetStateForMatch() {
     STATE.players[1].name = p2Name;
 
     // Reset other match-level variables
+    STATE.frameCount = 0;
     STATE.isGameOver = false;
     STATE.isRoundOver = false;
     STATE.maze = [];

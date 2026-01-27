@@ -115,7 +115,7 @@ function handleSuddenDeath() {
                 x: CONFIG.MAZE_OFFSET_X + rx * CONFIG.CELL_SIZE,
                 y: ry * CONFIG.CELL_SIZE,
                 active: true, // Instantly active
-                droppedAt: Date.now(),
+                droppedAt: STATE.frameCount,
                 visX: 0, visY: 0,
                 owner: -1 // Neutral owner (hurts everyone)
             });
@@ -124,9 +124,8 @@ function handleSuddenDeath() {
 }
 
 function updateMinesAndCrates() {
-    let now = Date.now();
     STATE.mines.forEach(m => {
-        if (!m.active && now - m.droppedAt > TIMING.MINE_ARM_TIME) m.active = true;
+        if (!m.active && STATE.frameCount - m.droppedAt > TIMING.MINE_ARM_TIME) m.active = true;
     });
     if (shouldSpawnAmmoCrate()) {
         spawnAmmoCrate();
@@ -134,6 +133,7 @@ function updateMinesAndCrates() {
 }
 
 function update() {
+    STATE.frameCount++;
     if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
         STATE.gpData = pollGamepads(startGame, startMatchSetup);
     if (STATE.screen === 'HIGHSCORES') {

@@ -218,35 +218,35 @@ export class Player {
         };
     }
 
-    glitchRemaining(){
-        let timeDiff = Date.now() - this.glitchStartTime;
+    glitchRemaining(currentFrame){
+        let timeDiff = currentFrame - this.glitchStartTime;
         let result = TIMING.GLITCH_DURATION - timeDiff;
         return result;
     }
 
-    glitchIsActive() {
+    glitchIsActive(currentFrame) {
         if (this.glitchStartTime !== 0) {
-            let timeDiff = Date.now() - this.glitchStartTime;
+            let timeDiff = currentFrame - this.glitchStartTime;
             return timeDiff < TIMING.GLITCH_DURATION;
         } else return false;
     }
 
-    stunRemaining(){
-        let timeDiff = Date.now() - this.stunStartTime;
+    stunRemaining(currentFrame){
+        let timeDiff = currentFrame - this.stunStartTime;
         let result = TIMING.STUN_DURATION - timeDiff;
         return result;
     }
 
-    stunIsActive() {
+    stunIsActive(currentFrame) {
         if (this.stunStartTime !== 0) {
-            let timeDiff = Date.now() - this.stunStartTime;
+            let timeDiff = currentFrame - this.stunStartTime;
             return timeDiff < TIMING.STUN_DURATION;
         } else return false;
     }
 
-    chargeIsReady() {
+    chargeIsReady(currentFrame) {
         if (this.chargeStartTime !== 0) {
-            let timeDiff = Date.now() - this.chargeStartTime;
+            let timeDiff = currentFrame - this.chargeStartTime;
             return timeDiff >= TIMING.CHARGE_DURATION;
         } else return false;
     }

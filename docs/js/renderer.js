@@ -420,7 +420,7 @@ export function renderGame() {
 
         // --- 2. CHARGING EFFECT (Unchanged) ---
         if (p.isCharging) {
-            let r = (Date.now() - p.chargeStartTime) / TIMING.CHARGE_DURATION;
+            let r = (STATE.frameCount - p.chargeStartTime) / TIMING.CHARGE_DURATION;
             if (r > 1) r = 1;
             let cc = `hsl(${Math.floor((1 - r) * 120)},100%,50%)`;
             let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
@@ -447,7 +447,7 @@ export function renderGame() {
             ctx.globalAlpha = 1.0;
         }
         // --- 5. NEW: GLITCH & STUN VISUALS ---
-        if (p.glitchIsActive() || p.stunIsActive()) {
+        if (p.glitchIsActive(STATE.frameCount) || p.stunIsActive(STATE.frameCount)) {
             // 
             // EFFECT: "RGB Split" (Simulates Broken Controls)
             // const shake = Math.random(-3,1); // Pixel offset amount
@@ -465,7 +465,7 @@ export function renderGame() {
             // 20% Chance to draw the real white core on top
             if (Math.random() > 0.8) drawPlayerBody(p.x, p.y, '#FFFFFF');
 
-            if (p.stunIsActive()) {
+            if (p.stunIsActive(STATE.frameCount)) {
                 // 
                 // EFFECT: "Static Shock" (Simulates Stun)
                 // Rapidly flash between Dim Grey and Bright White

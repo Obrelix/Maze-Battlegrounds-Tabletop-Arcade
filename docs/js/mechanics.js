@@ -46,16 +46,16 @@ function handleBeamInput(p, input, now) {// Beam
             p.isCharging = true;
             p.chargeStartTime = now;
         }
-        if (p.chargeIsReady()) {
+        if (p.chargeIsReady(now)) {
             fireChargedBeam(p);
             p.isCharging = false;
             p.chargeStartTime = 0;
-        } else if (p.isCharging && Math.floor(now / 100) % 5 === 0) {
+        } else if (p.isCharging && now % 6 === 0) {
             STATE.sfx.charge();
         }
     } else {
         if (p.isCharging) {
-            if (!p.chargeIsReady())
+            if (!p.chargeIsReady(now))
                 fireBeam(p);
             p.isCharging = false;
         }
@@ -68,7 +68,7 @@ function handleBeamInput(p, input, now) {// Beam
 function handleMovement(p, input, now) {
     // Movement
     let speed = CONFIG.BASE_SPEED;
-    if (p.stunIsActive()) {
+    if (p.stunIsActive(now)) {
         speed = CONFIG.BASE_SPEED * 0.5;
         if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
     } else if (p.isCharging) {
@@ -85,7 +85,7 @@ function handleMovement(p, input, now) {
             if (p.boostEnergy <= 0) p.boostEnergy = 0;
 
             // Play sound every 100ms (prevents stuttering)
-            if (now - p.lastBoostTime > 600) {
+            if (now - p.lastBoostTime > TIMING.BOOST_SOUND_THROTTLE) {
                 p.lastBoostTime = now;
                 STATE.sfx.boost();
             }
@@ -103,7 +103,7 @@ function handleMovement(p, input, now) {
     if (input.left) dx = -speed;
     if (input.right) dx = speed;
 
-    if (p.glitchIsActive()) {
+    if (p.glitchIsActive(now)) {
         dx = -dx;
         dy = -dy;
     }
@@ -446,7 +446,7 @@ export function fireBeam(p) {
 }
 
 export function applyPlayerActions(p, input) {
-    let now = Date.now();
+    let now = STATE.frameCount;
     handleDetonate(p, input, now);
     handleShield(p, input, now);
     handleBeamInput(p, input, now);
@@ -642,8 +642,8 @@ export function checkBeamActions(p, idx) {
         let tip = opponent.beamPixels[tipIdx];
         if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
             if (!p.shieldActive) {
-                p.stunStartTime = Date.now();
-                p.glitchStartTime = Date.now();
+                p.stunStartTime = STATE.frameCount;
+                p.glitchStartTime = STATE.frameCount;
                 STATE.sfx.charge();
             }
             opponent.beamPixels = [];
@@ -690,7 +690,7 @@ export function checkPortalActions(p) {
                 p.portalCooldown = 60;
                 p.speed = CONFIG.BASE_SPEED;
                 if (Math.random() < CONFIG.PORTAL_GLITCH_CHANCE) {
-                    p.glitchStartTime = Date.now();
+                    p.glitchStartTime = STATE.frameCount;
                 }
             }
         }
@@ -703,7 +703,7 @@ export function checkCrate(p) {
         p.boostEnergy = CONFIG.MAX_ENERGY;
         STATE.sfx.powerup();
         STATE.ammoCrate = null;
-        STATE.ammoLastTakeTime = Date.now();
+        STATE.ammoLastTakeTime = STATE.frameCount;
     }
 }
 

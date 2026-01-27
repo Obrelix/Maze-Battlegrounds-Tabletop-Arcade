@@ -39,15 +39,16 @@ export const GAME = {
 };
 
 export const TIMING = {
-    SUDDEN_DEATH_TIME: 1800,        // Frames
-    CHARGE_DURATION: 3000,          // milliseconds
-    MINE_ARM_TIME: 1000,            // milliseconds
-    STUN_DURATION: 1500,            // milliseconds
-    GLITCH_DURATION: 3000,          // milliseconds
-    DEMO_RESET_TIMER: 500,          // Frames
-    AMMO_RESPAWN_DELAY: 1500,       // milliseconds
-    MINE_COOLDOWN: 250,             // milliseconds
-    IDLE_THRESHOLD: 8000,           // milliseconds
+    SUDDEN_DEATH_TIME: 1800,                                // Frames
+    CHARGE_DURATION: Math.round(3000 / FIXED_STEP_MS),      // 180 frames
+    MINE_ARM_TIME: Math.round(1000 / FIXED_STEP_MS),        // 60 frames
+    STUN_DURATION: Math.round(1500 / FIXED_STEP_MS),        // 90 frames
+    GLITCH_DURATION: Math.round(3000 / FIXED_STEP_MS),      // 180 frames
+    DEMO_RESET_TIMER: 500,                                  // Frames
+    AMMO_RESPAWN_DELAY: Math.round(1500 / FIXED_STEP_MS),   // 90 frames
+    MINE_COOLDOWN: Math.round(250 / FIXED_STEP_MS),         // 15 frames
+    BOOST_SOUND_THROTTLE: Math.round(600 / FIXED_STEP_MS),  // 36 frames
+    IDLE_THRESHOLD: 8000,                                    // milliseconds (wall-clock)
 };
 
 export const ENERGY_RATES = {
