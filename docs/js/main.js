@@ -2,7 +2,8 @@ import { CONFIG, CONTROLS_P1, CONTROLS_P2, TAUNTS, TIMING, COLORS, DIFFICULTIES,
 import { STATE, resetStateForMatch, saveHighScore, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
-import { getCpuInput, setDifficulty } from './ai.js';
+import { getCpuInput } from './ai/controller.js';
+import { setDifficulty } from './ai/difficulty.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import { applyPlayerActions, updateProjectiles, checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions } from './mechanics.js';
 import { updateParticles, checkBoostTrail } from './effects.js';

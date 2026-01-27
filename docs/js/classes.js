@@ -216,6 +216,12 @@ export class Player {
             x: 0,
             y: 0
         };
+        this.aiMentalModel = null;
+        this.aiFrameCounter = 0;
+        this.confusionTimer = 0;
+        this.confusedDir = null;
+        this.directionHistory = [];
+        this._suggestedMinePos = null;
     }
 
     glitchRemaining(currentFrame){

@@ -1,6 +1,6 @@
 import { SoundFX, Camera, Player } from './classes.js';
 import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES } from './config.js';
-import { DIFFICULTY_PRESETS } from './ai_config_presets.js';
+import { DIFFICULTY_PRESETS } from './ai/difficulty.js';
 
 export const STATE = {
     frameCount: 0,

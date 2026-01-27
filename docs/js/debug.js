@@ -43,6 +43,18 @@ export function validateState() {
             if (p.minesLeft > CONFIG.MAX_MINES) {
                 warn(`players[${idx}].minesLeft (${p.minesLeft}) exceeds MAX_MINES (${CONFIG.MAX_MINES})`);
             }
+            // AI property validation for CPU players
+            if (p.name === 'CPU') {
+                if (p.aiMentalModel !== null && typeof p.aiMentalModel !== 'object') {
+                    warn(`players[${idx}].aiMentalModel should be null or object, got ${typeof p.aiMentalModel}`);
+                }
+                if (!Array.isArray(p.directionHistory)) {
+                    warn(`players[${idx}].directionHistory should be an array, got ${typeof p.directionHistory}`);
+                }
+                if (typeof p.aiFrameCounter !== 'number') {
+                    warn(`players[${idx}].aiFrameCounter should be a number, got ${typeof p.aiFrameCounter}`);
+                }
+            }
         });
     }
 

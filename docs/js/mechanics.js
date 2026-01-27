@@ -207,8 +207,8 @@ function handleGoal(p, input, now) {
             setGameOverMessages(p);
         } else {
             setGoalMessages(p);
+            STATE.victimIdx = (p.id == 1) ? 0 : 1;
         }
-        STATE.victimIdx = (p.id == 1) ? 0 : 1;
         if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
     }
 

@@ -226,7 +226,7 @@ export function renderGame() {
     });
 
     // 3. Draw Goals
-    let gc = Math.floor(Date.now() / 200) % 2 === 0 ? '#fff' : '#444';
+    let gc = Math.floor(STATE.frameCount / 12) % 2 === 0 ? '#fff' : '#444';
     STATE.players.forEach(p => {
         let gx = CONFIG.MAZE_OFFSET_X + p.goalC * CONFIG.CELL_SIZE + 1;
         let gy = p.goalR * CONFIG.CELL_SIZE + 1;
@@ -279,7 +279,7 @@ export function renderGame() {
 
         // Animation Timing
         // We cycle through 0, 1, 2, 3 based on time
-        let tick = Math.floor(Date.now() / 100);
+        let tick = Math.floor(STATE.frameCount / 6);
         let activeIdx = tick % 4;
 
         const dimHex = inOpacityHex.toString(16).padStart(2, '0');
@@ -319,7 +319,7 @@ export function renderGame() {
             { dx: 1, dy: 0 }, // Top-Right
             { dx: 0, dy: 0 }, // Top-Left
         ];
-        let tick = Math.floor(Date.now() / 100);
+        let tick = Math.floor(STATE.frameCount / 6);
         let activeIdx = tick % 4;
         cellCeq.forEach((pos, idx) => {
             if (idx === activeIdx) {
@@ -355,7 +355,7 @@ export function renderGame() {
     }
 
     // 5. Draw Mines & Projectiles
-    STATE.mines.forEach(m => drawLED(m.x + m.visX, m.y + m.visY, m.active ? (Date.now() % 200 < 100 ? '#f00' : '#800') : '#444'));
+    STATE.mines.forEach(m => drawLED(m.x + m.visX, m.y + m.visY, m.active ? (STATE.frameCount % 12 < 6 ? '#f00' : '#800') : '#444'));
     // ... Mines drawing code above ...
 
     // --- 5b. PROJECTILE RENDER (Rasterized Rotated Rectangle) ---
@@ -380,7 +380,7 @@ export function renderGame() {
         let minY = Math.floor(p.y - scanRadius);
         let maxY = Math.ceil(p.y + scanRadius);
 
-        let color = (Date.now() % 60 < 30) ? '#ffffff' : p.color; // Flash White/Color
+        let color = (STATE.frameCount % 4 < 2) ? '#ffffff' : p.color; // Flash White/Color
 
         // 3. Loop through physical LEDs (Integers)
         for (let y = minY; y <= maxY; y++) {
@@ -467,7 +467,7 @@ export function renderGame() {
                 // 
                 // EFFECT: "Static Shock" (Simulates Stun)
                 // Rapidly flash between Dim Grey and Bright White
-                let flashColor = (Math.floor(Date.now() / 40) % 2 === 0) ? '#444444' : '#FFFFFF';
+                let flashColor = (Math.floor(STATE.frameCount / 2) % 2 === 0) ? '#444444' : '#FFFFFF';
                 drawPlayerBody(p.x, p.y, flashColor);
             }
             // Draw random "sparks" around the player
@@ -482,7 +482,7 @@ export function renderGame() {
         } else {
             // NORMAL RENDER
             let color = p.color; // Simplified lookup
-            if (p && p.boostEnergy < 25 && Math.floor(Date.now() / 100) % 2 === 0) {
+            if (p && p.boostEnergy < 25 && Math.floor(STATE.frameCount / 6) % 2 === 0) {
                 color = '#555'; // Flash grey if exhaustedx
             }
             drawPlayerBody(p.x, p.y, color);

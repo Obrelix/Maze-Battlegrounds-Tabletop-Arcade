@@ -165,11 +165,12 @@ function calculateGameTime() {
     });
 
     let q = [start];
+    let head = 0;
     start.bfsVisited = true;
     let len = 0;
 
-    while (q.length > 0) {
-        let curr = q.shift();
+    while (head < q.length) {
+        let curr = q[head++];
         if (curr === end) {
             while (curr.parent) {
                 len++;
@@ -223,6 +224,7 @@ function spawnPortals() {
             break;
         }
     }
+    if (attempts >= 1000) console.warn('Portal 1 spawn: exhausted 1000 attempts, using fallback position');
 
     // --- 2. Find Location for Portal 2 (Near Bottom-Right) ---
     let p2 = { c: Math.floor(CONFIG.COLS * 3 / 4), r: Math.floor(CONFIG.ROWS * 3 / 4) };
@@ -243,6 +245,7 @@ function spawnPortals() {
             break;
         }
     }
+    if (attempts >= 1000) console.warn('Portal 2 spawn: exhausted 1000 attempts, using fallback position');
 
     // Push Portal 1
     STATE.portals.push({
