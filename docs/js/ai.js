@@ -45,11 +45,12 @@ function findPathToTarget(fromPlayer, targetX, targetY) {
   });
 
   let queue = [start];
+  let head = 0;
   start.bfsVisited = true;
   let found = false;
 
-  while (queue.length > 0) {
-    let curr = queue.shift();
+  while (head < queue.length) {
+    let curr = queue[head++];
     if (curr === end) {
       found = true;
       break;
