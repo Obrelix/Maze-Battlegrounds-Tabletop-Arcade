@@ -192,7 +192,7 @@ function calculateGameTime() {
             }
         });
     }
-    STATE.gameTime = Math.floor((len * CONFIG.CELL_SIZE / (CONFIG.BASE_SPEED*1.2)) * 6);
+    STATE.gameTime = Math.floor((len * CONFIG.CELL_SIZE / (CONFIG.BASE_SPEED * 1.2)) * 6);
     STATE.maxGameTime = STATE.gameTime;
 }
 
@@ -201,14 +201,14 @@ function spawnPortals() {
     // Portal 1: Near Player 1 spawn (0,0) 
     // Portal 2: Near Player 2 spawn (COLS-1, ROWS-1) 
 
-    // Constraints: Distance between 5 and 7 cells from spawn.
-    const MIN_DIST = 14;
-    const MAX_DIST = 15;
+    // Constraints: Distance range from spawn for portal placement.
+    const MIN_DIST = 8;
+    const MAX_DIST = 18;
 
     STATE.portals = [];
 
     // --- 1. Find Location for Portal 1 (Near Top-Left) ---
-    let p1 = { c: 0, r: 0 };
+    let p1 = { c: Math.floor(CONFIG.COLS / 4), r: Math.floor(CONFIG.ROWS / 4) };
     let attempts = 0;
     while (attempts < 1000) {
         attempts++;
@@ -217,7 +217,7 @@ function spawnPortals() {
         let r = Math.floor(4 + Math.random() * ((CONFIG.ROWS - 4) / 2));
 
         // Calculate distance from P1 Spawn (0,0)
-        let dist = Math.hypot(c - 0, r - 0);
+        let dist = Math.hypot(c, r);
 
         if (dist >= MIN_DIST && dist <= MAX_DIST) {
             p1 = { c, r };
@@ -226,7 +226,7 @@ function spawnPortals() {
     }
 
     // --- 2. Find Location for Portal 2 (Near Bottom-Right) ---
-    let p2 = { c: CONFIG.COLS - 1, r: CONFIG.ROWS - 1 };
+    let p2 = { c: Math.floor(CONFIG.COLS * 3 / 4), r: Math.floor(CONFIG.ROWS * 3 / 4) };
     attempts = 0;
     while (attempts < 1000) {
         attempts++;
@@ -251,7 +251,7 @@ function spawnPortals() {
         r: p1.r,
         x: CONFIG.MAZE_OFFSET_X + p1.c * CONFIG.CELL_SIZE + 1.5,
         y: p1.r * CONFIG.CELL_SIZE + 1.5,
-        color: COLORS.find(x=> x.name === "CYAN").hex
+        color: COLORS.find(x => x.name === "CYAN").hex
     });
 
     // Push Portal 2
@@ -260,7 +260,7 @@ function spawnPortals() {
         r: p2.r,
         x: CONFIG.MAZE_OFFSET_X + p2.c * CONFIG.CELL_SIZE + 1.5,
         y: p2.r * CONFIG.CELL_SIZE + 1.5,
-        color: COLORS.find(x=> x.name === "BLUE").hex 
+        color: COLORS.find(x => x.name === "BLUE").hex
     });
 
     // --- 3. Apply Wall Clearing (Your requested fix) ---

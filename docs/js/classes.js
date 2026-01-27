@@ -27,15 +27,19 @@ export class Camera {
 
 export class SoundFX {
     constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.value = 0.3;
-        this.masterGain.connect(this.ctx.destination);
+        this.ctx = null;
+        this.masterGain = null;
         this.initialized = false;
     }
 
     init() {
         if (!this.initialized) {
+            if (!this.ctx) {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = 0.3;
+                this.masterGain.connect(this.ctx.destination);
+            }
             this.ctx.resume().then(() => {
                 this.initialized = true;
             });
@@ -43,6 +47,7 @@ export class SoundFX {
     }
 
     playTone(freq, type, duration, slideTo = null) {
+        if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.init();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -64,6 +69,7 @@ export class SoundFX {
     }
 
     playNoise(duration) {
+        if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.init();
         const bufferSize = this.ctx.sampleRate * duration;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);

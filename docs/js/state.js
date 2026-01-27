@@ -33,6 +33,8 @@ export const STATE = {
     },
     scrollX: 70,
     scrollY: 0,
+    scrollXVal: -1,
+    scrollYVal: +2,
     sfx: new SoundFX(),
     camera: new Camera(),
     gpData: null,
@@ -144,7 +146,9 @@ export function resetStateForMatch() {
         winColor: "#fff",
         roundColor: "#fff"
     };
-    STATE.scrollX = 70,
-        STATE.scrollY = 0,
-        STATE.portalReverseColors = false;
+    STATE.scrollX = 70;
+    STATE.scrollY = 0;
+    STATE.scrollXVal = -1;
+    STATE.scrollYVal = +2;
+    STATE.portalReverseColors = false;
 }

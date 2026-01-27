@@ -244,12 +244,11 @@ export function renderGame() {
         // It will cover the 3x3 cell + 1 extra row/col.
         let tx = Math.floor(p.x - 1.5);
         let ty = Math.floor(p.y - 1.5);
-        let outColor = CONFIG.PORTAL2_COLOR;
         let effectColor = '#ffffffaa';
-        const inOpacityHex = '60';
+        const inOpacityHex = 0x60;
         let cyan = COLORS.find(x => x.name === "CYAN").hex
         let blue = COLORS.find(x => x.name === "BLUE").hex
-        outColor = (idx === 0) ? (STATE.portalReverseColors ? cyan : blue) : (STATE.portalReverseColors ? blue : cyan);
+        let outColor = (idx === 0) ? (STATE.portalReverseColors ? cyan : blue) : (STATE.portalReverseColors ? blue : cyan);
 
         // --- A. Draw Perimeter (Static Color) ---
         // Indices relative to tx, ty:
@@ -285,20 +284,23 @@ export function renderGame() {
         let tick = Math.floor(Date.now() / 100);
         let activeIdx = tick % 4;
 
+        const dimHex = inOpacityHex.toString(16).padStart(2, '0');
+        const dimmerHex = (inOpacityHex - 0x10).toString(16).padStart(2, '0');
+
         centerSeq.forEach((pos, idx) => {
             if (idx === activeIdx) {
                 // The "Moving" pixel is White (Bright)
                 drawLED(tx + pos.dx, ty + pos.dy, effectColor);
             } else if (idx === activeIdx - 1) {
-                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${inOpacityHex}`);
+                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${dimHex}`);
             } else if (activeIdx === 0 && idx === 3) {
-                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${inOpacityHex}`);
+                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${dimHex}`);
             } else if (idx === activeIdx - 2) {
-                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${inOpacityHex - 10}`);
+                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${dimmerHex}`);
             } else if (activeIdx === 0 && idx === 2) {
-                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${inOpacityHex - 10}`);
+                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${dimmerHex}`);
             } else if (activeIdx === 1 && idx === 3) {
-                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${inOpacityHex - 10}`);
+                drawLED(tx + pos.dx, ty + pos.dy, `${effectColor.slice(0, 7)}${dimmerHex}`);
             } else {
                 // The trail pixels are dimmer versions of the portal color
                 // OR different colors to make it look like a swirling vortex
@@ -311,8 +313,6 @@ export function renderGame() {
     if (STATE.ammoCrate) {
         let moveColor = 'rgba(255, 255, 255, 0.9)';
         let effectColor = 'rgba(0, 255, 21, 0.8)';
-        let perimColor = 'rgba(255, 255, 255, 0.9)';
-        const inOpacityHex = '60';
         let tx = STATE.ammoCrate.x;
         let ty = STATE.ammoCrate.y;
         const cellCeq = [

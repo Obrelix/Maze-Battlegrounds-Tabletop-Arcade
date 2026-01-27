@@ -12,7 +12,7 @@ export const CONFIG = {
     ROWS: 21,
     COLS: 37,
     MAX_ENERGY: 150,
-    MAX_SCORE: 1,
+    MAX_SCORE: 5,
     MAX_MINES: 4,
     BASE_SPEED: 0.6,
     MAX_SPEED: 1.4,
@@ -30,8 +30,6 @@ export const CONFIG = {
     BOOST_COOLDOWN_FRAMES: 120,
     STORAGE_KEY: 'LED_MAZE_HIGHSCORES',
     DEFAULT_NAMES: ['P-1', 'P-2'],
-    SCROLL_X_VAL: -1,
-    SCROLL_Y_VAL: +2,
 };
 
 export const GAME = {
@@ -46,16 +44,16 @@ export const TIMING = {
     MINE_ARM_TIME: 1000,            // milliseconds
     STUN_DURATION: 1500,            // milliseconds
     GLITCH_DURATION: 3000,          // milliseconds
-    DEMO_RESET_TIMER: 500,          // milliseconds
+    DEMO_RESET_TIMER: 500,          // Frames
     AMMO_RESPAWN_DELAY: 1500,       // milliseconds
-    MINE_COOLDOWN: 250,            // milliseconds
+    MINE_COOLDOWN: 250,             // milliseconds
     IDLE_THRESHOLD: 8000,           // milliseconds
 };
 
 export const ENERGY_RATES = {
-    SHIELD_DRAIN: CONFIG.MAX_ENERGY / (4 * 60),       // 0.83 per tick
-    BOOST_DRAIN: CONFIG.MAX_ENERGY / (6 * 60),        // 0.5 per tick
-    BOOST_REGEN: (CONFIG.MAX_ENERGY / (12 * 60)) // 0.09375 per tick            
+    SHIELD_DRAIN: CONFIG.MAX_ENERGY / (4 * 60),       // 0.625 per tick
+    BOOST_DRAIN: CONFIG.MAX_ENERGY / (6 * 60),        // 0.42 per tick
+    BOOST_REGEN: (CONFIG.MAX_ENERGY / (12 * 60))      // 0.208 per tick            
 };
 
 export const ENERGY_COSTS = {

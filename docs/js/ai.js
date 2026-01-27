@@ -100,16 +100,16 @@ function decideStrategy(player, opponent, currentConfig) {
   let distToEnemy = Math.hypot(opponent.x - player.x, opponent.y - player.y);
 
   let aggression = currentConfig.BASE_AGGRESSION || 0.6;
-  if (currentConfig.NAME !== 'INSANE') {
+  if (currentConfig.NAME !== 'INSANE' && currentConfig.NAME !== 'BEGINNER') {
     const scoreDiff = opponent.score - player.score;
     if (scoreDiff >= 2) aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3);
     if (scoreDiff <= -2) aggression *= (currentConfig.AGGRESSION_SCALE_DOWN || 0.8);
-  } else if (currentConfig.NAME !== 'BEGINNER') {
+  } else if (currentConfig.NAME === 'BEGINNER') {
     aggression = 0.4;
   } else
     aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3)
   // PANIC DEFENSE
-  if (enemyDistToTheirGoal < 10 || (enemyDistToTheirGoal + 80 < myDistToGoal) && currentConfig.NAME !== 'BEGINNER') {
+  if ((enemyDistToTheirGoal < 10 || (enemyDistToTheirGoal + 80 < myDistToGoal)) && currentConfig.NAME !== 'BEGINNER') {
     return { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 10 };
   }
 
@@ -352,7 +352,6 @@ function shouldExecuteCombo(player, opponent, currentConfig) {
 // 6. MOVEMENT DIRECTION
 // ============================================================
 
-// ai.js - MOVEMENT LOGIC UPDATE
 
 function getSmartMovementDirection(player, target, currentConfig) {
   // 1. HUMAN ERROR SIMULATION
@@ -449,7 +448,7 @@ function adjustDifficultyDynamically(playerScore, cpuScore, currentConfig) {
 }
 
 function getEnergyStrategy(player, opponent, currentConfig) {
-  if (currentConfig.NAME === 'BEGINNER') return { boost: Math.random() > 0.9, boost: Math.random() > 0.9 };
+  if (currentConfig.NAME === 'BEGINNER') return { shield: Math.random() > 0.9, boost: Math.random() > 0.9 };
   let dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
   // let scoreDiff = opponent.score - player.score;
 
@@ -655,9 +654,7 @@ export function setDifficulty(difficulty = 'INTERMEDIATE', tacticalStyle = null)
     ...styleConfig,
     ADVANCED_MINING_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
     TACTICAL_CHARGING_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
-    SHIELD_CHANCE: difficulty === 'INSANE' ? 1 : difficulty === 'HARD' ? 0.80 : difficulty === 'INTERMEDIATE' ? 0.60 : difficulty === 'BEGINNER' ? 0.30 : 0.80,                 // Shields chance
-    REACTION_DELAY: difficulty === 'INSANE' ? 0 : difficulty === 'HARD' ? 50 : difficulty === 'INTERMEDIATE' ? 150 : difficulty === 'BEGINNER' ? 300 : 50,                // Reaction delay
-    PREDICTION_ERROR: difficulty === 'INSANE' ? 0 : difficulty === 'HARD' ? 50 : difficulty === 'INTERMEDIATE' ? 150 : difficulty === 'BEGINNER' ? 300 : 50,              // Prediction Error
+    SHIELD_CHANCE: difficulty === 'INSANE' ? 1 : difficulty === 'HARD' ? 0.80 : difficulty === 'INTERMEDIATE' ? 0.60 : difficulty === 'BEGINNER' ? 0.30 : 0.80,
     ADAPTIVE_DIFFICULTY_ENABLED: difficulty !== 'INSANE' && difficulty !== 'BEGINNER',
     PREDICTIVE_MOVEMENT_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',
     COMBO_CHAINS_ENABLED: difficulty !== 'BEGINNER' && difficulty !== 'INTERMEDIATE',

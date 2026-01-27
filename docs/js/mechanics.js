@@ -68,7 +68,7 @@ function handleBeamInput(p, input, now) {// Beam
 function handleMovement(p, input, now) {
     // Movement
     let speed = CONFIG.BASE_SPEED;
-    if (p.stunIsActive > 0) {
+    if (p.stunIsActive()) {
         speed = CONFIG.BASE_SPEED * 0.5;
         if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
     } else if (p.isCharging) {

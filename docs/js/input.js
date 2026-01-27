@@ -124,22 +124,25 @@ export function pollGamepads(startGame, startMatchSetup) {
 }
 
 export function getHumanInput(playerIdx, controls) {
-    const gp = (playerIdx === 0) ? STATE.gpData.p1 : STATE.gpData.p2;
-
-    // 2. Merge Keyboard (STATE.keys) + Gamepad (gp)
-    // This allows you to use BOTH simultaneously without conflict
-    return {
-        up: STATE.keys[controls.up] || gp.up,
-        down: STATE.keys[controls.down] || gp.down,
-        left: STATE.keys[controls.left] || gp.left,
-        right: STATE.keys[controls.right] || gp.right,
-        shield: STATE.keys[controls.shield] || gp.shield,
-        beam: STATE.keys[controls.beam] || gp.beam,
-        mine: STATE.keys[controls.mine] || gp.mine,
-        boost: STATE.keys[controls.boost] || gp.boost,
-        boom: STATE.keys[controls.boom] || gp.boom,
-        start: STATE.keys[controls.start] || gp.start
-    };
+    const gp = (playerIdx === 0) ? STATE?.gpData?.p1 : STATE?.gpData?.p2;
+    if (gp === undefined)
+        return {
+            up: false, down: false, left: false, right: false, shield: false, beam: false,
+            mine: false, boost: false, boom: false, start: false
+        };
+    else
+        return {
+            up: STATE.keys[controls.up] || gp.up,
+            down: STATE.keys[controls.down] || gp.down,
+            left: STATE.keys[controls.left] || gp.left,
+            right: STATE.keys[controls.right] || gp.right,
+            shield: STATE.keys[controls.shield] || gp.shield,
+            beam: STATE.keys[controls.beam] || gp.beam,
+            mine: STATE.keys[controls.mine] || gp.mine,
+            boost: STATE.keys[controls.boost] || gp.boost,
+            boom: STATE.keys[controls.boom] || gp.boom,
+            start: STATE.keys[controls.start] || gp.start
+        };
 }
 
 function initTouchControls(startGame, startMatchSetup) {

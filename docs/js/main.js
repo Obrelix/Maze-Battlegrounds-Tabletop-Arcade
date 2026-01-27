@@ -27,7 +27,7 @@ function startGame() {
     if (STATE.sfx) STATE.sfx.init();
     STATE.screen = 'PLAYING';
     resetStateForMatch();
-    document.getElementById('statusText').innerText = "GOAL: 5 POINTS";
+    document.getElementById('statusText').innerText = `GOAL: ${CONFIG.MAX_SCORE} POINTS`;
     // setDifficulty('INSANE');
     const ps = STATE.playerSetup;
     const chosen = DIFFICULTIES[ps.difficultyIdx].name;
@@ -161,24 +161,25 @@ function update() {
         if (checkIdle()) {
             STATE.isAttractMode = true;
             STATE.gameMode = 'MULTI';
+            STATE.playerSetup.difficultyIdx = 3; // Default to INSANE for demo
             startGame();
         }
         updateParticles();
         return;
     }
     if (suddenDeathIsActive() && !(STATE.isGameOver || STATE.isRoundOver)) {
-        STATE.scrollX += CONFIG.SCROLL_X_VAL;
+        STATE.scrollX += STATE.scrollXVal;
         if (STATE.scrollX < 5) {
-            STATE.scrollY += CONFIG.SCROLL_Y_VAL;
-            CONFIG.SCROLL_X_VAL *= -1;
+            STATE.scrollY += STATE.scrollYVal;
+            STATE.scrollXVal *= -1;
         }
         if (STATE.scrollX > 75) {
-            STATE.scrollY += CONFIG.SCROLL_Y_VAL;
-            CONFIG.SCROLL_X_VAL *= -1;
+            STATE.scrollY += STATE.scrollYVal;
+            STATE.scrollXVal *= -1;
         }
         if (STATE.scrollY >= 60 || STATE.scrollY < 0) {
-            CONFIG.SCROLL_Y_VAL *= -1;
-            STATE.scrollY += CONFIG.SCROLL_Y_VAL;
+            STATE.scrollYVal *= -1;
+            STATE.scrollY += STATE.scrollYVal;
         }
         // STATE.scrollY = 0;
     }
