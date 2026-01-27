@@ -1,7 +1,6 @@
 import { CONFIG, COLORS } from './config.js';
 import { STATE } from './state.js';
 import { Cell } from './classes.js';
-
 export function gridIndex(c, r) {
     if (c < 0 || r < 0 || c >= CONFIG.COLS || r >= CONFIG.ROWS) return undefined;
     return STATE.maze[c + r * CONFIG.COLS];
@@ -251,7 +250,7 @@ function spawnPortals() {
         r: p1.r,
         x: CONFIG.MAZE_OFFSET_X + p1.c * CONFIG.CELL_SIZE + 1.5,
         y: p1.r * CONFIG.CELL_SIZE + 1.5,
-        color: COLORS.find(x => x.name === "CYAN").hex
+        color: STATE.cyanColor
     });
 
     // Push Portal 2
@@ -260,7 +259,7 @@ function spawnPortals() {
         r: p2.r,
         x: CONFIG.MAZE_OFFSET_X + p2.c * CONFIG.CELL_SIZE + 1.5,
         y: p2.r * CONFIG.CELL_SIZE + 1.5,
-        color: COLORS.find(x => x.name === "BLUE").hex
+        color: STATE.blueColor
     });
 
     // --- 3. Apply Wall Clearing (Your requested fix) ---

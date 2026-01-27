@@ -40,6 +40,8 @@ export const STATE = {
     camera: new Camera(),
     gpData: null,
     portalReverseColors: false,
+    cyanColor: COLORS.find(x => x.name === "CYAN").hex,
+    blueColor: COLORS.find(x => x.name === "BLUE").hex,
     highScores: JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY)) || [
         { name: "ZEU", winColor: "#aa00ffff", oppColor: "#ff0000ff", score: 10, oppScore: 6, opponent: "CPU-INSANE", multiplier: 1 },
         { name: "ARE", winColor: "#ffffffff", oppColor: "#ff5100ff", score: 8, oppScore: 5, opponent: "CPU-HARD", multiplier: 0.8 },

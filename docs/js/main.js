@@ -4,11 +4,9 @@ import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput, setDifficulty } from './ai.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
-import {
-    applyPlayerActions, updateProjectiles,
-    checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions
-} from './mechanics.js';
+import { applyPlayerActions, updateProjectiles, checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions } from './mechanics.js';
 import { updateParticles, checkBoostTrail } from './effects.js';
+import { validateState } from './debug.js';
 
 function startMatchSetup() {
     resetStateForMatch();
@@ -64,7 +62,7 @@ function finalizeRound() {
     let victimIdx = STATE.victimIdx;
     let winnerIdx = (victimIdx === 0) ? 1 : 0;
     STATE.players[winnerIdx].score++;
-    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) { 
+    if (STATE.players[winnerIdx].score >= CONFIG.MAX_SCORE) {
     }
     STATE.messages.round = `${STATE.players[victimIdx]?.name} '${STATE.messages.deathReason}!'`;
     STATE.messages.roundColor = STATE.players[victimIdx].color;
@@ -244,6 +242,7 @@ function update() {
         applyPlayerActions(p, cmd);
     });
     updateParticles();
+    validateState();
 }
 
 GAME.lastUpdateTime = performance.now();

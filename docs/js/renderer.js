@@ -246,9 +246,7 @@ export function renderGame() {
         let ty = Math.floor(p.y - 1.5);
         let effectColor = '#ffffffaa';
         const inOpacityHex = 0x60;
-        let cyan = COLORS.find(x => x.name === "CYAN").hex
-        let blue = COLORS.find(x => x.name === "BLUE").hex
-        let outColor = (idx === 0) ? (STATE.portalReverseColors ? cyan : blue) : (STATE.portalReverseColors ? blue : cyan);
+        let outColor = (idx === 0) ? (STATE.portalReverseColors ? STATE.cyanColor : STATE.blueColor) : (STATE.portalReverseColors ? STATE.blueColor : STATE.cyanColor);
 
         // --- A. Draw Perimeter (Static Color) ---
         // Indices relative to tx, ty:
