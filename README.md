@@ -175,9 +175,14 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - **`renderer.js`** – LED matrix rendering, camera shake, HUD display, text rendering (bitmap fonts), and visual effects
 - **`grid.js`** – Maze generation (recursive backtracking), wall collision detection, and cell indexing helpers
 - **`input.js`** – Keyboard, gamepad, and touch input polling; idle detection for attract mode and mobile UI bindings
-- **`classes.js`** – Player, projectile, particle, and other entity class definitions
-- **`ai.js`** – CPU controller with pathfinding, predictive aiming, adaptive difficulty, tactical mine placement, and combo behavior (uses presets from `ai_config_presets.js`)
-- **`ai_config_presets.js`** – Difficulty and tactical style presets used to configure the AI at runtime 
+- **`classes.js`** – Player, Camera, SoundFX, and Cell class definitions (includes AI property initialization)
+- **`debug.js`** – State invariant validation (dev mode only, enabled via `?dev` URL parameter)
+- **`ai/`** – Modular AI system split into focused modules:
+  - **`ai/controller.js`** – CPU input orchestrator (`getCpuInput`), smart movement direction
+  - **`ai/pathfinding.js`** – BFS pathfinding with O(1) dequeue, stuck detection, unstuck recovery
+  - **`ai/strategy.js`** – High-level strategy selection, predictive movement, corner-cut detection, combo chains
+  - **`ai/combat.js`** – Beam firing decisions, tactical charging, mine detonation logic, advanced mine placement
+  - **`ai/difficulty.js`** – Difficulty presets, tactical styles, feature flags, adaptive difficulty scaling, config management
 - **`nipplejs.min.js`** – Third‑party virtual joystick library used for the mobile touch controls
 - **`style.css`** – Retro cabinet styling, responsive layout, and mobile UI layout
 - **`index.html`** – Main entry point: canvas, HUD, mobile controls, and script/style wiring
@@ -187,6 +192,7 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 #### Rendering
 - **LED-accurate simulation:** 128×64 logical grid at P2.5 pitch (10px per LED on screen)
 - **Dynamic wall coloring:** Walls shift through HSL spectrum based on round timer (red→yellow→cyan)
+- **Frame-based animations:** All gameplay animations (portals, mines, crates, projectiles) use `frameCount` so they freeze on pause
 - **Bitmap font rendering:** Custom 3×5 font for on‑screen text and HUD
 - **Pre‑rendered background:** Static LED grid cached for performance
 - **Camera shake:** Screen jitter on impacts and explosions
@@ -196,15 +202,17 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - **Entity overlap detection:** AABB checks for mines, crates, portals, and projectiles
 - **Momentum‑based movement:** Substepped collision resolution with nudging for tight corners
 
-#### AI
-- **Breadth‑First Search (BFS) pathfinding:** Computes safe paths around mines and walls
-- **Predictive aiming:** Analyzes enemy movement patterns and predicts future positions for beam and mine placement
+#### AI (modular architecture under `ai/`)
+- **Breadth‑First Search (BFS) pathfinding:** O(1) dequeue pointer-based BFS; computes safe paths around mines and walls
+- **Reaction latency:** Configurable think-interval simulates human reaction time (1–20 frames between decisions)
+- **Human error simulation:** Configurable confusion chance causes temporary random movement for realism
+- **Predictive aiming:** Analyzes enemy movement patterns, direction history, and corner-cutting to predict future positions
 - **Tactical charging:** AI decides when to charge beams based on enemy alignment, stun state, and energy levels
 - **Adaptive difficulty:** Dynamically adjusts aggression, energy thresholds, and reaction times based on score differential
 - **Combo chains:** Executes multi‑action sequences (stun → charge, boost → hunt) for maximum effectiveness
 - **Strategic mine placement:** Places mines defensively around own goal or aggressively along enemy paths based on difficulty preset
-- **Survival mode:** Shields incoming projectiles and retreats to ammo crates when low on energy
-- **Unstuck detection:** Breaks out of stuck states with randomized jiggle
+- **Energy management:** Context-aware shield/boost decisions based on distance to enemy and energy reserves
+- **Unstuck detection:** Breaks out of stuck states with randomized jiggle after 15 frames of no movement
 
 #### Audio
 - **Minimal SFX:** Beam charge, shield activation, mine drop, detonation, damage, death (Web Audio API)
@@ -227,7 +235,7 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - Modify `config.js` to tune game constants (energy costs, timings, colors, etc.)
 - Edit `mechanics.js` for gameplay logic changes
 - Update `renderer.js` for visual tweaks
-- Adjust `ai.js` and `ai_config_presets.js` for CPU difficulty and behavior
+- Adjust modules under `ai/` for CPU difficulty and behavior (`ai/difficulty.js` for presets, `ai/strategy.js` for tactics)
 
 #### Build & deploy
 
@@ -282,15 +290,16 @@ GLITCH_DURATION: 180,        // Control inversion duration (frames)
 CONTROLS_P1, CONTROLS_P2     // Keyboard key mappings
 ```
 
-### AI difficulty presets (in `ai_config_presets.js`)
+### AI difficulty presets (in `ai/difficulty.js`)
 
 Available difficulty levels:
-- **BEGINNER** – Slower reactions, basic pathfinding, defensive mine placement
-- **INTERMEDIATE** – Balanced behavior with moderate aggression and tactical awareness
-- **HARD** – Fast reactions, predictive aiming, strategic mine placement
-- **INSANE** – Near-perfect reactions, advanced prediction, adaptive difficulty, aggressive tactics
+- **BEGINNER** – Slower reactions (thinks 3×/sec), 25% movement error chance, basic pathfinding, defensive mine placement
+- **INTERMEDIATE** – Balanced behavior (thinks 6×/sec), moderate aggression, adaptive difficulty scaling
+- **HARD** – Fast reactions (thinks 15×/sec), predictive aiming, tactical charging, strategic mine placement, combo chains
+- **INSANE** – Every-frame reactions, advanced prediction (35-frame window), near-perfect aim, aggressive mine strategy
+- **DYNAMIC** – Starts at INTERMEDIATE and auto-adjusts based on score differential
 
-To change AI difficulty, modify the `setDifficulty()` call in `ai.js` or set `window.AI_CONFIG` at runtime.
+To change AI difficulty, call `setDifficulty('HARD')` from `ai/difficulty.js`. The active config is managed via `getActiveConfig()` / `setActiveConfig()` module exports (no global `window.AI_CONFIG`).
 
 ### High score system
 
@@ -330,5 +339,5 @@ MIT License – Free for personal, educational, and non‑commercial use.
 
 ---
 
-**Last updated:** January 2026  
-**Version:** 0.1.1‑alpha
+**Last updated:** January 27, 2026
+**Version:** 0.1.2‑alpha
