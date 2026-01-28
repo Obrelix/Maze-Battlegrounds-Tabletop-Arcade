@@ -33,7 +33,8 @@ Maze Battlegrounds is a 1v1 top‑down shooter designed for a digital tabletop e
 ### Game Modes
 
 - **Single Player vs CPU** – AI uses advanced pathfinding, predictive movement, tactical beam charging, and mine placement tuned by difficulty presets
-- **Multiplayer PvP** – Local head‑to‑head; Player 2 can be human (keyboard/gamepad) or CPU depending on inputs
+- **Local Multiplayer** – Head‑to‑head on the same device; Player 2 uses keyboard or gamepad
+- **Online Multiplayer** – WebSocket‑based network play with room creation and matchmaking
 
 The HUD and canvas layout mimic the final tabletop hardware: a 128×64 P2.5 RGB LED matrix with a split, flipped interface for opposing players.
 
@@ -104,11 +105,12 @@ Players have a single **Energy** bar (0–150) that slowly regenerates and is sh
 
 ### Game states
 
-- **MENU** – Main screen; select "1" for Single Player, "2" for PvP, "3" for High Scores
-- **PLAYER_SETUP** – Color selection (arrow keys) and 3‑letter name entry (customizable)
+- **MENU** – Main screen; navigate with W/S (or ↑/↓) and select with Space/Enter
+  - Single Player, Local Multi, Online Multi, High Scores
+- **PLAYER_SETUP** – Difficulty selection (single player), color selection, and 3‑letter name entry
 - **PLAYING** – Active gameplay with HUD, energy bars, and real‑time action
 - **ROUND_OVER** – Displays winner and scores; waits for next round
-- **GAME_OVER** – Full match winner with taunt message (best of 5 rounds)
+- **GAME_OVER** – Full match winner with taunt message (first to 5 points)
 - **HIGH_SCORES** – Displays top recorded player names and wins
 - **ATTRACT_MODE** – Auto‑demo when idle (both players AI‑controlled)
 
@@ -120,16 +122,17 @@ The web demo supports keyboard, gamepads, and mobile touch controls.
 
 ### Keyboard controls
 
-| Action | Player 1 (Blue) | Player 2 (Right) | Notes |
-|--------|-----------------|------------------|-------|
+| Action | Player 1 | Player 2 | Notes |
+|--------|----------|----------|-------|
 | **Move** | W / A / S / D | Arrow Keys | Navigate the maze |
 | **Tap/Hold Beam** | F (tap/hold) | K (tap/hold) | Tap = stun; hold ≈3s = lethal shot |
 | **Shield** | R | I | Block all damage while energy lasts |
 | **Drop Mine** | E | O | Place mine (max 4, refilled by crates) |
 | **Boost** | G | L | Speed boost; drains energy quickly |
 | **Boom** (Detonate) | Space | Enter | Remote detonation; costs 30 energy |
-| **Start/Menu** | 1, 2, R, Enter | Same | Context‑dependent: start game, next round, or reset |
-| **Menu** | Esc | Esc | Return to main menu |
+| **Menu Navigate** | W / S | ↑ / ↓ | Navigate menu options |
+| **Menu Select** | Space / F | Enter / K | Select menu option |
+| **Return to Menu** | Esc | Esc | Return to main menu |
 
 ### Gamepad support
 
@@ -176,6 +179,8 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - **`grid.js`** – Maze generation (recursive backtracking), wall collision detection, and cell indexing helpers
 - **`input.js`** – Keyboard, gamepad, and touch input polling; idle detection for attract mode and mobile UI bindings
 - **`classes.js`** – Player, Camera, SoundFX, and Cell class definitions (includes AI property initialization)
+- **`network.js`** – WebSocket‑based online multiplayer, room management, input synchronization
+- **`seededRandom.js`** – Deterministic random number generator for synchronized network play
 - **`debug.js`** – State invariant validation (dev mode only, enabled via `?dev` URL parameter)
 - **`ai/`** – Modular AI system split into focused modules:
   - **`ai/controller.js`** – CPU input orchestrator (`getCpuInput`), smart movement direction
@@ -313,7 +318,7 @@ High scores are persisted to browser `localStorage` under key `LED_MAZE_HIGHSCOR
 - **Sound effects** – Currently Web Audio API only; needs external audio for physical cabinet
 - **Gamepad support** – Tested on Xbox and SNES controllers; other layouts may need remapping
 - **Mobile responsiveness** – Optimized for portrait mobile; landscape recommended for best gameplay
-- **Network multiplayer** – Not yet supported; local play only
+- **Online multiplayer** – Requires a WebSocket server; not hosted publicly yet
 - **Customizable layouts** – Theme/color customization planned
 
 ---
@@ -339,5 +344,5 @@ MIT License – Free for personal, educational, and non‑commercial use.
 
 ---
 
-**Last updated:** January 27, 2026
-**Version:** 0.1.2‑alpha
+**Last updated:** January 29, 2026
+**Version:** 0.1.3‑alpha
