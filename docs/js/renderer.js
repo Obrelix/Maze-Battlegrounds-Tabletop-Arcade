@@ -591,11 +591,25 @@ export function renderMenu() {
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
 
-    drawText("SELECT MODE", 42, 5, "#fff");
-    drawText("1. SINGLE PLAYER", 32, 17, Math.floor(Date.now() / 500) % 4 === 0 ? "#08ffffff" : "#555");
-    drawText("2. LOCAL MULTI", 35, 27, Math.floor(Date.now() / 500) % 4 === 1 ? "#ff00ffff" : "#555");
-    drawText("3. ONLINE MULTI", 35, 37, Math.floor(Date.now() / 500) % 4 === 2 ? "#00ff88ff" : "#555");
-    drawText("4. HIGH SCORES", 35, 47, Math.floor(Date.now() / 500) % 4 === 3 ? "#88f" : "#555");
+    const sel = STATE.menuSelection;
+    const blink = Math.floor(Date.now() / 150) % 2 === 0;
+
+    drawText("SELECT MODE", 45, 5, "#fff");
+
+    // Draw selection arrow
+    if (blink) drawText("→", 35, 17 + sel * 10, "#fff");
+    if (blink) drawText("←", 92, 17 + sel * 10, "#fff");
+
+    // Menu options - selected one is bright and colored, others are dim
+    drawText("SINGLE PLAYER", 41, 17, sel === 0 ? "#08ffffff" : "#555");
+    drawText("LOCAL MULTI", 45, 27, sel === 1 ? "#ff00ffff" : "#555");
+    drawText("ONLINE MULTI", 43, 37, sel === 2 ? "#00ff88ff" : "#555");
+    drawText("HIGH SCORES", 45, 47, sel === 3 ? "#8888ffff" : "#555");
+
+    // drawText("↑↓ MOVE  BOOM SELECT", 14, 57, "#666");
     
-    drawText("AI: INSANE", 42, 57, "#f55");
+    drawText("↑ ↓", 12, 50, "#61ca5d");
+    drawText("CHANGE ", 5, 56, "#61ca5d");
+    drawText("START", 102, 50, "#bb4e4e");
+    drawText("SELECT", 100, 56, "#bb4e4e");
 }

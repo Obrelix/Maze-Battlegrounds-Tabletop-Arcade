@@ -239,6 +239,8 @@ function update() {
         // Allow exiting high scores
         if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
             STATE.screen = 'MENU';
+            STATE.menuSelection = 0;
+            STATE.menuInputDelay = 15;
         }
         return;
     }
@@ -251,23 +253,7 @@ function update() {
     document.getElementById('joystick-zone').style.display = "flex";
     document.getElementById('cross-zone').style.display = "none";
     if (STATE.screen === 'MENU') {
-        if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
-        if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startMatchSetup(); }
-        if (STATE.keys['Digit3']) {
-            STATE.gameMode = 'ONLINE';
-            openLobby();
-        }
-        if (STATE.keys['Digit4']) {
-            STATE.screen = 'HIGHSCORES';
-            STATE.gameMode = 'HIGHSCORES';
-        }
-        if (checkIdle()) {
-            STATE.isAttractMode = true;
-            STATE.gameMode = 'MULTI';
-            STATE.playerSetup.difficultyIdx = 3; // Default to INSANE for demo
-            startGame();
-        }
-        updateParticles();
+        handlePlayerMenuInput();
         return;
     }
     if (suddenDeathIsActive() && !(STATE.isGameOver || STATE.isRoundOver)) {
@@ -382,6 +368,62 @@ function loop(now) {
     else if (STATE.screen === 'HIGHSCORES') renderHighScores(); // New
     else renderGame();
     requestAnimationFrame(loop);
+}
+
+function handlePlayerMenuInput() {
+    // Handle menu navigation with input delay
+    if (STATE.menuInputDelay > 0) {
+        STATE.menuInputDelay--;
+    } else {
+        const input = getHumanInput(0, CONTROLS_P1);
+        // Navigate up
+        if (input.up) {
+            STATE.menuSelection = (STATE.menuSelection - 1 + 4) % 4;
+            STATE.menuInputDelay = 10;
+        }
+        // Navigate down
+        if (input.down) {
+            STATE.menuSelection = (STATE.menuSelection + 1) % 4;
+            STATE.menuInputDelay = 10;
+        }
+        // Select with boom (detonate) button
+        if (input.boom || input.beam || input.start) {
+            STATE.menuInputDelay = 15;
+            switch (STATE.menuSelection) {
+                case 0: // SINGLE PLAYER
+                    STATE.gameMode = 'SINGLE';
+                    startMatchSetup();
+                    break;
+                case 1: // LOCAL MULTI
+                    STATE.gameMode = 'MULTI';
+                    startMatchSetup();
+                    break;
+                case 2: // ONLINE MULTI
+                    STATE.gameMode = 'ONLINE';
+                    openLobby();
+                    break;
+                case 3: // HIGH SCORES
+                    STATE.screen = 'HIGHSCORES';
+                    STATE.gameMode = 'HIGHSCORES';
+                    break;
+            }
+        }
+    }
+
+    // Legacy number key support
+    if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
+    if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startMatchSetup(); }
+    if (STATE.keys['Digit3']) { STATE.gameMode = 'ONLINE'; openLobby(); }
+    if (STATE.keys['Digit4']) { STATE.screen = 'HIGHSCORES'; STATE.gameMode = 'HIGHSCORES'; }
+
+    if (checkIdle()) {
+        STATE.isAttractMode = true;
+        STATE.gameMode = 'MULTI';
+        STATE.playerSetup.difficultyIdx = 3; // Default to INSANE for demo
+        startGame();
+    }
+    updateParticles();
+
 }
 
 function handlePlayerSetupInput() {
