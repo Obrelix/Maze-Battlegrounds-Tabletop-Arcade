@@ -30,7 +30,7 @@ export const CONFIG = {
     BOOST_COOLDOWN_FRAMES: 120,
     STORAGE_KEY: 'LED_MAZE_HIGHSCORES',
     DEFAULT_NAMES: ['P-1', 'P-2'],
-    MENU_INPUT_DELAY: 25,
+    MENU_INPUT_DELAY: 20,
     SETUP_INPUT_DELAY: 20,
 };
 
@@ -39,8 +39,8 @@ export const GAME = {
     screen: 'MENU',
     isAttractMode: false,
     demoResetTimer: 0,
-    setupInputDelay: 20,
-    menuInputDelay: 25,
+    setupInputDelay: CONFIG.SETUP_INPUT_DELAY,
+    menuInputDelay: CONFIG.MENU_INPUT_DELAY,
     menuSelection: 0, // 0: SINGLE, 1: LOCAL MULTI, 2: ONLINE MULTI, 3: HIGH SCORES
     lastUpdateTime: 0,
     accumulator: 0
