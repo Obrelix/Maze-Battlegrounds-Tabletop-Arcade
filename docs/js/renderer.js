@@ -1,4 +1,4 @@
-import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS, DIFFICULTIES } from './config.js';
+import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
 import { STATE, suddenDeathIsActive } from './state.js';
 import { gridIndex } from './grid.js';
 
@@ -409,7 +409,7 @@ function drawParticles() {
 
 function drawOverlays() {
     renderHUD(getWallColor());
-    if (STATE.isAttractMode) {
+    if (GAME.isAttractMode) {
         if (Math.floor(Date.now() / 1200) % 2 === 0) {
             drawText("DEMO MODE", 48, 25, "#ff0000aa");
             drawText("PRESS ANY BUTTON", 34, 35, "#ffff00aa");
@@ -539,7 +539,7 @@ export function renderPlayerSetup() {
     const difficulty = DIFFICULTIES[ps.difficultyIdx];
     let previewX = 70;
     const blink = Math.floor(Date.now() / 200) % 2 === 0;
-    const isMulty = STATE.gameMode === 'MULTI';
+    const isMulty = GAME.gameMode === 'MULTI';
     let progressText = isMulty ? "MULTI PLAYERS" : "SINGLE PLAYER";
     let previewColorY = 28;
     let previewNameY = 38;
@@ -591,7 +591,7 @@ export function renderMenu() {
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
 
-    const sel = STATE.menuSelection;
+    const sel = GAME.menuSelection;
     const blink = Math.floor(Date.now() / 150) % 2 === 0;
 
     drawText("SELECT MODE", 45, 5, "#fff");

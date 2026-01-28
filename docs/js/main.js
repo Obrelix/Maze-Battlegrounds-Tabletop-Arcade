@@ -19,21 +19,21 @@ import {
 
 function startMatchSetup() {
     resetStateForMatch();
-    STATE.screen = 'PLAYER_SETUP';
+    GAME.screen = 'PLAYER_SETUP';
     STATE.playerSetup = {
         activePlayer: 0,
         difficultyIdx: 3,
         colorIdx: 0,
         nameCharIdx: 0,
         nameChars: [65, 65, 65],
-        phase: STATE.gameMode === 'MULTI' ? 'COLOR' : 'DIFFICULTY',
+        phase: GAME.gameMode === 'MULTI' ? 'COLOR' : 'DIFFICULTY',
         isDone: false
     };
 }
 
 function startGame(mazeSeed = null) {
     if (STATE.sfx) STATE.sfx.init();
-    STATE.screen = 'PLAYING';
+    GAME.screen = 'PLAYING';
     resetStateForMatch();
     document.getElementById('statusText').innerText = `GOAL: ${CONFIG.MAX_SCORE} POINTS`;
     // setDifficulty('INSANE');
@@ -72,11 +72,11 @@ function closeLobby() {
 }
 
 function startOnlineGame(mazeSeed, playerIndex) {
-    console.log('startOnlineGame called:', { mazeSeed, playerIndex, currentScreen: STATE.screen });
-    STATE.gameMode = 'ONLINE';
+    console.log('startOnlineGame called:', { mazeSeed, playerIndex, currentScreen: GAME.screen });
+    GAME.gameMode = 'ONLINE';
     hideLobbyModal();  // Just hide modal, keep connection open
     startGame(mazeSeed);  // This creates the players
-    console.log('After startGame, screen is:', STATE.screen);
+    console.log('After startGame, screen is:', GAME.screen);
     // Now set names after players exist
     STATE.players[playerIndex].name = 'YOU';
     STATE.players[1 - playerIndex].name = 'OPP';
@@ -146,7 +146,7 @@ setOnGameStart((data) => {
 });
 
 setOnDisconnect((reason) => {
-    if (STATE.gameMode === 'ONLINE' && STATE.screen === 'PLAYING') {
+    if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
         STATE.isPaused = true;
         // Show reconnection UI
         const disconnectOverlay = document.getElementById('disconnect-overlay');
@@ -235,16 +235,16 @@ function update() {
         STATE.gpData = pollGamepads(startGame, startMatchSetup);
     if (STATE.isPaused) return;
     STATE.frameCount++;
-    if (STATE.screen === 'HIGHSCORES') {
+    if (GAME.screen === 'HIGHSCORES') {
         // Allow exiting high scores
         if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
-            STATE.screen = 'MENU';
-            STATE.menuSelection = 0;
-            STATE.menuInputDelay = 25;
+            GAME.screen = 'MENU';
+            GAME.menuSelection = 0;
+            GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
         }
         return;
     }
-    if (STATE.screen === 'PLAYER_SETUP') {
+    if (GAME.screen === 'PLAYER_SETUP') {
         document.getElementById('joystick-zone').style.display = "none";
         document.getElementById('cross-zone').style.display = "grid";
         handlePlayerSetupInput();
@@ -252,7 +252,7 @@ function update() {
     }
     document.getElementById('joystick-zone').style.display = "flex";
     document.getElementById('cross-zone').style.display = "none";
-    if (STATE.screen === 'MENU') {
+    if (GAME.screen === 'MENU') {
         handlePlayerMenuInput();
         return;
     }
@@ -290,9 +290,9 @@ function update() {
         STATE.scrollX -= 0.5;
         let msgLen = (STATE.isGameOver ? STATE.messages.taunt.length : STATE.messages.round.length);
         if (STATE.scrollX < -(msgLen * 4.5)) STATE.scrollX = CONFIG.LOGICAL_W;
-        if (STATE.isAttractMode && STATE.demoResetTimer > 0) {
-            STATE.demoResetTimer--;
-            if (STATE.demoResetTimer <= 0) {
+        if (GAME.isAttractMode && GAME.demoResetTimer > 0) {
+            GAME.demoResetTimer--;
+            if (GAME.demoResetTimer <= 0) {
                 // Determine action: Restart Game (if Game Over) or Next Round (if Round Over)
                 if (STATE.isGameOver) {
                     startGame();
@@ -319,9 +319,9 @@ function update() {
 
         let cmd = {};// --- INPUT LOGIC  ---
         // If in Attract Mode, BOTH players use AI
-        if (STATE.isAttractMode) { // Player 1 targets Player 2, Player 2 targets Player 1
+        if (GAME.isAttractMode) { // Player 1 targets Player 2, Player 2 targets Player 1
             cmd = getCpuInput(p, STATE.players[(idx + 1) % 2]);
-        } else if (STATE.gameMode === 'ONLINE') {
+        } else if (GAME.gameMode === 'ONLINE') {
             // Online multiplayer: send local input, receive remote input
             const localIdx = getLocalPlayerIndex();
             if (idx === localIdx) {
@@ -338,7 +338,7 @@ function update() {
             if (idx === 0) {
                 cmd = getHumanInput(idx, CONTROLS_P1);
             } else {
-                if (STATE.gameMode === 'SINGLE') cmd = getCpuInput(p, STATE.players[0]);
+                if (GAME.gameMode === 'SINGLE') cmd = getCpuInput(p, STATE.players[0]);
                 else cmd = getHumanInput(idx, CONTROLS_P2);
             }
         }
@@ -346,7 +346,7 @@ function update() {
     });
 
     // Cleanup old input buffer entries in online mode
-    if (STATE.gameMode === 'ONLINE') {
+    if (GAME.gameMode === 'ONLINE') {
         cleanupInputBuffer();
     }
     updateParticles();
@@ -363,62 +363,62 @@ function loop(now) {
         update();
         GAME.accumulator -= CONFIG.FIXED_STEP_MS;
     }
-    if (STATE.screen === 'MENU') renderMenu();
-    else if (STATE.screen === 'PLAYER_SETUP') renderPlayerSetup();
-    else if (STATE.screen === 'HIGHSCORES') renderHighScores(); // New
+    if (GAME.screen === 'MENU') renderMenu();
+    else if (GAME.screen === 'PLAYER_SETUP') renderPlayerSetup();
+    else if (GAME.screen === 'HIGHSCORES') renderHighScores(); // New
     else renderGame();
     requestAnimationFrame(loop);
 }
 
 function handlePlayerMenuInput() {
     // Handle menu navigation with input delay
-    if (STATE.menuInputDelay > 0) {
-        STATE.menuInputDelay--;
-    } else {
-        const input = getHumanInput(0, CONTROLS_P1);
-        // Navigate up
-        if (input.up) {
-            STATE.menuSelection = (STATE.menuSelection - 1 + 4) % 4;
-            STATE.menuInputDelay = 25;
-        }
-        // Navigate down
-        if (input.down) {
-            STATE.menuSelection = (STATE.menuSelection + 1) % 4;
-            STATE.menuInputDelay = 25;
-        }
-        // Select with boom (detonate) button
-        if (input.boom || input.beam || input.start) {
-            STATE.menuInputDelay = 25;
-            switch (STATE.menuSelection) {
-                case 0: // SINGLE PLAYER
-                    STATE.gameMode = 'SINGLE';
-                    startMatchSetup();
-                    break;
-                case 1: // LOCAL MULTI
-                    STATE.gameMode = 'MULTI';
-                    startMatchSetup();
-                    break;
-                case 2: // ONLINE MULTI
-                    STATE.gameMode = 'ONLINE';
-                    openLobby();
-                    break;
-                case 3: // HIGH SCORES
-                    STATE.screen = 'HIGHSCORES';
-                    STATE.gameMode = 'HIGHSCORES';
-                    break;
-            }
+    if (GAME.menuInputDelay > 0) {
+        GAME.menuInputDelay--;
+        return;
+    }
+    const input = getHumanInput(0, CONTROLS_P1);
+    // Navigate up
+    if (input.up) {
+        GAME.menuSelection = (GAME.menuSelection - 1 + 4) % 4;
+        GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+    }
+    // Navigate down
+    if (input.down) {
+        GAME.menuSelection = (GAME.menuSelection + 1) % 4;
+        GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+    }
+    // Select with boom (detonate) button
+    if (input.boom || input.beam || input.start) {
+        GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+        switch (GAME.menuSelection) {
+            case 0: // SINGLE PLAYER
+                GAME.gameMode = 'SINGLE';
+                startMatchSetup();
+                break;
+            case 1: // LOCAL MULTI
+                GAME.gameMode = 'MULTI';
+                startMatchSetup();
+                break;
+            case 2: // ONLINE MULTI
+                GAME.gameMode = 'ONLINE';
+                openLobby();
+                break;
+            case 3: // HIGH SCORES
+                GAME.screen = 'HIGHSCORES';
+                GAME.gameMode = 'HIGHSCORES';
+                break;
         }
     }
 
     // Legacy number key support
-    if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
-    if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startMatchSetup(); }
-    if (STATE.keys['Digit3']) { STATE.gameMode = 'ONLINE'; openLobby(); }
-    if (STATE.keys['Digit4']) { STATE.screen = 'HIGHSCORES'; STATE.gameMode = 'HIGHSCORES'; }
+    if (STATE.keys['Digit1']) { GAME.gameMode = 'SINGLE'; startMatchSetup(); }
+    if (STATE.keys['Digit2']) { GAME.gameMode = 'MULTI'; startMatchSetup(); }
+    if (STATE.keys['Digit3']) { GAME.gameMode = 'ONLINE'; openLobby(); }
+    if (STATE.keys['Digit4']) { GAME.screen = 'HIGHSCORES'; GAME.gameMode = 'HIGHSCORES'; }
 
     if (checkIdle()) {
-        STATE.isAttractMode = true;
-        STATE.gameMode = 'MULTI';
+        GAME.isAttractMode = true;
+        GAME.gameMode = 'MULTI';
         STATE.playerSetup.difficultyIdx = 3; // Default to INSANE for demo
         startGame();
     }
@@ -427,6 +427,10 @@ function handlePlayerMenuInput() {
 }
 
 function handlePlayerSetupInput() {
+    if (GAME.menuInputDelay > 0) {
+        GAME.menuInputDelay--;
+        return;
+    }
     if (GAME.setupInputDelay > 0) {
         GAME.setupInputDelay--;
         return;
@@ -434,46 +438,46 @@ function handlePlayerSetupInput() {
     const ps = STATE.playerSetup;
     const controls = ps.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
     const input = getHumanInput(ps.activePlayer, controls);
-    const isMulty = STATE.gameMode === 'MULTI';
+    const isMulty = GAME.gameMode === 'MULTI';
     if (ps.phase === 'DIFFICULTY' && ps.activePlayer === 0 && !isMulty) {
         if (input.left) { // UP: Previous diff
             ps.difficultyIdx = (ps.difficultyIdx - 1 + DIFFICULTIES.length) % DIFFICULTIES.length;
-            GAME.setupInputDelay = 8;
+            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
         if (input.right) { // DOWN: Next diff
             ps.difficultyIdx = (ps.difficultyIdx + 1) % DIFFICULTIES.length;
-            GAME.setupInputDelay = 8;
+            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
         if (input.down || input.boom || input.beam || input.start) {
             ps.phase = 'COLOR';
             STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
-            GAME.setupInputDelay = 15;
+            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
     } else if (ps.phase === 'COLOR') { // ===== COLOR PHASE =====
         if (input.left) {// UP: Previous color
             ps.colorIdx = (ps.colorIdx - 1 + COLORS.length) % COLORS.length;
-            GAME.setupInputDelay = 8;
+            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
         if (input.right) { // DOWN: Next color
             ps.colorIdx = (ps.colorIdx + 1) % COLORS.length;
-            GAME.setupInputDelay = 8;
+            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
         if (input.down || input.boom || input.beam || input.start) { // RIGHT or ACTION: Confirm color, move to name entry
             STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;// Store color for this player
             ps.phase = 'NAME'; // Move to NAME phase
             ps.nameCharIdx = 0;
             ps.nameChars = ps.nameChars ?? [65, 65, 65];
-            GAME.setupInputDelay = 15;
+            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
         if (input.up) {
             if (ps.activePlayer === 1) {
                 ps.activePlayer = 0;
                 ps.colorIdx = 0;  // Reset to default
                 ps.phase = 'COLOR';
-                GAME.setupInputDelay = 15;
+                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             } else if (!isMulty) {
                 ps.phase = 'DIFFICULTY';
-                GAME.setupInputDelay = 15;
+                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             }
         }
     } else if (ps.phase === 'NAME') {// ===== NAME PHASE =====
@@ -490,18 +494,18 @@ function handlePlayerSetupInput() {
         if (input.right || input.boom || input.beam || input.start) { // RIGHT: Next character position or submit
             if (ps.nameCharIdx < 2) {
                 ps.nameCharIdx++; // Move to next character
-                GAME.setupInputDelay = 15;
+                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             } else {
                 let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars)) // Finished with name, check if more players
                 STATE.players[ps.activePlayer].name = finalName;
-                if (ps.activePlayer === 0 && STATE.gameMode === 'MULTI') { // Check if we need to set up next player
+                if (ps.activePlayer === 0 && GAME.gameMode === 'MULTI') { // Check if we need to set up next player
                     // Move to Player 2
                     ps.activePlayer = 1;
                     ps.colorIdx = 1;  // Default to different color
                     ps.nameCharIdx = 0;
                     ps.nameChars = [65, 65, 65];
                     ps.phase = 'COLOR';  // Start with color selection for P2
-                    GAME.setupInputDelay = 20;
+                    GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
                 } else {
                     // All players done, start game
                     startGame();
@@ -511,12 +515,12 @@ function handlePlayerSetupInput() {
         if (input.left) { // LEFT: Previous character or go back to color selection
             if (ps.nameCharIdx > 0) {
                 ps.nameCharIdx--;
-                GAME.setupInputDelay = 15;
+                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             } else {
                 // Go back to color selection
                 ps.phase = 'COLOR';
                 ps.colorIdx = ps.activePlayer === 0 ? 0 : 1;
-                GAME.setupInputDelay = 15;
+                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             }
         }
     }

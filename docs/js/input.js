@@ -1,4 +1,4 @@
-import { CONFIG, TIMING } from './config.js';
+import { CONFIG, TIMING, GAME } from './config.js';
 import { STATE } from './state.js';
 import { initMaze } from './grid.js';
 
@@ -6,12 +6,12 @@ export let lastInputTime = Date.now();
 
 export function resetIdleTimer() {
     lastInputTime = Date.now();
-    if (STATE.isAttractMode) {
-        STATE.isAttractMode = false;
-        STATE.screen = 'MENU';
-        STATE.menuSelection = 0;
-        STATE.menuInputDelay = 25;
-        STATE.gameMode = 'SINGLE';
+    if (GAME.isAttractMode) {
+        GAME.isAttractMode = false;
+        GAME.screen = 'MENU';
+        GAME.menuSelection = 0;
+        GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+        GAME.gameMode = 'SINGLE';
     }
 }
 
@@ -29,18 +29,18 @@ export function setupInputs(startGame, startMatchSetup) {
         STATE.keys[k] = true;
 
         if (k === 'Escape') {
-            if (STATE.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !STATE.isAttractMode) {
+            if (GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
                 STATE.isPaused = !STATE.isPaused;
             } else {
                 STATE.isPaused = false;
-                STATE.screen = 'MENU';
-                STATE.menuSelection = 0;
-                STATE.menuInputDelay = 25;
+                GAME.screen = 'MENU';
+                GAME.menuSelection = 0;
+                GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
                 document.getElementById('statusText').innerText = "SELECT MODE";
             }
         }
 
-        if (STATE.screen === 'PLAYING' && !STATE.isPaused) {
+        if (GAME.screen === 'PLAYING' && !STATE.isPaused) {
             if (STATE.isGameOver) {
                 startGame(); // Full Reset
             } else if (STATE.isRoundOver) {
@@ -108,7 +108,7 @@ export function pollGamepads(startGame, startMatchSetup) {
         const isAnyButton = gp.buttons.some(b => b.pressed);
 
         // PAUSE TOGGLE (Start button, edge-detected)
-        if (STATE.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !STATE.isAttractMode) {
+        if (GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
             if (isStart && !gp._prevStart) {
                 STATE.isPaused = !STATE.isPaused;
             }
@@ -116,10 +116,10 @@ export function pollGamepads(startGame, startMatchSetup) {
         gp._prevStart = isStart;
 
         // MENU -> START GAME
-        if (STATE.screen === 'MENU') {
+        if (GAME.screen === 'MENU') {
             if (isAnyButton || targetState.up || targetState.down) {
                 // If P2 presses a button, start MULTI, otherwise SINGLE
-                STATE.gameMode = (i === 1) ? 'MULTI' : 'SINGLE';
+                GAME.gameMode = (i === 1) ? 'MULTI' : 'SINGLE';
                 startMatchSetup();
                 return gpState; // Exit early to prevent "holding" button issues
             }
@@ -177,8 +177,8 @@ function initTouchControls(startGame, startMatchSetup) {
                 if (STATE.isGameOver) startGame();
                 else initMaze();
             }
-            if (STATE.screen === 'MENU') {
-                STATE.gameMode = 'SINGLE';
+            if (GAME.screen === 'MENU') {
+                GAME.gameMode = 'SINGLE';
                 startMatchSetup();
             }
         }, { passive: false });
@@ -232,7 +232,7 @@ function initJoystick() {
                 if (dir.angle === 'left' || dir.x === 'left') STATE.keys['KeyA'] = true;
                 if (dir.angle === 'right' || dir.x === 'right') STATE.keys['KeyD'] = true;
 
-                if (STATE.screen === 'MENU') { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
+                if (GAME.screen === 'MENU') { GAME.gameMode = 'SINGLE'; startMatchSetup(); }
             }
         });
 

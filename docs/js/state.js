@@ -1,15 +1,9 @@
 import { SoundFX, Camera, Player } from './classes.js';
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES } from './config.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
 import { DIFFICULTY_PRESETS } from './ai/difficulty.js';
 
 export const STATE = {
     frameCount: 0,
-    screen: 'MENU',
-    menuSelection: 0, // 0: SINGLE, 1: LOCAL MULTI, 2: ONLINE MULTI, 3: HIGH SCORES
-    menuInputDelay: 25,
-    gameMode: 'SINGLE', // 'SINGLE', 'MULTI', 'ONLINE', 'HIGHSCORES'
-    isAttractMode: false,
-    demoResetTimer: 0,
     maze: [],
     players: [],
     mines: [],
@@ -116,10 +110,10 @@ export function resetStateForMatch() {
     let CPUColors = COLORS.filter(x => x.name !== 'BLACK' && x.name !== 'ORANGE' && x.name !== 'BLUE' && x.name !== 'RED' && x.name !== 'PURPLE')
     let p1Name = STATE.players[0]?.name || "CPU";
     let p1Color = STATE.players[0]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
-    let p2Name = STATE.gameMode === 'MULTI' ? STATE.players[1]?.name || "CPU" : "CPU";
+    let p2Name = GAME.gameMode === 'MULTI' ? STATE.players[1]?.name || "CPU" : "CPU";
     CPUColors = CPUColors.filter(x => x.hex !== p1Color);
     let randomColor2 = CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex
-    let p2Color = STATE.gameMode === 'MULTI' ? (STATE.players[1]?.color ?? randomColor2) : randomColor2;
+    let p2Color = GAME.gameMode === 'MULTI' ? (STATE.players[1]?.color ?? randomColor2) : randomColor2;
 
     // Create fresh players
     STATE.players = [

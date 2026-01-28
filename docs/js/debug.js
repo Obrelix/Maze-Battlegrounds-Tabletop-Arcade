@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG, GAME } from './config.js';
 import { STATE } from './state.js';
 
 export const DEV_MODE = location.search.includes('dev');
@@ -13,7 +13,7 @@ function warn(msg) {
 
 export function validateState() {
     if (!DEV_MODE) return;
-    if (STATE.screen !== 'PLAYING') return;
+    if (GAME.screen !== 'PLAYING') return;
 
     // --- Round/game-over requires a valid victim (or draw) ---
     if (STATE.isRoundOver || STATE.isGameOver) {

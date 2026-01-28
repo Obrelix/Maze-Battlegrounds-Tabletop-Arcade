@@ -1,4 +1,4 @@
-import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES } from './config.js';
+import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES, GAME } from './config.js';
 import { STATE, saveHighScore } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
 import { seededRandom } from './seededRandom.js';
@@ -308,7 +308,7 @@ export function resolveRound(winnerIdx, reason) {
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
         STATE.deathTimer = 0;
         STATE.isDraw = false;
-        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        if (GAME.isAttractMode) GAME.demoResetTimer = TIMING.DEMO_RESET_TIMER;
         return;
     }
 
@@ -319,7 +319,7 @@ export function resolveRound(winnerIdx, reason) {
         STATE.messages.round = "TIME OUT!";
         STATE.messages.roundColor = "#ffff00";
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        if (GAME.isAttractMode) GAME.demoResetTimer = TIMING.DEMO_RESET_TIMER;
         return;
     }
 
@@ -354,7 +354,7 @@ export function resolveRound(winnerIdx, reason) {
     }
 
     STATE.deathTimer = 0;
-    if (STATE.isAttractMode) STATE.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+    if (GAME.isAttractMode) GAME.demoResetTimer = TIMING.DEMO_RESET_TIMER;
 }
 
 export function triggerExplosion(x, y, reason = "EXPLODED") {
