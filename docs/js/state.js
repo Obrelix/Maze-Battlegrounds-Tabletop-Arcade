@@ -6,7 +6,7 @@ export const STATE = {
     frameCount: 0,
     screen: 'MENU',
     menuSelection: 0, // 0: SINGLE, 1: LOCAL MULTI, 2: ONLINE MULTI, 3: HIGH SCORES
-    menuInputDelay: 0,
+    menuInputDelay: 25,
     gameMode: 'SINGLE', // 'SINGLE', 'MULTI', 'ONLINE', 'HIGHSCORES'
     isAttractMode: false,
     demoResetTimer: 0,

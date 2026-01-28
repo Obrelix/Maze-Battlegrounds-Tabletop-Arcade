@@ -240,7 +240,7 @@ function update() {
         if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
             STATE.screen = 'MENU';
             STATE.menuSelection = 0;
-            STATE.menuInputDelay = 15;
+            STATE.menuInputDelay = 25;
         }
         return;
     }
@@ -379,16 +379,16 @@ function handlePlayerMenuInput() {
         // Navigate up
         if (input.up) {
             STATE.menuSelection = (STATE.menuSelection - 1 + 4) % 4;
-            STATE.menuInputDelay = 10;
+            STATE.menuInputDelay = 25;
         }
         // Navigate down
         if (input.down) {
             STATE.menuSelection = (STATE.menuSelection + 1) % 4;
-            STATE.menuInputDelay = 10;
+            STATE.menuInputDelay = 25;
         }
         // Select with boom (detonate) button
         if (input.boom || input.beam || input.start) {
-            STATE.menuInputDelay = 15;
+            STATE.menuInputDelay = 25;
             switch (STATE.menuSelection) {
                 case 0: // SINGLE PLAYER
                     STATE.gameMode = 'SINGLE';

@@ -10,7 +10,7 @@ export function resetIdleTimer() {
         STATE.isAttractMode = false;
         STATE.screen = 'MENU';
         STATE.menuSelection = 0;
-        STATE.menuInputDelay = 15;
+        STATE.menuInputDelay = 25;
         STATE.gameMode = 'SINGLE';
     }
 }
@@ -35,7 +35,7 @@ export function setupInputs(startGame, startMatchSetup) {
                 STATE.isPaused = false;
                 STATE.screen = 'MENU';
                 STATE.menuSelection = 0;
-                STATE.menuInputDelay = 15;
+                STATE.menuInputDelay = 25;
                 document.getElementById('statusText').innerText = "SELECT MODE";
             }
         }
