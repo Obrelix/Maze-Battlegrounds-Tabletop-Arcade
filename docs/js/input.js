@@ -1,6 +1,7 @@
 import { CONFIG, TIMING, GAME } from './config.js';
 import { STATE } from './state.js';
 import { initMaze } from './grid.js';
+import { getNextRoundSeed, sendNextRound, getRestartGameSeed, sendRestartGame } from './network.js';
 
 export let lastInputTime = Date.now();
 
@@ -42,9 +43,21 @@ export function setupInputs(startGame, startMatchSetup) {
 
         if (GAME.screen === 'PLAYING' && !STATE.isPaused) {
             if (STATE.isGameOver) {
-                startGame(); // Full Reset
+                // In online mode, use synchronized seed and notify other player
+                if (GAME.gameMode === 'ONLINE') {
+                    sendRestartGame();
+                    startGame(getRestartGameSeed());
+                } else {
+                    startGame(); // Full Reset
+                }
             } else if (STATE.isRoundOver) {
-                initMaze(); // Next Round (Keep Score)
+                // In online mode, use synchronized seed and notify other player
+                if (GAME.gameMode === 'ONLINE') {
+                    sendNextRound();
+                    initMaze(getNextRoundSeed());
+                } else {
+                    initMaze(); // Next Round (Keep Score)
+                }
             }
         }
     });
@@ -128,8 +141,19 @@ export function pollGamepads(startGame, startMatchSetup) {
         // GAME OVER / ROUND OVER -> RESET
         if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
             if (isStart || isSelect || targetState.shield) { // 'Shield' is often top button (Restart)
-                if (STATE.isGameOver) startGame();
-                else initMaze();
+                if (STATE.isGameOver) {
+                    if (GAME.gameMode === 'ONLINE') {
+                        sendRestartGame();
+                        startGame(getRestartGameSeed());
+                    } else {
+                        startGame();
+                    }
+                } else if (GAME.gameMode === 'ONLINE') {
+                    sendNextRound();
+                    initMaze(getNextRoundSeed());
+                } else {
+                    initMaze();
+                }
                 return gpState;
             }
         }
@@ -174,8 +198,19 @@ function initTouchControls(startGame, startMatchSetup) {
             STATE.keys[code] = true;
 
             if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
-                if (STATE.isGameOver) startGame();
-                else initMaze();
+                if (STATE.isGameOver) {
+                    if (GAME.gameMode === 'ONLINE') {
+                        sendRestartGame();
+                        startGame(getRestartGameSeed());
+                    } else {
+                        startGame();
+                    }
+                } else if (GAME.gameMode === 'ONLINE') {
+                    sendNextRound();
+                    initMaze(getNextRoundSeed());
+                } else {
+                    initMaze();
+                }
             }
             if (GAME.screen === 'MENU') {
                 GAME.gameMode = 'SINGLE';

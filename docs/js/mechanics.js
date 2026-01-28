@@ -343,7 +343,7 @@ export function resolveRound(winnerIdx, reason) {
         if (winner.name !== "CPU") saveHighScore();
         STATE.isGameOver = true;
         STATE.messages.win = `${winner.name} WINS!`;
-        STATE.messages.taunt = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+        STATE.messages.taunt = TAUNTS[Math.floor(seededRandom() * TAUNTS.length)];
         STATE.messages.winColor = winner.color;
         STATE.messages.roundColor = winner.color;
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
@@ -649,7 +649,7 @@ export function checkPortalActions(p) {
                 p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
                 p.portalCooldown = 60;
                 p.speed = CONFIG.BASE_SPEED;
-                if (Math.random() < CONFIG.PORTAL_GLITCH_CHANCE) {
+                if (seededRandom() < CONFIG.PORTAL_GLITCH_CHANCE) {
                     p.glitchStartTime = STATE.frameCount;
                 }
             }

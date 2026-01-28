@@ -52,3 +52,25 @@ export function relayInput(ws, data) {
         from: ws.id
     }));
 }
+
+export function relayNextRound(ws) {
+    const opponent = getOpponent(ws);
+    if (!opponent) return;
+
+    // Relay next round signal to opponent
+    opponent.send(JSON.stringify({
+        type: MessageType.NEXT_ROUND,
+        from: ws.id
+    }));
+}
+
+export function relayRestartGame(ws) {
+    const opponent = getOpponent(ws);
+    if (!opponent) return;
+
+    // Relay restart game signal to opponent
+    opponent.send(JSON.stringify({
+        type: MessageType.RESTART_GAME,
+        from: ws.id
+    }));
+}

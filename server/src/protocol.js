@@ -20,6 +20,8 @@ export const MessageType = {
     START_GAME: 'START_GAME',
     GAME_START: 'GAME_START',
     INPUT: 'INPUT',
+    NEXT_ROUND: 'NEXT_ROUND',
+    RESTART_GAME: 'RESTART_GAME',
 
     // Fallback messages
     FALLBACK_REQUEST: 'FALLBACK_REQUEST',

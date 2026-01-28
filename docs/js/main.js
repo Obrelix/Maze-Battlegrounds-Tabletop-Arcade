@@ -9,13 +9,8 @@ import { resolveRound, applyPlayerActions, updateProjectiles, checkBeamCollision
 import { updateParticles, checkBoostTrail } from './effects.js';
 import { validateState } from './debug.js';
 import { seededRandom } from './seededRandom.js';
-import {
-    connectToServer, disconnect, requestRoomList, createRoom, joinRoom, leaveRoom,
-    startGame as networkStartGame, getMazeSeed, getLocalPlayerIndex, isConnected,
-    sendInput, getRemoteInput, cleanupInputBuffer,
-    setOnRoomListUpdate, setOnRoomJoined, setOnPlayerJoined, setOnPlayerLeft,
-    setOnGameStart, setOnDisconnect, setOnError
-} from './network.js';
+import { getLocalPlayerIndex, sendInput, getRemoteInput, cleanupInputBuffer } from './network.js';
+import { initOnlineMultiplayer, openLobby } from './online.js';
 
 function startMatchSetup() {
     resetStateForMatch();
@@ -36,11 +31,9 @@ function startGame(mazeSeed = null) {
     GAME.screen = 'PLAYING';
     resetStateForMatch();
     document.getElementById('statusText').innerText = `GOAL: ${CONFIG.MAX_SCORE} POINTS`;
-    // setDifficulty('INSANE');
     const ps = STATE.playerSetup;
     const chosen = DIFFICULTIES[ps.difficultyIdx].name;
     if (chosen === "DYNAMIC") {
-        // start at INTERMEDIATE for dynamic mode
         setDifficulty("INTERMEDIATE");
         STATE.difficulty = "DYNAMIC";
     } else {
@@ -49,140 +42,6 @@ function startGame(mazeSeed = null) {
     }
     updateHtmlUI();
     initMaze(mazeSeed);
-}
-
-// Online multiplayer functions
-function openLobby() {
-    const lobbyModal = document.getElementById('lobby-modal');
-    if (lobbyModal) {
-        lobbyModal.style.display = 'flex';
-    }
-}
-
-function hideLobbyModal() {
-    const lobbyModal = document.getElementById('lobby-modal');
-    if (lobbyModal) {
-        lobbyModal.style.display = 'none';
-    }
-}
-
-function closeLobby() {
-    hideLobbyModal();
-    disconnect();
-}
-
-function startOnlineGame(mazeSeed, playerIndex) {
-    console.log('startOnlineGame called:', { mazeSeed, playerIndex, currentScreen: GAME.screen });
-    GAME.gameMode = 'ONLINE';
-    hideLobbyModal();  // Just hide modal, keep connection open
-    startGame(mazeSeed);  // This creates the players
-    console.log('After startGame, screen is:', GAME.screen);
-    // Now set names after players exist
-    STATE.players[playerIndex].name = 'YOU';
-    STATE.players[1 - playerIndex].name = 'OPP';
-    updateHtmlUI();
-    initMaze(mazeSeed);
-}
-
-// Setup network callbacks
-setOnRoomListUpdate((rooms) => {
-    const roomList = document.getElementById('room-list');
-    if (!roomList) return;
-
-    roomList.innerHTML = '';
-    if (rooms.length === 0) {
-        roomList.innerHTML = '<div class="room-item empty">No rooms available</div>';
-        return;
-    }
-
-    rooms.forEach(room => {
-        const item = document.createElement('div');
-        item.className = 'room-item';
-        item.innerHTML = `
-            <span class="room-name">${room.name}</span>
-            <span class="room-players">${room.playerCount}/${room.maxPlayers}</span>
-            <button class="join-btn" data-room-id="${room.id}">JOIN</button>
-        `;
-        item.querySelector('.join-btn').addEventListener('click', () => {
-            joinRoom(room.id);
-        });
-        roomList.appendChild(item);
-    });
-});
-
-setOnRoomJoined((data) => {
-    const lobbyView = document.getElementById('lobby-view');
-    const roomView = document.getElementById('room-view');
-    const startBtn = document.getElementById('start-game-btn');
-    const roomNameDisplay = document.getElementById('room-name-display');
-
-    if (lobbyView) lobbyView.style.display = 'none';
-    if (roomView) roomView.style.display = 'block';
-    if (roomNameDisplay) roomNameDisplay.textContent = data.roomName;
-    if (startBtn) startBtn.style.display = data.isHost ? 'block' : 'none';
-
-    updatePlayerList(data.players || [{ index: data.playerIndex }]);
-});
-
-setOnPlayerJoined((data) => {
-    const startBtn = document.getElementById('start-game-btn');
-    if (startBtn) startBtn.disabled = false;
-    updatePlayerList([{ index: 0 }, { index: 1 }]);
-});
-
-setOnPlayerLeft((data) => {
-    const startBtn = document.getElementById('start-game-btn');
-    if (startBtn) startBtn.disabled = true;
-    updatePlayerList([{ index: getLocalPlayerIndex() }]);
-});
-
-setOnGameStart((data) => {
-    console.log('onGameStart callback fired:', data);
-    try {
-        startOnlineGame(data.mazeSeed, data.playerIndex);
-    } catch (e) {
-        console.error('Error in startOnlineGame:', e);
-    }
-});
-
-setOnDisconnect((reason) => {
-    if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
-        STATE.isPaused = true;
-        // Show reconnection UI
-        const disconnectOverlay = document.getElementById('disconnect-overlay');
-        if (disconnectOverlay) disconnectOverlay.style.display = 'flex';
-    }
-});
-
-setOnError((error) => {
-    const errorDisplay = document.getElementById('lobby-error');
-    if (errorDisplay) {
-        errorDisplay.textContent = error.message;
-        errorDisplay.style.display = 'block';
-        setTimeout(() => errorDisplay.style.display = 'none', 3000);
-    }
-});
-
-function updatePlayerList(players) {
-    const playerList = document.getElementById('player-list');
-    if (!playerList) return;
-
-    playerList.innerHTML = '';
-    const localIdx = getLocalPlayerIndex();
-
-    for (let i = 0; i < 2; i++) {
-        const div = document.createElement('div');
-        div.className = 'player-slot';
-        const hasPlayer = players.some(p => p.index === i);
-
-        if (hasPlayer) {
-            div.innerHTML = `<span class="player-icon">&#9679;</span> Player ${i + 1}${i === localIdx ? ' (You)' : ''}`;
-            div.classList.add('filled');
-        } else {
-            div.innerHTML = `<span class="player-icon empty">&#9675;</span> Waiting...`;
-        }
-        playerList.appendChild(div);
-    }
 }
 
 function finalizeRound() {
@@ -203,19 +62,17 @@ function handleTimeOut() {
 }
 
 function handleSuddenDeath() {
-    // Sudden Death - Every second after time runs low (e.g. < 30 seconds left)
     if (suddenDeathIsActive()) {
         if (STATE.gameTime % 50 === 0) {
-            // Spawn a neutral mine in a random spot to increase panic
             let rx = Math.floor(seededRandom() * CONFIG.COLS);
             let ry = Math.floor(seededRandom() * CONFIG.ROWS);
             STATE.mines.push({
                 x: CONFIG.MAZE_OFFSET_X + rx * CONFIG.CELL_SIZE,
                 y: ry * CONFIG.CELL_SIZE,
-                active: true, // Instantly active
+                active: true,
                 droppedAt: STATE.frameCount,
                 visX: 0, visY: 0,
-                owner: -1 // Neutral owner (hurts everyone)
+                owner: -1
             });
         }
     }
@@ -231,12 +88,12 @@ function updateMinesAndCrates() {
 }
 
 function update() {
-    if (navigator.getGamepads)//  Get Gamepad State (This now handles System Logic too!)
+    if (navigator.getGamepads)
         STATE.gpData = pollGamepads(startGame, startMatchSetup);
     if (STATE.isPaused) return;
     STATE.frameCount++;
+
     if (GAME.screen === 'HIGHSCORES') {
-        // Allow exiting high scores
         if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
             GAME.screen = 'MENU';
             GAME.menuSelection = 0;
@@ -244,18 +101,22 @@ function update() {
         }
         return;
     }
+
     if (GAME.screen === 'PLAYER_SETUP') {
         document.getElementById('joystick-zone').style.display = "none";
         document.getElementById('cross-zone').style.display = "grid";
         handlePlayerSetupInput();
         return;
     }
+
     document.getElementById('joystick-zone').style.display = "flex";
     document.getElementById('cross-zone').style.display = "none";
+
     if (GAME.screen === 'MENU') {
         handlePlayerMenuInput();
         return;
     }
+
     if (suddenDeathIsActive() && !(STATE.isGameOver || STATE.isRoundOver)) {
         STATE.scrollX += STATE.scrollXVal;
         if (STATE.scrollX < 5) {
@@ -270,15 +131,12 @@ function update() {
             STATE.scrollYVal *= -1;
             STATE.scrollY += STATE.scrollYVal;
         }
-        // STATE.scrollY = 0;
     }
 
     if (STATE.deathTimer > 0) {
         STATE.deathTimer--;
-
         updateProjectiles();
         updateParticles();
-
         if (STATE.deathTimer <= 0) {
             finalizeRound();
         }
@@ -293,7 +151,6 @@ function update() {
         if (GAME.isAttractMode && GAME.demoResetTimer > 0) {
             GAME.demoResetTimer--;
             if (GAME.demoResetTimer <= 0) {
-                // Determine action: Restart Game (if Game Over) or Next Round (if Round Over)
                 if (STATE.isGameOver) {
                     startGame();
                 } else {
@@ -303,6 +160,7 @@ function update() {
         }
         return;
     }
+
     updateProjectiles();
     if (handleTimeOut()) return;
     STATE.gameTime -= 1;
@@ -317,24 +175,19 @@ function update() {
         checkBeamActions(p, idx);
         checkMinesActions(p);
 
-        let cmd = {};// --- INPUT LOGIC  ---
-        // If in Attract Mode, BOTH players use AI
-        if (GAME.isAttractMode) { // Player 1 targets Player 2, Player 2 targets Player 1
+        let cmd = {};
+
+        if (GAME.isAttractMode) {
             cmd = getCpuInput(p, STATE.players[(idx + 1) % 2]);
         } else if (GAME.gameMode === 'ONLINE') {
-            // Online multiplayer: send local input, receive remote input
             const localIdx = getLocalPlayerIndex();
             if (idx === localIdx) {
-                // This is the local player
-                const controls = localIdx === 0 ? CONTROLS_P1 : CONTROLS_P2;
-                cmd = getHumanInput(idx, controls);
-                // Send input with 2-frame delay for synchronization
+                cmd = getHumanInput(0, CONTROLS_P1);
                 sendInput(STATE.frameCount + 2, cmd);
             } else {
-                // This is the remote player
                 cmd = getRemoteInput(STATE.frameCount);
             }
-        } else {// Normal Gameplay
+        } else {
             if (idx === 0) {
                 cmd = getHumanInput(idx, CONTROLS_P1);
             } else {
@@ -345,7 +198,6 @@ function update() {
         applyPlayerActions(p, cmd);
     });
 
-    // Cleanup old input buffer entries in online mode
     if (GAME.gameMode === 'ONLINE') {
         cleanupInputBuffer();
     }
@@ -354,6 +206,7 @@ function update() {
 }
 
 GAME.lastUpdateTime = performance.now();
+
 function loop(now) {
     if (now === undefined) now = performance.now();
     GAME.accumulator += now - GAME.lastUpdateTime;
@@ -363,47 +216,47 @@ function loop(now) {
         update();
         GAME.accumulator -= CONFIG.FIXED_STEP_MS;
     }
+
     if (GAME.screen === 'MENU') renderMenu();
     else if (GAME.screen === 'PLAYER_SETUP') renderPlayerSetup();
-    else if (GAME.screen === 'HIGHSCORES') renderHighScores(); // New
+    else if (GAME.screen === 'HIGHSCORES') renderHighScores();
     else renderGame();
+
     requestAnimationFrame(loop);
 }
 
 function handlePlayerMenuInput() {
-    // Handle menu navigation with input delay
     if (GAME.menuInputDelay > 0) {
         GAME.menuInputDelay--;
         return;
     }
     const input = getHumanInput(0, CONTROLS_P1);
-    // Navigate up
+
     if (input.up) {
         GAME.menuSelection = (GAME.menuSelection - 1 + 4) % 4;
         GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
     }
-    // Navigate down
     if (input.down) {
         GAME.menuSelection = (GAME.menuSelection + 1) % 4;
         GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
     }
-    // Select with boom (detonate) button
+
     if (input.boom || input.beam || input.start) {
         GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
         switch (GAME.menuSelection) {
-            case 0: // SINGLE PLAYER
+            case 0:
                 GAME.gameMode = 'SINGLE';
                 startMatchSetup();
                 break;
-            case 1: // LOCAL MULTI
+            case 1:
                 GAME.gameMode = 'MULTI';
                 startMatchSetup();
                 break;
-            case 2: // ONLINE MULTI
+            case 2:
                 GAME.gameMode = 'ONLINE';
                 openLobby();
                 break;
-            case 3: // HIGH SCORES
+            case 3:
                 GAME.screen = 'HIGHSCORES';
                 GAME.gameMode = 'HIGHSCORES';
                 break;
@@ -416,14 +269,13 @@ function handlePlayerMenuInput() {
     if (STATE.keys['Digit3']) { GAME.gameMode = 'ONLINE'; openLobby(); }
     if (STATE.keys['Digit4']) { GAME.screen = 'HIGHSCORES'; GAME.gameMode = 'HIGHSCORES'; }
 
-    if (checkIdle()) {
+    if (checkIdle() && GAME.gameMode !== 'ONLINE') {
         GAME.isAttractMode = true;
         GAME.gameMode = 'MULTI';
-        STATE.playerSetup.difficultyIdx = 3; // Default to INSANE for demo
+        STATE.playerSetup.difficultyIdx = 3;
         startGame();
     }
     updateParticles();
-
 }
 
 function handlePlayerSetupInput() {
@@ -439,12 +291,13 @@ function handlePlayerSetupInput() {
     const controls = ps.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
     const input = getHumanInput(ps.activePlayer, controls);
     const isMulty = GAME.gameMode === 'MULTI';
+
     if (ps.phase === 'DIFFICULTY' && ps.activePlayer === 0 && !isMulty) {
-        if (input.left) { // UP: Previous diff
+        if (input.left) {
             ps.difficultyIdx = (ps.difficultyIdx - 1 + DIFFICULTIES.length) % DIFFICULTIES.length;
             GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
-        if (input.right) { // DOWN: Next diff
+        if (input.right) {
             ps.difficultyIdx = (ps.difficultyIdx + 1) % DIFFICULTIES.length;
             GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
@@ -453,18 +306,18 @@ function handlePlayerSetupInput() {
             STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
             GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
-    } else if (ps.phase === 'COLOR') { // ===== COLOR PHASE =====
-        if (input.left) {// UP: Previous color
+    } else if (ps.phase === 'COLOR') {
+        if (input.left) {
             ps.colorIdx = (ps.colorIdx - 1 + COLORS.length) % COLORS.length;
             GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
-        if (input.right) { // DOWN: Next color
+        if (input.right) {
             ps.colorIdx = (ps.colorIdx + 1) % COLORS.length;
             GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
         }
-        if (input.down || input.boom || input.beam || input.start) { // RIGHT or ACTION: Confirm color, move to name entry
-            STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;// Store color for this player
-            ps.phase = 'NAME'; // Move to NAME phase
+        if (input.down || input.boom || input.beam || input.start) {
+            STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
+            ps.phase = 'NAME';
             ps.nameCharIdx = 0;
             ps.nameChars = ps.nameChars ?? [65, 65, 65];
             GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
@@ -472,7 +325,7 @@ function handlePlayerSetupInput() {
         if (input.up) {
             if (ps.activePlayer === 1) {
                 ps.activePlayer = 0;
-                ps.colorIdx = 0;  // Reset to default
+                ps.colorIdx = 0;
                 ps.phase = 'COLOR';
                 GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             } else if (!isMulty) {
@@ -480,44 +333,41 @@ function handlePlayerSetupInput() {
                 GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             }
         }
-    } else if (ps.phase === 'NAME') {// ===== NAME PHASE =====
-        if (input.up) { // UP: Change character forward
+    } else if (ps.phase === 'NAME') {
+        if (input.up) {
             ps.nameChars[ps.nameCharIdx]++;
             if (ps.nameChars[ps.nameCharIdx] > 90) ps.nameChars[ps.nameCharIdx] = 65;
             GAME.setupInputDelay = 10;
         }
-        if (input.down) { // DOWN: Change character backward
+        if (input.down) {
             ps.nameChars[ps.nameCharIdx]--;
             if (ps.nameChars[ps.nameCharIdx] < 65) ps.nameChars[ps.nameCharIdx] = 90;
             GAME.setupInputDelay = 10;
         }
-        if (input.right || input.boom || input.beam || input.start) { // RIGHT: Next character position or submit
+        if (input.right || input.boom || input.beam || input.start) {
             if (ps.nameCharIdx < 2) {
-                ps.nameCharIdx++; // Move to next character
+                ps.nameCharIdx++;
                 GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             } else {
-                let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars)) // Finished with name, check if more players
+                let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars));
                 STATE.players[ps.activePlayer].name = finalName;
-                if (ps.activePlayer === 0 && GAME.gameMode === 'MULTI') { // Check if we need to set up next player
-                    // Move to Player 2
+                if (ps.activePlayer === 0 && GAME.gameMode === 'MULTI') {
                     ps.activePlayer = 1;
-                    ps.colorIdx = 1;  // Default to different color
+                    ps.colorIdx = 1;
                     ps.nameCharIdx = 0;
                     ps.nameChars = [65, 65, 65];
-                    ps.phase = 'COLOR';  // Start with color selection for P2
+                    ps.phase = 'COLOR';
                     GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
                 } else {
-                    // All players done, start game
                     startGame();
                 }
             }
         }
-        if (input.left) { // LEFT: Previous character or go back to color selection
+        if (input.left) {
             if (ps.nameCharIdx > 0) {
                 ps.nameCharIdx--;
                 GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
             } else {
-                // Go back to color selection
                 ps.phase = 'COLOR';
                 ps.colorIdx = ps.activePlayer === 0 ? 0 : 1;
                 GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
@@ -538,7 +388,6 @@ function validateAndTrimName(name) {
 }
 
 function updateHtmlUI() {
-
     let p1Name = STATE.players[0]?.name || "CPU";
     let p1Color = STATE.players[0]?.color ?? COLORS[5]?.hex;
     let p2Name = STATE.players[1]?.name || "CPU";
@@ -555,93 +404,7 @@ function updateHtmlUI() {
 
 window.addEventListener('load', () => {
     setupInputs(startGame, startMatchSetup);
+    initOnlineMultiplayer(startGame, updateHtmlUI);
     loop();
     updateHtmlUI();
-    setupLobbyUI();
 });
-
-function setupLobbyUI() {
-    // Connect button
-    const connectBtn = document.getElementById('connect-btn');
-    const serverUrlInput = document.getElementById('server-url');
-
-    if (connectBtn && serverUrlInput) {
-        connectBtn.addEventListener('click', async () => {
-            const url = serverUrlInput.value.trim();
-            if (!url) return;
-
-            connectBtn.disabled = true;
-            connectBtn.textContent = 'Connecting...';
-
-            try {
-                await connectToServer(url);
-                connectBtn.textContent = 'Connected';
-                connectBtn.classList.add('connected');
-                requestRoomList();
-
-                // Show lobby view
-                const connectSection = document.getElementById('connect-section');
-                const lobbyView = document.getElementById('lobby-view');
-                if (connectSection) connectSection.style.display = 'none';
-                if (lobbyView) lobbyView.style.display = 'block';
-            } catch (error) {
-                connectBtn.disabled = false;
-                connectBtn.textContent = 'Connect';
-                const errorDisplay = document.getElementById('lobby-error');
-                if (errorDisplay) {
-                    errorDisplay.textContent = 'Failed to connect to server';
-                    errorDisplay.style.display = 'block';
-                }
-            }
-        });
-    }
-
-    // Create room button
-    const createRoomBtn = document.getElementById('create-room-btn');
-    const roomNameInput = document.getElementById('room-name-input');
-
-    if (createRoomBtn) {
-        createRoomBtn.addEventListener('click', () => {
-            const name = roomNameInput ? roomNameInput.value.trim() : '';
-            createRoom(name || `Room ${Date.now() % 10000}`);
-        });
-    }
-
-    // Leave room button
-    const leaveRoomBtn = document.getElementById('leave-room-btn');
-    if (leaveRoomBtn) {
-        leaveRoomBtn.addEventListener('click', () => {
-            leaveRoom();
-            // Show lobby view
-            const lobbyView = document.getElementById('lobby-view');
-            const roomView = document.getElementById('room-view');
-            if (lobbyView) lobbyView.style.display = 'block';
-            if (roomView) roomView.style.display = 'none';
-            requestRoomList();
-        });
-    }
-
-    // Start game button (host only)
-    const startGameBtn = document.getElementById('start-game-btn');
-    if (startGameBtn) {
-        startGameBtn.addEventListener('click', () => {
-            networkStartGame();
-        });
-    }
-
-    // Close lobby button
-    const closeLobbyBtn = document.getElementById('close-lobby-btn');
-    if (closeLobbyBtn) {
-        closeLobbyBtn.addEventListener('click', () => {
-            closeLobby();
-        });
-    }
-
-    // Refresh rooms button
-    const refreshRoomsBtn = document.getElementById('refresh-rooms-btn');
-    if (refreshRoomsBtn) {
-        refreshRoomsBtn.addEventListener('click', () => {
-            requestRoomList();
-        });
-    }
-}

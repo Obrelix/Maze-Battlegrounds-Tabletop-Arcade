@@ -18,6 +18,8 @@ const MessageType = {
     START_GAME: 'START_GAME',
     GAME_START: 'GAME_START',
     INPUT: 'INPUT',
+    NEXT_ROUND: 'NEXT_ROUND', // Signal to start next round
+    RESTART_GAME: 'RESTART_GAME', // Signal to restart after game over
     FALLBACK_REQUEST: 'FALLBACK_REQUEST',
     FALLBACK_CONFIRMED: 'FALLBACK_CONFIRMED',
     ERROR: 'ERROR'
@@ -30,6 +32,8 @@ let dataChannel = null;
 let localPlayerIndex = 0;
 let isHost = false;
 let mazeSeed = null;
+let originalMazeSeed = null; // Store the original seed for deterministic round seeds
+let roundNumber = 0;
 let opponentId = null;
 let useFallback = false;
 let fallbackRequested = false;
@@ -46,6 +50,8 @@ let onRoomJoined = null;
 let onPlayerJoined = null;
 let onPlayerLeft = null;
 let onGameStart = null;
+let onNextRound = null;
+let onRestartGame = null;
 let onDisconnect = null;
 let onError = null;
 
@@ -159,6 +165,85 @@ export function startGame() {
  */
 export function getMazeSeed() {
     return mazeSeed;
+}
+
+/**
+ * Get a deterministic seed for the next round
+ * Both clients will compute the same seed based on original seed + round number
+ * @returns {number} - Next round seed
+ */
+export function getNextRoundSeed() {
+    roundNumber++;
+    // Use a simple hash combining original seed and round number
+    // This ensures both clients get the same seed
+    const nextSeed = ((originalMazeSeed || 0) * 31 + roundNumber * 7919) >>> 0;
+    mazeSeed = nextSeed;
+    console.log(`Next round seed: ${nextSeed} (round ${roundNumber})`);
+    return nextSeed;
+}
+
+/**
+ * Send signal to start next round
+ * This notifies the other player to proceed to the next round
+ */
+export function sendNextRound() {
+    const message = { type: 'NEXT_ROUND' };
+
+    if (useFallback) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: MessageType.NEXT_ROUND }));
+        }
+    } else if (dataChannel && dataChannel.readyState === 'open') {
+        dataChannel.send(JSON.stringify(message));
+    }
+}
+
+/**
+ * Set callback for next round signal from remote player
+ * @param {function} callback
+ */
+export function setOnNextRound(callback) {
+    onNextRound = callback;
+}
+
+/**
+ * Send signal to restart game after game over
+ * This notifies the other player to restart the match
+ */
+export function sendRestartGame() {
+    const message = { type: 'RESTART_GAME' };
+
+    if (useFallback) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: MessageType.RESTART_GAME }));
+        }
+    } else if (dataChannel && dataChannel.readyState === 'open') {
+        dataChannel.send(JSON.stringify(message));
+    }
+}
+
+/**
+ * Get a deterministic seed for restarting the game
+ * Both clients will compute the same seed based on the original seed
+ * @returns {number} - Restart game seed
+ */
+export function getRestartGameSeed() {
+    // Generate new base seed deterministically from original seed
+    // Using a large prime multiplier ensures different seeds each restart
+    roundNumber = 0;
+    const restartSeed = ((originalMazeSeed || 0) * 48271 + 12345) >>> 0;
+    originalMazeSeed = restartSeed;
+    mazeSeed = restartSeed;
+    console.log(`Restart game seed: ${restartSeed}`);
+    return restartSeed;
+}
+
+/**
+ * Set callback for restart game signal from remote player
+ * @param {function} callback
+ */
+export function setOnRestartGame(callback) {
+    onRestartGame = callback;
 }
 
 /**
@@ -340,6 +425,8 @@ function handleServerMessage(message) {
 
         case MessageType.GAME_START:
             mazeSeed = message.mazeSeed;
+            originalMazeSeed = message.mazeSeed; // Store for deterministic round seeds
+            roundNumber = 0;
             localPlayerIndex = message.playerIndex;
             opponentId = message.opponentId;
             console.log(`Game starting: playerIndex=${localPlayerIndex}, mazeSeed=${mazeSeed}`);
@@ -358,6 +445,18 @@ function handleServerMessage(message) {
         case MessageType.INPUT:
             // Fallback mode: receive input from server
             handleRemoteInput(message.frame, message.input);
+            break;
+
+        case MessageType.NEXT_ROUND:
+            // Remote player wants to proceed to next round
+            console.log('Received NEXT_ROUND signal from remote player');
+            if (onNextRound) onNextRound();
+            break;
+
+        case MessageType.RESTART_GAME:
+            // Remote player wants to restart the game
+            console.log('Received RESTART_GAME signal from remote player');
+            if (onRestartGame) onRestartGame();
             break;
 
         case MessageType.ERROR:
@@ -484,6 +583,12 @@ function setupDataChannel(channel) {
         const data = JSON.parse(event.data);
         if (data.type === 'INPUT') {
             handleRemoteInput(data.frame, data.input);
+        } else if (data.type === 'NEXT_ROUND') {
+            console.log('Received NEXT_ROUND signal via P2P');
+            if (onNextRound) onNextRound();
+        } else if (data.type === 'RESTART_GAME') {
+            console.log('Received RESTART_GAME signal via P2P');
+            if (onRestartGame) onRestartGame();
         }
     };
 }
@@ -572,6 +677,8 @@ function cleanup() {
     isHost = false;
     localPlayerIndex = 0;
     mazeSeed = null;
+    originalMazeSeed = null;
+    roundNumber = 0;
     opponentId = null;
     useFallback = false;
     fallbackRequested = false;
