@@ -596,5 +596,6 @@ export function renderMenu() {
     drawText("2. LOCAL MULTI", 35, 27, Math.floor(Date.now() / 500) % 4 === 1 ? "#ff00ffff" : "#555");
     drawText("3. ONLINE MULTI", 35, 37, Math.floor(Date.now() / 500) % 4 === 2 ? "#00ff88ff" : "#555");
     drawText("4. HIGH SCORES", 35, 47, Math.floor(Date.now() / 500) % 4 === 3 ? "#88f" : "#555");
+    
     drawText("AI: INSANE", 42, 57, "#f55");
 }
