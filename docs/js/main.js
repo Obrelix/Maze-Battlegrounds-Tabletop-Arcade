@@ -8,6 +8,14 @@ import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './r
 import { resolveRound, applyPlayerActions, updateProjectiles, checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions } from './mechanics.js';
 import { updateParticles, checkBoostTrail } from './effects.js';
 import { validateState } from './debug.js';
+import { seededRandom } from './seededRandom.js';
+import {
+    connectToServer, disconnect, requestRoomList, createRoom, joinRoom, leaveRoom,
+    startGame as networkStartGame, getMazeSeed, getLocalPlayerIndex, isConnected,
+    sendInput, getRemoteInput, cleanupInputBuffer,
+    setOnRoomListUpdate, setOnRoomJoined, setOnPlayerJoined, setOnPlayerLeft,
+    setOnGameStart, setOnDisconnect, setOnError
+} from './network.js';
 
 function startMatchSetup() {
     resetStateForMatch();
@@ -23,7 +31,7 @@ function startMatchSetup() {
     };
 }
 
-function startGame() {
+function startGame(mazeSeed = null) {
     if (STATE.sfx) STATE.sfx.init();
     STATE.screen = 'PLAYING';
     resetStateForMatch();
@@ -40,7 +48,141 @@ function startGame() {
         setDifficulty(chosen);
     }
     updateHtmlUI();
-    initMaze();
+    initMaze(mazeSeed);
+}
+
+// Online multiplayer functions
+function openLobby() {
+    const lobbyModal = document.getElementById('lobby-modal');
+    if (lobbyModal) {
+        lobbyModal.style.display = 'flex';
+    }
+}
+
+function hideLobbyModal() {
+    const lobbyModal = document.getElementById('lobby-modal');
+    if (lobbyModal) {
+        lobbyModal.style.display = 'none';
+    }
+}
+
+function closeLobby() {
+    hideLobbyModal();
+    disconnect();
+}
+
+function startOnlineGame(mazeSeed, playerIndex) {
+    console.log('startOnlineGame called:', { mazeSeed, playerIndex, currentScreen: STATE.screen });
+    STATE.gameMode = 'ONLINE';
+    hideLobbyModal();  // Just hide modal, keep connection open
+    startGame(mazeSeed);  // This creates the players
+    console.log('After startGame, screen is:', STATE.screen);
+    // Now set names after players exist
+    STATE.players[playerIndex].name = 'YOU';
+    STATE.players[1 - playerIndex].name = 'OPP';
+    updateHtmlUI();
+    initMaze(mazeSeed);
+}
+
+// Setup network callbacks
+setOnRoomListUpdate((rooms) => {
+    const roomList = document.getElementById('room-list');
+    if (!roomList) return;
+
+    roomList.innerHTML = '';
+    if (rooms.length === 0) {
+        roomList.innerHTML = '<div class="room-item empty">No rooms available</div>';
+        return;
+    }
+
+    rooms.forEach(room => {
+        const item = document.createElement('div');
+        item.className = 'room-item';
+        item.innerHTML = `
+            <span class="room-name">${room.name}</span>
+            <span class="room-players">${room.playerCount}/${room.maxPlayers}</span>
+            <button class="join-btn" data-room-id="${room.id}">JOIN</button>
+        `;
+        item.querySelector('.join-btn').addEventListener('click', () => {
+            joinRoom(room.id);
+        });
+        roomList.appendChild(item);
+    });
+});
+
+setOnRoomJoined((data) => {
+    const lobbyView = document.getElementById('lobby-view');
+    const roomView = document.getElementById('room-view');
+    const startBtn = document.getElementById('start-game-btn');
+    const roomNameDisplay = document.getElementById('room-name-display');
+
+    if (lobbyView) lobbyView.style.display = 'none';
+    if (roomView) roomView.style.display = 'block';
+    if (roomNameDisplay) roomNameDisplay.textContent = data.roomName;
+    if (startBtn) startBtn.style.display = data.isHost ? 'block' : 'none';
+
+    updatePlayerList(data.players || [{ index: data.playerIndex }]);
+});
+
+setOnPlayerJoined((data) => {
+    const startBtn = document.getElementById('start-game-btn');
+    if (startBtn) startBtn.disabled = false;
+    updatePlayerList([{ index: 0 }, { index: 1 }]);
+});
+
+setOnPlayerLeft((data) => {
+    const startBtn = document.getElementById('start-game-btn');
+    if (startBtn) startBtn.disabled = true;
+    updatePlayerList([{ index: getLocalPlayerIndex() }]);
+});
+
+setOnGameStart((data) => {
+    console.log('onGameStart callback fired:', data);
+    try {
+        startOnlineGame(data.mazeSeed, data.playerIndex);
+    } catch (e) {
+        console.error('Error in startOnlineGame:', e);
+    }
+});
+
+setOnDisconnect((reason) => {
+    if (STATE.gameMode === 'ONLINE' && STATE.screen === 'PLAYING') {
+        STATE.isPaused = true;
+        // Show reconnection UI
+        const disconnectOverlay = document.getElementById('disconnect-overlay');
+        if (disconnectOverlay) disconnectOverlay.style.display = 'flex';
+    }
+});
+
+setOnError((error) => {
+    const errorDisplay = document.getElementById('lobby-error');
+    if (errorDisplay) {
+        errorDisplay.textContent = error.message;
+        errorDisplay.style.display = 'block';
+        setTimeout(() => errorDisplay.style.display = 'none', 3000);
+    }
+});
+
+function updatePlayerList(players) {
+    const playerList = document.getElementById('player-list');
+    if (!playerList) return;
+
+    playerList.innerHTML = '';
+    const localIdx = getLocalPlayerIndex();
+
+    for (let i = 0; i < 2; i++) {
+        const div = document.createElement('div');
+        div.className = 'player-slot';
+        const hasPlayer = players.some(p => p.index === i);
+
+        if (hasPlayer) {
+            div.innerHTML = `<span class="player-icon">&#9679;</span> Player ${i + 1}${i === localIdx ? ' (You)' : ''}`;
+            div.classList.add('filled');
+        } else {
+            div.innerHTML = `<span class="player-icon empty">&#9675;</span> Waiting...`;
+        }
+        playerList.appendChild(div);
+    }
 }
 
 function finalizeRound() {
@@ -65,8 +207,8 @@ function handleSuddenDeath() {
     if (suddenDeathIsActive()) {
         if (STATE.gameTime % 50 === 0) {
             // Spawn a neutral mine in a random spot to increase panic
-            let rx = Math.floor(Math.random() * CONFIG.COLS);
-            let ry = Math.floor(Math.random() * CONFIG.ROWS);
+            let rx = Math.floor(seededRandom() * CONFIG.COLS);
+            let ry = Math.floor(seededRandom() * CONFIG.ROWS);
             STATE.mines.push({
                 x: CONFIG.MAZE_OFFSET_X + rx * CONFIG.CELL_SIZE,
                 y: ry * CONFIG.CELL_SIZE,
@@ -112,6 +254,10 @@ function update() {
         if (STATE.keys['Digit1']) { STATE.gameMode = 'SINGLE'; startMatchSetup(); }
         if (STATE.keys['Digit2']) { STATE.gameMode = 'MULTI'; startMatchSetup(); }
         if (STATE.keys['Digit3']) {
+            STATE.gameMode = 'ONLINE';
+            openLobby();
+        }
+        if (STATE.keys['Digit4']) {
             STATE.screen = 'HIGHSCORES';
             STATE.gameMode = 'HIGHSCORES';
         }
@@ -189,6 +335,19 @@ function update() {
         // If in Attract Mode, BOTH players use AI
         if (STATE.isAttractMode) { // Player 1 targets Player 2, Player 2 targets Player 1
             cmd = getCpuInput(p, STATE.players[(idx + 1) % 2]);
+        } else if (STATE.gameMode === 'ONLINE') {
+            // Online multiplayer: send local input, receive remote input
+            const localIdx = getLocalPlayerIndex();
+            if (idx === localIdx) {
+                // This is the local player
+                const controls = localIdx === 0 ? CONTROLS_P1 : CONTROLS_P2;
+                cmd = getHumanInput(idx, controls);
+                // Send input with 2-frame delay for synchronization
+                sendInput(STATE.frameCount + 2, cmd);
+            } else {
+                // This is the remote player
+                cmd = getRemoteInput(STATE.frameCount);
+            }
         } else {// Normal Gameplay
             if (idx === 0) {
                 cmd = getHumanInput(idx, CONTROLS_P1);
@@ -199,6 +358,11 @@ function update() {
         }
         applyPlayerActions(p, cmd);
     });
+
+    // Cleanup old input buffer entries in online mode
+    if (STATE.gameMode === 'ONLINE') {
+        cleanupInputBuffer();
+    }
     updateParticles();
     validateState();
 }
@@ -347,4 +511,91 @@ window.addEventListener('load', () => {
     setupInputs(startGame, startMatchSetup);
     loop();
     updateHtmlUI();
+    setupLobbyUI();
 });
+
+function setupLobbyUI() {
+    // Connect button
+    const connectBtn = document.getElementById('connect-btn');
+    const serverUrlInput = document.getElementById('server-url');
+
+    if (connectBtn && serverUrlInput) {
+        connectBtn.addEventListener('click', async () => {
+            const url = serverUrlInput.value.trim();
+            if (!url) return;
+
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Connecting...';
+
+            try {
+                await connectToServer(url);
+                connectBtn.textContent = 'Connected';
+                connectBtn.classList.add('connected');
+                requestRoomList();
+
+                // Show lobby view
+                const connectSection = document.getElementById('connect-section');
+                const lobbyView = document.getElementById('lobby-view');
+                if (connectSection) connectSection.style.display = 'none';
+                if (lobbyView) lobbyView.style.display = 'block';
+            } catch (error) {
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'Connect';
+                const errorDisplay = document.getElementById('lobby-error');
+                if (errorDisplay) {
+                    errorDisplay.textContent = 'Failed to connect to server';
+                    errorDisplay.style.display = 'block';
+                }
+            }
+        });
+    }
+
+    // Create room button
+    const createRoomBtn = document.getElementById('create-room-btn');
+    const roomNameInput = document.getElementById('room-name-input');
+
+    if (createRoomBtn) {
+        createRoomBtn.addEventListener('click', () => {
+            const name = roomNameInput ? roomNameInput.value.trim() : '';
+            createRoom(name || `Room ${Date.now() % 10000}`);
+        });
+    }
+
+    // Leave room button
+    const leaveRoomBtn = document.getElementById('leave-room-btn');
+    if (leaveRoomBtn) {
+        leaveRoomBtn.addEventListener('click', () => {
+            leaveRoom();
+            // Show lobby view
+            const lobbyView = document.getElementById('lobby-view');
+            const roomView = document.getElementById('room-view');
+            if (lobbyView) lobbyView.style.display = 'block';
+            if (roomView) roomView.style.display = 'none';
+            requestRoomList();
+        });
+    }
+
+    // Start game button (host only)
+    const startGameBtn = document.getElementById('start-game-btn');
+    if (startGameBtn) {
+        startGameBtn.addEventListener('click', () => {
+            networkStartGame();
+        });
+    }
+
+    // Close lobby button
+    const closeLobbyBtn = document.getElementById('close-lobby-btn');
+    if (closeLobbyBtn) {
+        closeLobbyBtn.addEventListener('click', () => {
+            closeLobby();
+        });
+    }
+
+    // Refresh rooms button
+    const refreshRoomsBtn = document.getElementById('refresh-rooms-btn');
+    if (refreshRoomsBtn) {
+        refreshRoomsBtn.addEventListener('click', () => {
+            requestRoomList();
+        });
+    }
+}

@@ -592,8 +592,9 @@ export function renderMenu() {
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
 
     drawText("SELECT MODE", 42, 5, "#fff");
-    drawText("1. SINGLE PLAYER", 32, 20, Math.floor(Date.now() / 500) % 3 === 0 ? "#08ffffff" : "#555");
-    drawText("2. MULTIPLAYER", 35, 30, Math.floor(Date.now() / 500) % 3 === 1 ? "#ff00ffff" : "#555");
-    drawText("3. HIGH SCORES", 35, 40, Math.floor(Date.now() / 500) % 3 === 2 ? "#88f" : "#555");
-    drawText("AI: INSANE", 42, 50, "#f55");
+    drawText("1. SINGLE PLAYER", 32, 17, Math.floor(Date.now() / 500) % 4 === 0 ? "#08ffffff" : "#555");
+    drawText("2. LOCAL MULTI", 35, 27, Math.floor(Date.now() / 500) % 4 === 1 ? "#ff00ffff" : "#555");
+    drawText("3. ONLINE MULTI", 35, 37, Math.floor(Date.now() / 500) % 4 === 2 ? "#00ff88ff" : "#555");
+    drawText("4. HIGH SCORES", 35, 47, Math.floor(Date.now() / 500) % 4 === 3 ? "#88f" : "#555");
+    drawText("AI: INSANE", 42, 57, "#f55");
 }

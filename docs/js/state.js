@@ -5,7 +5,7 @@ import { DIFFICULTY_PRESETS } from './ai/difficulty.js';
 export const STATE = {
     frameCount: 0,
     screen: 'MENU',
-    gameMode: 'SINGLE',
+    gameMode: 'SINGLE', // 'SINGLE', 'MULTI', 'ONLINE', 'HIGHSCORES'
     isAttractMode: false,
     demoResetTimer: 0,
     maze: [],

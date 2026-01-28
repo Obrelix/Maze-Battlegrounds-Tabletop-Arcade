@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maze Battleground: Pixel Perfect</title>
+    <link rel="icon" type="image/x-icon" href="images/favicon.ico">
     <script src="libs/nipplejs.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -167,6 +168,77 @@
                     </ul>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Network Lobby Modal -->
+    <div id="lobby-modal" class="lobby-modal">
+        <div class="lobby-content">
+            <div class="lobby-header">
+                <h3>ONLINE MULTIPLAYER</h3>
+                <button id="close-lobby-btn" class="lobby-close-btn">X</button>
+            </div>
+
+            <div id="lobby-error" class="lobby-error"></div>
+
+            <!-- Connection Section -->
+            <div id="connect-section" class="lobby-section">
+                <label for="server-url">Server URL:</label>
+                <div class="input-row">
+                    <input type="text" id="server-url" placeholder="ws://localhost:8080" value="ws://localhost:8080">
+                    <button id="connect-btn" class="lobby-btn">Connect</button>
+                </div>
+            </div>
+
+            <!-- Lobby View (shown after connecting) -->
+            <div id="lobby-view" class="lobby-section" style="display: none;">
+                <div class="create-room-row">
+                    <input type="text" id="room-name-input" placeholder="Room name (optional)">
+                    <button id="create-room-btn" class="lobby-btn accent">Create Room</button>
+                    <button id="refresh-rooms-btn" class="lobby-btn small">↻</button>
+                </div>
+
+                <div class="room-list-header">Available Rooms:</div>
+                <div id="room-list" class="room-list">
+                    <div class="room-item empty">No rooms available</div>
+                </div>
+            </div>
+
+            <!-- Room View (shown when in a room) -->
+            <div id="room-view" class="lobby-section" style="display: none;">
+                <div class="room-info">
+                    <span class="room-label">Room:</span>
+                    <span id="room-name-display" class="room-name-text">---</span>
+                </div>
+
+                <div class="players-section">
+                    <div class="players-header">Players:</div>
+                    <div id="player-list" class="player-list">
+                        <div class="player-slot"><span class="player-icon empty">&#9675;</span> Waiting...</div>
+                        <div class="player-slot"><span class="player-icon empty">&#9675;</span> Waiting...</div>
+                    </div>
+                </div>
+
+                <div class="room-actions">
+                    <button id="leave-room-btn" class="lobby-btn danger">Leave Room</button>
+                    <button id="start-game-btn" class="lobby-btn accent" style="display: none;" disabled>Start Game</button>
+                </div>
+            </div>
+
+            <!-- Connection Status -->
+            <div id="connection-status" class="connection-status">
+                <span class="status-dot disconnected"></span>
+                <span class="status-text">Not connected</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disconnect Overlay (shown during gameplay if connection is lost) -->
+    <div id="disconnect-overlay" class="disconnect-overlay" style="display: none;">
+        <div class="disconnect-content">
+            <div class="disconnect-icon">⚠</div>
+            <div class="disconnect-title">CONNECTION LOST</div>
+            <div class="disconnect-message">Attempting to reconnect...</div>
         </div>
     </div>
 

@@ -1,6 +1,7 @@
 import { CONFIG, COLORS } from './config.js';
 import { STATE } from './state.js';
 import { Cell } from './classes.js';
+import { setSeed, seededRandom } from './seededRandom.js';
 export function gridIndex(c, r) {
     if (c < 0 || r < 0 || c >= CONFIG.COLS || r >= CONFIG.ROWS) return undefined;
     return STATE.maze[c + r * CONFIG.COLS];
@@ -82,8 +83,8 @@ export function destroyWallAt(c, r) {
 }
 
 export function spawnAmmoCrate() {
-    let c = Math.floor(Math.random() * (CONFIG.COLS - 2)) + 1;
-    let r = Math.floor(Math.random() * (CONFIG.ROWS - 2)) + 1;
+    let c = Math.floor(seededRandom() * (CONFIG.COLS - 2)) + 1;
+    let r = Math.floor(seededRandom() * (CONFIG.ROWS - 2)) + 1;
     STATE.ammoCrate = {
         x: CONFIG.MAZE_OFFSET_X + c * CONFIG.CELL_SIZE + 0.5,
         y: r * CONFIG.CELL_SIZE + 0.5,
@@ -92,7 +93,14 @@ export function spawnAmmoCrate() {
     };
 }
 
-export function initMaze() {
+export function initMaze(seed = null) {
+    // Initialize seeded RNG if seed is provided (for online multiplayer determinism)
+    if (seed !== null) {
+        setSeed(seed);
+    } else {
+        // Generate random seed for local games
+        setSeed(Math.floor(Math.random() * 0xFFFFFFFF));
+    }
     STATE.maze = [];
     for (let r = 0; r < CONFIG.ROWS; r++) {
         for (let c = 0; c < CONFIG.COLS; c++) {
@@ -117,7 +125,7 @@ export function initMaze() {
         if (left && !left.visited) neighbors.push(left);
 
         if (neighbors.length > 0) {
-            let next = neighbors[Math.floor(Math.random() * neighbors.length)];
+            let next = neighbors[Math.floor(seededRandom() * neighbors.length)];
             next.visited = true;
             stack.push(current);
             removeWalls(current, next);
@@ -213,8 +221,8 @@ function spawnPortals() {
     while (attempts < 1000) {
         attempts++;
         // Random spot in the top-left quadrant mostly
-        let c = Math.floor(4 + Math.random() * ((CONFIG.COLS - 4) / 2));
-        let r = Math.floor(4 + Math.random() * ((CONFIG.ROWS - 4) / 2));
+        let c = Math.floor(4 + seededRandom() * ((CONFIG.COLS - 4) / 2));
+        let r = Math.floor(4 + seededRandom() * ((CONFIG.ROWS - 4) / 2));
 
         // Calculate distance from P1 Spawn (0,0)
         let dist = Math.hypot(c, r);
@@ -232,8 +240,8 @@ function spawnPortals() {
     while (attempts < 1000) {
         attempts++;
         // Random spot in the bottom-right quadrant mostly
-        let c = Math.floor(Math.random() * (CONFIG.COLS / 2)) + Math.floor(CONFIG.COLS / 2);
-        let r = Math.floor(Math.random() * (CONFIG.ROWS / 2)) + Math.floor(CONFIG.ROWS / 2);
+        let c = Math.floor(seededRandom() * (CONFIG.COLS / 2)) + Math.floor(CONFIG.COLS / 2);
+        let r = Math.floor(seededRandom() * (CONFIG.ROWS / 2)) + Math.floor(CONFIG.ROWS / 2);
 
         if (c >= CONFIG.COLS || r >= CONFIG.ROWS) continue;
 

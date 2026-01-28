@@ -1,6 +1,7 @@
 import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES } from './config.js';
 import { STATE, saveHighScore } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
+import { seededRandom } from './seededRandom.js';
 import {
     playShieldSfx, playChargeSfx, playMineDropSfx, playShootSfx,
     playChargedShootSfx, playExplosionSfx, playDeathSfx,
@@ -183,8 +184,8 @@ function handleMineDrop(p, input, now) {
             y: Math.floor(p.y),
             droppedAt: now,
             active: false,
-            visX: Math.floor(Math.random() * 2),
-            visY: Math.floor(Math.random() * 2),
+            visX: Math.floor(seededRandom() * 2),
+            visY: Math.floor(seededRandom() * 2),
             owner: p.id
         });
     }
