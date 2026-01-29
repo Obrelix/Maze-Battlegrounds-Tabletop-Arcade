@@ -6,7 +6,7 @@ This repository contains the source code for **Maze Battlegrounds**, a fast‑pa
 
 **Status:** Early Alpha – mechanics, balance, and UX are under active development and testing, but the core loop is fully playable in the browser.
 
-**Version:** 0.1.4-alpha
+**Version:** 0.1.5-alpha
 
 ---
 
@@ -50,8 +50,8 @@ Players have a single **Energy** bar (0–150) that slowly regenerates and is sh
 
 - **Tap Beam** – Quick, low‑cost stun attack (30 energy)
 - **Charged Beam** – Hold ~3 seconds for lethal wall‑breaking shot (65 energy)
-- **Shield** – Block all incoming damage; drains ~3 seconds to empty (10 activation + continuous drain)
-- **Boost** – Sprint to chase or escape; slows energy regen while active (drain ~5 seconds to empty)
+- **Shield** – Block all incoming damage; drains ~6 seconds to empty (10 activation + continuous drain)
+- **Boost** – Sprint to chase or escape; drains ~6 seconds to empty (balanced with shield)
 - **Mine Detonation** – Remotely trigger mines for area denial (30 energy per detonation)
 
 **Mismanaging energy leaves you vulnerable to attack, unable to escape, or locked out of vital defenses.**
@@ -99,10 +99,10 @@ Players have a single **Energy** bar (0–150) that slowly regenerates and is sh
 
 - A match is **first to 5 points**; rounds resolve on elimination or goal score
 - **Double KO / Draws** are handled when both players die simultaneously
-- **TIME OUT!** ends a round if time expires
+- **TIME OUT!** ends the match if time expires; winner determined by score (draw if tied)
 - **Sudden Death** triggers when time runs low (<30 seconds):
   - Warning message and scrolling text on the LED matrix
-  - Neutral mines spawn at random cells every ~830ms, damaging both players and increasing chaos
+  - Neutral mines spawn at random cells every ~830ms (max 12 on field, spaced apart)
   - No timer limit—play until one player is eliminated
 
 ### Game states
@@ -217,9 +217,10 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - **Predictive aiming:** Analyzes enemy movement patterns, direction history, and corner-cutting to predict future positions
 - **Tactical charging:** AI decides when to charge beams based on enemy alignment, stun state, and energy levels
 - **Adaptive difficulty:** Dynamically adjusts aggression, energy thresholds, and reaction times based on score differential
-- **Combo chains:** Executes multi‑action sequences (stun → charge, boost → hunt) for maximum effectiveness
+- **Combo chains:** Executes tactical sequences (STUN_CHARGE when opponent stunned, BOOST_HUNT for aggressive chase)
 - **Strategic mine placement:** Places mines defensively around own goal or aggressively along enemy paths based on difficulty preset
-- **Energy management:** Context-aware shield/boost decisions based on distance to enemy and energy reserves
+- **Energy management:** Context-aware shield/boost decisions; won't fire at shielded opponents; respects actual energy costs
+- **Mine trap escape:** Calculates danger level from nearby mines; uses boost/shield to escape when surrounded
 - **Unstuck detection:** Breaks out of stuck states with randomized jiggle after 15 frames of no movement
 
 #### Audio
@@ -358,7 +359,7 @@ Available difficulty levels:
 - **INTERMEDIATE** – Balanced behavior (thinks 6×/sec), moderate aggression, adaptive difficulty scaling
 - **HARD** – Fast reactions (thinks 15×/sec), predictive aiming, tactical charging, strategic mine placement, combo chains
 - **INSANE** – Every-frame reactions, advanced prediction (35-frame window), near-perfect aim, aggressive mine strategy
-- **DYNAMIC** – Starts at INTERMEDIATE and auto-adjusts based on score differential
+- **DYNAMIC** – Starts at INTERMEDIATE; adjusts to HARD when losing badly or BEGINNER when dominating
 
 To change AI difficulty, call `setDifficulty('HARD')` from `ai/difficulty.js`. The active config is managed via `getActiveConfig()` / `setActiveConfig()` module exports (no global `window.AI_CONFIG`).
 
@@ -391,7 +392,28 @@ MIT License – Free for personal, educational, and non‑commercial use.
 
 ---
 
-## Recent Changes (v0.1.4-alpha)
+## Recent Changes (v0.1.5-alpha)
+
+### Game Balance
+- **Shield energy drain balanced:** Shield now drains at same rate as boost (~6 seconds to empty)
+- **No energy regen while charging:** Charging a beam is now a commitment—no passive regen during charge
+- **AI energy thresholds fixed:** AI no longer attempts to fire when lacking sufficient energy
+
+### Bug Fixes
+- **Beam collision detection:** High-speed beams no longer pass through each other; multi-point sampling added
+- **Draw state tracking:** Timeout now properly determines winner by score or declares draw if tied
+- **Sudden death mine density:** Limited to 12 mines max with minimum spacing to prevent screen flooding
+- **Beam sound timing:** Sound only plays after path validation (no sound on blocked shots)
+
+### AI Improvements
+- **Shield awareness:** AI no longer wastes energy firing at shielded opponents
+- **Mine trap escape:** Enhanced escape logic with danger level calculation, automatic shield/boost when surrounded
+- **Combo system wired up:** AI now executes tactical combos (STUN_CHARGE when opponent stunned, BOOST_HUNT for chase)
+- **DYNAMIC difficulty:** Properly implemented with inter-round difficulty adjustment based on score differential
+
+---
+
+## Previous Changes (v0.1.4-alpha)
 
 ### Bug Fixes
 - **Portal-mine death trap:** Players now have brief invulnerability after teleporting to prevent instant mine deaths
@@ -419,4 +441,4 @@ MIT License – Free for personal, educational, and non‑commercial use.
 ---
 
 **Last updated:** January 29, 2026
-**Version:** 0.1.4‑alpha
+**Version:** 0.1.5‑alpha
