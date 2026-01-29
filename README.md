@@ -34,7 +34,7 @@ Maze Battlegrounds is a 1v1 top‑down shooter designed for a digital tabletop e
 
 - **Single Player vs CPU** – AI uses advanced pathfinding, predictive movement, tactical beam charging, and mine placement tuned by difficulty presets
 - **Local Multiplayer** – Head‑to‑head on the same device; Player 2 uses keyboard or gamepad
-- **Online Multiplayer** – WebSocket‑based network play with room creation and matchmaking
+- **Online Multiplayer** – WebRTC P2P network play with WebSocket fallback, room creation, and matchmaking
 
 The HUD and canvas layout mimic the final tabletop hardware: a 128×64 P2.5 RGB LED matrix with a split, flipped interface for opposing players.
 
@@ -169,7 +169,7 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 
 ## Technical architecture
 
-### File structure
+### File structure (`docs/js/`)
 
 - **`config.js`** – All game constants (grid size, energy costs, colors, control mappings, bitmap fonts, AI configuration flags)
 - **`main.js`** – Main game loop, state machine, round/match logic, sudden death handling 
@@ -179,8 +179,9 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - **`grid.js`** – Maze generation (recursive backtracking), wall collision detection, and cell indexing helpers
 - **`input.js`** – Keyboard, gamepad, and touch input polling; idle detection for attract mode and mobile UI bindings
 - **`classes.js`** – Player, Camera, SoundFX, and Cell class definitions (includes AI property initialization)
-- **`network.js`** – WebSocket‑based online multiplayer, room management, input synchronization
-- **`seededRandom.js`** – Deterministic random number generator for synchronized network play
+- **`network.js`** – WebRTC P2P multiplayer with WebSocket fallback, lockstep input sync
+- **`online.js`** – Lobby UI, network callbacks, online game setup orchestration
+- **`seededRandom.js`** – Deterministic random number generator (Mulberry32 PRNG) for synchronized network play
 - **`debug.js`** – State invariant validation (dev mode only, enabled via `?dev` URL parameter)
 - **`ai/`** – Modular AI system split into focused modules:
   - **`ai/controller.js`** – CPU input orchestrator (`getCpuInput`), smart movement direction
@@ -223,6 +224,14 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - **Minimal SFX:** Beam charge, shield activation, mine drop, detonation, damage, death (Web Audio API)
 - **Silent fallback:** Game continues normally if audio fails or is muted
 
+#### Multiplayer synchronization
+Online multiplayer uses lockstep synchronization:
+- Host generates maze seed, shared via signaling server
+- Both clients use `seededRandom.js` for identical maze generation
+- 2-frame input delay buffer for network latency compensation
+- WebRTC P2P preferred; auto-fallback to WebSocket relay after 10s timeout
+- Input serialized to 2-byte bitmask for bandwidth efficiency
+
 ---
 
 ## Installation & development
@@ -232,7 +241,7 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 **No build step required!** Everything is pure HTML/CSS/JavaScript.
 
 1. Clone or download the repository
-2. Open `index.html` in a modern browser
+2. Open `docs/index.html` in a modern browser
 3. Start playing
 
 #### Local development
@@ -241,12 +250,34 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - Edit `mechanics.js` for gameplay logic changes
 - Update `renderer.js` for visual tweaks
 - Adjust modules under `ai/` for CPU difficulty and behavior (`ai/difficulty.js` for presets, `ai/strategy.js` for tactics)
+- **Dev mode:** Append `?dev` to the URL to enable state invariant validation (logs warnings with frame counts to console)
 
 #### Build & deploy
 
 - Copy all files (HTML, CSS, JS) to a static web server
 - Deploy to GitHub Pages, Netlify, or any CDN
 - No compilation or bundling needed
+
+### Multiplayer server
+
+The online multiplayer mode requires a signaling server for WebRTC connection setup (with WebSocket fallback for relayed gameplay).
+
+```bash
+cd server
+npm install
+npm start          # Production
+npm run dev        # Development with auto-reload (--watch)
+```
+
+- Server runs on port 8080 (configurable via `PORT` env var)
+- Requires Node.js 18+
+- Dependencies: `ws` (WebSocket), `uuid` (room IDs)
+
+**Server modules:**
+- **`server.js`** – WebSocket server entry point, client connection handling
+- **`src/lobby.js`** – Room creation/joining, player management, game start coordination
+- **`src/signaling.js`** – WebRTC signaling relay, ICE candidate exchange, WebSocket fallback mode
+- **`src/protocol.js`** – Message type constants and error codes shared between client/server
 
 ### Hardware version (LED matrix)
 
@@ -318,7 +349,7 @@ High scores are persisted to browser `localStorage` under key `LED_MAZE_HIGHSCOR
 - **Sound effects** – Currently Web Audio API only; needs external audio for physical cabinet
 - **Gamepad support** – Tested on Xbox and SNES controllers; other layouts may need remapping
 - **Mobile responsiveness** – Optimized for portrait mobile; landscape recommended for best gameplay
-- **Online multiplayer** – Requires a WebSocket server; not hosted publicly yet
+- **Online multiplayer** – Server code included; requires self-hosting (not hosted publicly yet)
 - **Customizable layouts** – Theme/color customization planned
 
 ---
