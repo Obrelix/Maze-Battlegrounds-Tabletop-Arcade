@@ -92,28 +92,15 @@ function update() {
         STATE.gpData = pollGamepads(startGame, startMatchSetup);
     if (STATE.isPaused) return;
     STATE.frameCount++;
-
-    if (GAME.screen === 'HIGHSCORES') {
-        if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
-            GAME.screen = 'MENU';
-            GAME.menuSelection = 0;
-            GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
-        }
-        return;
-    }
-
-    if (GAME.screen === 'PLAYER_SETUP') {
+    if (GAME.screen !== 'PLAYING') {
         document.getElementById('joystick-zone').style.display = "none";
         document.getElementById('cross-zone').style.display = "grid";
-        handlePlayerSetupInput();
-        return;
     }
-
-    if (GAME.screen === 'MENU') {
-        document.getElementById('joystick-zone').style.display = "none";
-        document.getElementById('cross-zone').style.display = "grid";
-        handlePlayerMenuInput();
-        return;
+    if (GAME.inputDelay > 0) { GAME.inputDelay--; return; }
+    switch (GAME.screen) {
+        case 'HIGHSCORES': handlePlayerHSInput(); return;
+        case 'PLAYER_SETUP': handlePlayerSetupInput(); return;
+        case 'MENU': handlePlayerMenuInput(); return;
     }
     document.getElementById('joystick-zone').style.display = "flex";
     document.getElementById('cross-zone').style.display = "none";
@@ -226,24 +213,28 @@ function loop(now) {
     requestAnimationFrame(loop);
 }
 
-function handlePlayerMenuInput() {
-    if (GAME.menuInputDelay > 0) {
-        GAME.menuInputDelay--;
-        return;
+function handlePlayerHSInput() {
+    if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
+        GAME.screen = 'MENU';
+        GAME.menuSelection = 0;
+        GAME.inputDelay = CONFIG.INPUT_DELAY;
     }
+}
+
+function handlePlayerMenuInput() {
     const input = getHumanInput(0, CONTROLS_P1);
 
     if (input.up) {
         GAME.menuSelection = (GAME.menuSelection - 1 + 4) % 4;
-        GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+        GAME.inputDelay = CONFIG.INPUT_DELAY;
     }
     if (input.down) {
         GAME.menuSelection = (GAME.menuSelection + 1) % 4;
-        GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+        GAME.inputDelay = CONFIG.INPUT_DELAY;
     }
 
     if (input.boom || input.beam || input.start) {
-        GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+        GAME.inputDelay = CONFIG.INPUT_DELAY;
         switch (GAME.menuSelection) {
             case 0:
                 GAME.gameMode = 'SINGLE';
@@ -280,14 +271,6 @@ function handlePlayerMenuInput() {
 }
 
 function handlePlayerSetupInput() {
-    if (GAME.menuInputDelay > 0) {
-        GAME.menuInputDelay--;
-        return;
-    }
-    if (GAME.setupInputDelay > 0) {
-        GAME.setupInputDelay--;
-        return;
-    }
     const ps = STATE.playerSetup;
     const controls = ps.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
     const input = getHumanInput(ps.activePlayer, controls);
@@ -296,59 +279,59 @@ function handlePlayerSetupInput() {
     if (ps.phase === 'DIFFICULTY' && ps.activePlayer === 0 && !isMulty) {
         if (input.left) {
             ps.difficultyIdx = (ps.difficultyIdx - 1 + DIFFICULTIES.length) % DIFFICULTIES.length;
-            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+            GAME.inputDelay = CONFIG.INPUT_DELAY;
         }
         if (input.right) {
             ps.difficultyIdx = (ps.difficultyIdx + 1) % DIFFICULTIES.length;
-            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+            GAME.inputDelay = CONFIG.INPUT_DELAY;
         }
         if (input.down || input.boom || input.beam || input.start) {
             ps.phase = 'COLOR';
             STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
-            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+            GAME.inputDelay = CONFIG.INPUT_DELAY;
         }
     } else if (ps.phase === 'COLOR') {
         if (input.left) {
             ps.colorIdx = (ps.colorIdx - 1 + COLORS.length) % COLORS.length;
-            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+            GAME.inputDelay = CONFIG.INPUT_DELAY;
         }
         if (input.right) {
             ps.colorIdx = (ps.colorIdx + 1) % COLORS.length;
-            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+            GAME.inputDelay = CONFIG.INPUT_DELAY;
         }
         if (input.down || input.boom || input.beam || input.start) {
             STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
             ps.phase = 'NAME';
             ps.nameCharIdx = 0;
             ps.nameChars = ps.nameChars ?? [65, 65, 65];
-            GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+            GAME.inputDelay = CONFIG.INPUT_DELAY;
         }
         if (input.up) {
             if (ps.activePlayer === 1) {
                 ps.activePlayer = 0;
                 ps.colorIdx = 0;
                 ps.phase = 'COLOR';
-                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
             } else if (!isMulty) {
                 ps.phase = 'DIFFICULTY';
-                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
             }
         }
     } else if (ps.phase === 'NAME') {
         if (input.up) {
             ps.nameChars[ps.nameCharIdx]++;
             if (ps.nameChars[ps.nameCharIdx] > 90) ps.nameChars[ps.nameCharIdx] = 65;
-            GAME.setupInputDelay = 10;
+            GAME.inputDelay = 7;
         }
         if (input.down) {
             ps.nameChars[ps.nameCharIdx]--;
             if (ps.nameChars[ps.nameCharIdx] < 65) ps.nameChars[ps.nameCharIdx] = 90;
-            GAME.setupInputDelay = 10;
+            GAME.inputDelay = 7;
         }
         if (input.right || input.boom || input.beam || input.start) {
             if (ps.nameCharIdx < 2) {
                 ps.nameCharIdx++;
-                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
             } else {
                 let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars));
                 STATE.players[ps.activePlayer].name = finalName;
@@ -358,8 +341,9 @@ function handlePlayerSetupInput() {
                     ps.nameCharIdx = 0;
                     ps.nameChars = [65, 65, 65];
                     ps.phase = 'COLOR';
-                    GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+                    GAME.inputDelay = CONFIG.INPUT_DELAY;
                 } else {
+                    GAME.inputDelay = CONFIG.INPUT_DELAY;
                     startGame();
                 }
             }
@@ -367,11 +351,11 @@ function handlePlayerSetupInput() {
         if (input.left) {
             if (ps.nameCharIdx > 0) {
                 ps.nameCharIdx--;
-                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
             } else {
                 ps.phase = 'COLOR';
                 ps.colorIdx = ps.activePlayer === 0 ? 0 : 1;
-                GAME.setupInputDelay = CONFIG.SETUP_INPUT_DELAY;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
             }
         }
     }

@@ -345,7 +345,7 @@ function setupLobbyUI() {
             STATE.isPaused = false;
             GAME.screen = 'MENU';
             GAME.menuSelection = 0;
-            GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+            GAME.inputDelay = CONFIG.INPUT_DELAY;
             GAME.gameMode = 'SINGLE';
             document.getElementById('statusText').innerText = 'SELECT MODE';
         });

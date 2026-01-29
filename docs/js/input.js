@@ -11,7 +11,7 @@ export function resetIdleTimer() {
         GAME.isAttractMode = false;
         GAME.screen = 'MENU';
         GAME.menuSelection = 0;
-        GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+        GAME.inputDelay = CONFIG.INPUT_DELAY;
         GAME.gameMode = 'SINGLE';
     }
 }
@@ -36,7 +36,7 @@ export function setupInputs(startGame, startMatchSetup) {
                 STATE.isPaused = false;
                 GAME.screen = 'MENU';
                 GAME.menuSelection = 0;
-                GAME.menuInputDelay = CONFIG.MENU_INPUT_DELAY;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
                 document.getElementById('statusText').innerText = "SELECT MODE";
             }
         }
@@ -196,6 +196,15 @@ function initTouchControls(startGame, startMatchSetup) {
             e.preventDefault();
             if (STATE.sfx) STATE.sfx.init();
             STATE.keys[code] = true;
+            if ((code === "KeyStart" || code === "KeySelect") && GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) 
+                STATE.isPaused = !STATE.isPaused;
+            else if (code === "KeySelect"){
+                STATE.isPaused = false;
+                GAME.screen = 'MENU';
+                GAME.menuSelection = 0;
+                GAME.inputDelay = CONFIG._INPUT_DELAY;
+                document.getElementById('statusText').innerText = "SELECT MODE";
+            }
 
             if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
                 if (STATE.isGameOver) {
@@ -212,10 +221,10 @@ function initTouchControls(startGame, startMatchSetup) {
                     initMaze();
                 }
             }
-            if (GAME.screen === 'MENU') {
-                GAME.gameMode = 'SINGLE';
-                startMatchSetup();
-            }
+            // if (GAME.screen === 'MENU' && code !== "KeySelect") {
+            //     GAME.gameMode = 'SINGLE';
+            //     startMatchSetup();
+            // }
         }, { passive: false });
 
         const release = (e) => {
@@ -232,10 +241,10 @@ function initTouchControls(startGame, startMatchSetup) {
         btn.addEventListener('touchcancel', release, { passive: false });
     });
 
-    initJoystick();
+    initJoystick(startMatchSetup);
 }
 
-function initJoystick() {
+function initJoystick(startMatchSetup) {
     const joystickZone = document.getElementById('joystick-zone');
     if (joystickZone !== undefined) {
         const manager = nipplejs.create({
