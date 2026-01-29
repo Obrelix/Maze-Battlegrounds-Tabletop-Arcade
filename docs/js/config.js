@@ -63,9 +63,9 @@ export const TIMING = {
 };
 
 export const ENERGY_RATES = {
-    SHIELD_DRAIN: CONFIG.MAX_ENERGY / (4 * 60),       // 0.625 per tick
-    BOOST_DRAIN: CONFIG.MAX_ENERGY / (6 * 60),        // 0.42 per tick
-    BOOST_REGEN: (CONFIG.MAX_ENERGY / (12 * 60))      // 0.208 per tick            
+    SHIELD_DRAIN: CONFIG.MAX_ENERGY / (6 * 60),       // 0.417 per tick (~6 sec to empty, same as boost)
+    BOOST_DRAIN: CONFIG.MAX_ENERGY / (6 * 60),        // 0.417 per tick (~6 sec to empty)
+    BOOST_REGEN: (CONFIG.MAX_ENERGY / (12 * 60))      // 0.208 per tick (~12 sec to full)
 };
 
 export const ENERGY_COSTS = {

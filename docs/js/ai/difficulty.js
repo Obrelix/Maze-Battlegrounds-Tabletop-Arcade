@@ -1,9 +1,11 @@
+// Energy thresholds must be >= actual costs: BEAM=30, CHARGED_BEAM=65, SHIELD_ACTIVATION=10, DETONATION=30
 export const DIFFICULTY_PRESETS = {
   BEGINNER: {
     NAME: 'BEGINNER',
     COLOR:"#00ff00ff",
-    MIN_BEAM_ENERGY: 50,
-    MIN_CHARGE_ENERGY: 85,
+    MIN_BEAM_ENERGY: 50,           // Conservative: fires only with plenty of energy
+    MIN_CHARGE_ENERGY: 85,         // Very conservative: rarely charges
+    MIN_BOOST_ENERGY: 40,          // Conservative boosting
     SHIELD_HP_THRESHOLD: 35,
     AGGRESSIVE_DISTANCE: 15,
     HUNT_THRESHOLD: 45,
@@ -18,8 +20,9 @@ export const DIFFICULTY_PRESETS = {
   INTERMEDIATE: {
     NAME: 'INTERMEDIATE',
     COLOR:"#ffff00ff",
-    MIN_BEAM_ENERGY: 35,
-    MIN_CHARGE_ENERGY: 70,
+    MIN_BEAM_ENERGY: 40,           // Moderate: fires with some buffer
+    MIN_CHARGE_ENERGY: 75,         // Moderate: charges when feasible
+    MIN_BOOST_ENERGY: 30,          // Moderate boosting
     SHIELD_HP_THRESHOLD: 30,
     AGGRESSIVE_DISTANCE: 12,
     HUNT_THRESHOLD: 60,
@@ -34,8 +37,9 @@ export const DIFFICULTY_PRESETS = {
   HARD: {
     NAME: 'HARD',
     COLOR:"#ff5100ff",
-    MIN_BEAM_ENERGY: 25,
-    MIN_CHARGE_ENERGY: 60,
+    MIN_BEAM_ENERGY: 32,           // Aggressive: fires just above cost
+    MIN_CHARGE_ENERGY: 68,         // Aggressive: charges when just able
+    MIN_BOOST_ENERGY: 25,          // Aggressive boosting
     SHIELD_HP_THRESHOLD: 25,
     AGGRESSIVE_DISTANCE: 8,
     HUNT_THRESHOLD: 75,
@@ -50,8 +54,9 @@ export const DIFFICULTY_PRESETS = {
   INSANE: {
     NAME: 'INSANE',
     COLOR:"#ff0000ff",
-    MIN_BEAM_ENERGY: 15,
-    MIN_CHARGE_ENERGY: 50,
+    MIN_BEAM_ENERGY: 30,           // Maximum aggression: fires at exact cost
+    MIN_CHARGE_ENERGY: 65,         // Maximum aggression: charges at exact cost
+    MIN_BOOST_ENERGY: 20,          // Maximum aggression boosting
     SHIELD_HP_THRESHOLD: 20,
     AGGRESSIVE_DISTANCE: 5,
     HUNT_THRESHOLD: 85,
@@ -64,8 +69,21 @@ export const DIFFICULTY_PRESETS = {
     HIGHSCORE_MULTIPLIER: 1
   },
   DYNAMIC: {
+    // DYNAMIC inherits from INTERMEDIATE but adjusts between rounds
     NAME: 'DYNAMIC',
     COLOR:"#00c3ffff",
+    MIN_BEAM_ENERGY: 40,
+    MIN_CHARGE_ENERGY: 75,
+    MIN_BOOST_ENERGY: 30,
+    SHIELD_HP_THRESHOLD: 30,
+    AGGRESSIVE_DISTANCE: 12,
+    HUNT_THRESHOLD: 60,
+    DEFENSE_THRESHOLD: 20,
+    MINE_ARM_DISTANCE: 6,
+    COMBO_COOLDOWN: 120,
+    TACTICAL_PROBABILITY: 0.6,
+    REACTION_INTERVAL: 10,
+    MOVEMENT_ERROR_CHANCE: 0.05,
     HIGHSCORE_MULTIPLIER: 0.85
   }
 };
@@ -178,6 +196,22 @@ export const DIFFICULTY_FEATURES = {
     AGGRESSION_SCALE_DOWN: 0.2,
     MINE_STRATEGY: 'AGGRESSIVE',
   },
+  DYNAMIC: {
+    // DYNAMIC uses inter-round adjustment + intra-round adaptation
+    ADVANCED_MINING_ENABLED: false,
+    TACTICAL_CHARGING_ENABLED: false,
+    SHIELD_CHANCE: 0.60,
+    ADAPTIVE_DIFFICULTY_ENABLED: true,  // Enables intra-round tweaks
+    PREDICTIVE_MOVEMENT_ENABLED: false,
+    COMBO_CHAINS_ENABLED: false,
+    CORNER_CUT_DETECTION: true,
+    RESOURCE_DENIAL_ENABLED: false,
+    PREDICTION_WINDOW: 15,
+    BASE_AGGRESSION: 0.35,
+    AGGRESSION_SCALE_UP: 1,
+    AGGRESSION_SCALE_DOWN: 0.4,
+    MINE_STRATEGY: 'DEFENSIVE',
+  },
 };
 
 let activeConfig = { ...DIFFICULTY_PRESETS.INSANE };
@@ -247,11 +281,26 @@ export function adjustDifficultyDynamically(playerScore, cpuScore, currentConfig
 
 export function getEnergyStrategy(player, opponent, currentConfig) {
   if (currentConfig.NAME === 'BEGINNER') return { shield: Math.random() > 0.9, boost: Math.random() > 0.9 };
-  let dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
 
-  if (dist < 8 && player.boostEnergy > 30) return { shield: true, boost: false };
-  if (player.boostEnergy > 65) return { shield: false, boost: true };
-  if (player.boostEnergy < 35) return { shield: false, boost: false };
+  let dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+  const shieldThreshold = currentConfig.SHIELD_HP_THRESHOLD || 30;
+  const boostThreshold = currentConfig.MIN_BOOST_ENERGY || 25;
+  const aggressiveDist = currentConfig.AGGRESSIVE_DISTANCE || 12;
+
+  // Shield when close and have energy
+  if (dist < aggressiveDist && player.boostEnergy > shieldThreshold) {
+    return { shield: true, boost: false };
+  }
+
+  // Boost aggressively when have plenty of energy
+  if (player.boostEnergy > boostThreshold * 2) {
+    return { shield: false, boost: true };
+  }
+
+  // Conserve energy when low
+  if (player.boostEnergy < boostThreshold) {
+    return { shield: false, boost: false };
+  }
 
   return { shield: false, boost: Math.random() < 0.4 };
 }

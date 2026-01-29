@@ -3,7 +3,7 @@ import { STATE, resetStateForMatch, suddenDeathIsActive, shouldSpawnAmmoCrate } 
 import { initMaze, spawnAmmoCrate } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput } from './ai/controller.js';
-import { setDifficulty } from './ai/difficulty.js';
+import { setDifficulty, getDynamicDifficulty, setActiveConfig } from './ai/difficulty.js';
 import { renderGame, renderMenu, renderPlayerSetup, renderHighScores } from './renderer.js';
 import { resolveRound, applyPlayerActions, updateProjectiles, checkBeamCollisions, checkCrate, checkPortalActions, checkBeamActions, checkMinesActions } from './mechanics.js';
 import { updateParticles, checkBoostTrail } from './effects.js';
@@ -44,6 +44,25 @@ function startGame(mazeSeed = null) {
     initMaze(mazeSeed);
 }
 
+/**
+ * Start the next round with dynamic difficulty adjustment
+ * Called after round over to begin a new round
+ */
+export function startNextRound(mazeSeed = null) {
+    // Apply dynamic difficulty adjustment if in DYNAMIC mode
+    if (STATE.difficulty === "DYNAMIC") {
+        const p0 = STATE.players[0];
+        const p1 = STATE.players[1];
+        const humanScore = p0.name !== "CPU" ? p0.score : p1.score;
+        const cpuScore = p0.name === "CPU" ? p0.score : p1.score;
+        const totalRounds = p0.score + p1.score;
+
+        const newConfig = getDynamicDifficulty(humanScore, cpuScore, totalRounds);
+        setActiveConfig(newConfig);
+    }
+    initMaze(mazeSeed);
+}
+
 function finalizeRound() {
     if (STATE.isDraw) {
         resolveRound(null, 'DRAW');
@@ -63,6 +82,10 @@ function handleTimeOut() {
 
 function handleSuddenDeath() {
     if (suddenDeathIsActive()) {
+        // Limit total mines on field to prevent screen flooding
+        const MAX_SUDDEN_DEATH_MINES = 12;
+        if (STATE.mines.length >= MAX_SUDDEN_DEATH_MINES) return;
+
         if (STATE.gameTime % 50 === 0) {
             // Keep off edges (1 cell margin)
             let rx = Math.floor(seededRandom() * (CONFIG.COLS - 2)) + 1;
@@ -77,8 +100,15 @@ function handleSuddenDeath() {
                 return dx < CONFIG.CELL_SIZE * 2 && dy < CONFIG.CELL_SIZE * 2;
             });
 
-            // Only spawn if not too close to players
-            if (!tooCloseToPlayer) {
+            // Check if too close to existing mines
+            let tooCloseToMine = STATE.mines.some(m => {
+                let dx = Math.abs(m.x - mineX);
+                let dy = Math.abs(m.y - mineY);
+                return dx < CONFIG.CELL_SIZE * 1.5 && dy < CONFIG.CELL_SIZE * 1.5;
+            });
+
+            // Only spawn if not too close to players or other mines
+            if (!tooCloseToPlayer && !tooCloseToMine) {
                 STATE.mines.push({
                     x: mineX,
                     y: mineY,
@@ -103,7 +133,7 @@ function updateMinesAndCrates() {
 
 function update() {
     if (navigator.getGamepads)
-        STATE.gpData = pollGamepads(startGame, startMatchSetup);
+        STATE.gpData = pollGamepads(startGame, startMatchSetup, startNextRound);
     if (STATE.isPaused) return;
     STATE.frameCount++;
     if (GAME.screen !== 'PLAYING') {
@@ -156,7 +186,7 @@ function update() {
                 if (STATE.isGameOver) {
                     startGame();
                 } else {
-                    initMaze();
+                    startNextRound();
                 }
             }
         }

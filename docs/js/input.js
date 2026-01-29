@@ -113,6 +113,7 @@ export function setupInputs(startGame, startMatchSetup) {
                         initMaze(getNextRoundSeed());
                     }
                 } else {
+                    // Note: keyboard uses initMaze directly since startNextRound is not available here
                     initMaze(); // Next Round (Keep Score)
                 }
             }
@@ -125,7 +126,7 @@ export function setupInputs(startGame, startMatchSetup) {
 
 }
 
-export function pollGamepads(startGame, startMatchSetup) {
+export function pollGamepads(startGame, startMatchSetup, startNextRound = null) {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
 
     // We will populate this "Input Snapshot" to merge with Keyboard later
@@ -256,10 +257,12 @@ export function pollGamepads(startGame, startMatchSetup) {
                     if (!STATE.onlineTransitionPending) {
                         STATE.onlineTransitionPending = true;
                         sendNextRound();
-                        initMaze(getNextRoundSeed());
+                        if (startNextRound) startNextRound(getNextRoundSeed());
+                        else initMaze(getNextRoundSeed());
                     }
                 } else {
-                    initMaze();
+                    if (startNextRound) startNextRound();
+                    else initMaze();
                 }
                 return gpState;
             }

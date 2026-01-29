@@ -7,6 +7,11 @@ export function shouldChargeBeam(player, opponent, currentConfig) {
     return shouldFireBeamBasic(player, opponent);
   }
 
+  // Don't waste energy firing at shielded opponents
+  if (opponent.shieldActive) {
+    return false;
+  }
+
   if (player.boostEnergy < (currentConfig.MIN_CHARGE_ENERGY || 65)) {
     return false;
   }
@@ -29,6 +34,11 @@ export function shouldChargeBeam(player, opponent, currentConfig) {
 }
 
 export function shouldFireBeamBasic(player, opponent) {
+  // Don't waste energy firing at shielded opponents
+  if (opponent.shieldActive) {
+    return false;
+  }
+
   const TOLERANCE = 2.5;
   let dx = Math.abs(player.x - opponent.x);
   let dy = Math.abs(player.y - opponent.y);

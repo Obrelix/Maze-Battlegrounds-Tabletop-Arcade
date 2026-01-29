@@ -93,7 +93,7 @@ function handleMovement(p, input, now) {
         if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
     } else if (p.isCharging) {
         speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_MOVEMENT_PENALTY;
-        p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
+        // No energy regen while charging - charging is a commitment
     } else {
         if (p.boostCooldown > 0) {
             p.boostCooldown--;
@@ -317,10 +317,39 @@ export function resolveRound(winnerIdx, reason) {
 
     // --- TIMEOUT ---
     if (reason === 'TIMEOUT') {
-        playRoundOverSfx();
-        STATE.isRoundOver = true;
-        STATE.messages.round = "TIME OUT!";
-        STATE.messages.roundColor = "#ffff00";
+        let p0 = STATE.players[0];
+        let p1 = STATE.players[1];
+
+        if (p0.score === p1.score) {
+            // Equal scores - it's a draw
+            STATE.isDraw = true;
+            STATE.messages.round = "TIME OUT! DRAW!";
+            STATE.messages.roundColor = "#ffff00";
+            playRoundOverSfx();
+            STATE.isGameOver = true;
+            STATE.messages.win = "DRAW GAME!";
+            STATE.messages.winColor = "#ffffff";
+            // Record as draw in stats
+            if (!GAME.isAttractMode) {
+                recordMatchStats(-1);
+            }
+        } else {
+            // One player has higher score - they win
+            let timeoutWinner = p0.score > p1.score ? 0 : 1;
+            let winner = STATE.players[timeoutWinner];
+            STATE.victimIdx = timeoutWinner === 0 ? 1 : 0;
+            STATE.messages.round = `TIME OUT! ${winner.name} WINS!`;
+            STATE.messages.roundColor = winner.color;
+            playWinSfx();
+            STATE.isGameOver = true;
+            STATE.messages.win = `${winner.name} WINS!`;
+            STATE.messages.winColor = winner.color;
+            if (winner.name !== "CPU") saveHighScore();
+            if (!GAME.isAttractMode) {
+                recordMatchStats(timeoutWinner);
+            }
+        }
+
         STATE.scrollX = CONFIG.LOGICAL_W + 5;
         if (GAME.isAttractMode) GAME.demoResetTimer = TIMING.DEMO_RESET_TIMER;
         return;
@@ -403,9 +432,8 @@ export function fireBeam(p) {
 
     if (!start || !end) return false;
 
-    // Apply costs now that we have a valid path target
+    // Deduct energy (may be refunded if path not found)
     p.boostEnergy -= ENERGY_COSTS.BEAM;
-    playShootSfx();
 
     // --- PATHFINDING (Existing Logic) ---
     // Reset pathfinding flags
@@ -443,6 +471,9 @@ export function fireBeam(p) {
         p.boostEnergy += ENERGY_COSTS.BEAM;
         return false;
     }
+
+    // Path found - play sound now that shot is confirmed
+    playShootSfx();
 
     let pathCells = [];
     let temp = end;
@@ -617,22 +648,31 @@ export function fireChargedBeam(p) {
 /**
  * Check if both player beams collide with each other (beam vs beam)
  * Must be called BEFORE individual checkBeamActions to ensure fair collision detection
+ * Samples multiple points along each beam to prevent high-speed beams passing through each other
  */
 export function checkBeamCollisions() {
     let p1 = STATE.players[0];
     let p2 = STATE.players[1];
-    if (p1.beamPixels.length > 0 && p2.beamPixels.length > 0) {
-        let b1 = Math.floor(p1.beamIdx);
-        let b2 = Math.floor(p2.beamIdx);
-        if (b1 < p1.beamPixels.length && b2 < p2.beamPixels.length) {
-            let h1 = p1.beamPixels[b1];
-            let h2 = p2.beamPixels[b2];
-            if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < COLLISION.BEAM_COLLISION_DIST) {
+    if (p1.beamPixels.length === 0 || p2.beamPixels.length === 0) return;
+
+    // Get the range of beam positions to check (current tip and recent trail)
+    let b1Start = Math.max(0, Math.floor(p1.beamIdx) - Math.ceil(CONFIG.BEAM_SPEED));
+    let b1End = Math.min(p1.beamPixels.length - 1, Math.floor(p1.beamIdx));
+    let b2Start = Math.max(0, Math.floor(p2.beamIdx) - Math.ceil(CONFIG.BEAM_SPEED));
+    let b2End = Math.min(p2.beamPixels.length - 1, Math.floor(p2.beamIdx));
+
+    // Check all combinations of recent beam positions
+    for (let i1 = b1Start; i1 <= b1End; i1++) {
+        for (let i2 = b2Start; i2 <= b2End; i2++) {
+            let h1 = p1.beamPixels[i1];
+            let h2 = p2.beamPixels[i2];
+            if (h1 && h2 && Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < COLLISION.BEAM_COLLISION_DIST) {
                 triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2, "ANNIHILATED");
                 p1.beamPixels = [];
                 p1.beamIdx = 9999;
                 p2.beamPixels = [];
                 p2.beamIdx = 9999;
+                return;
             }
         }
     }
