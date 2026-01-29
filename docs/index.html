@@ -185,7 +185,7 @@
             <div id="connect-section" class="lobby-section">
                 <label for="server-url">Server URL:</label>
                 <div class="input-row">
-                    <input type="text" id="server-url" placeholder="ws://localhost:8080" value="ws://localhost:8080">
+                    <input type="text" id="server-url" placeholder="ws://your-server-ip:8080">
                     <button id="connect-btn" class="lobby-btn">Connect</button>
                 </div>
             </div>
@@ -305,6 +305,19 @@
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Auto-detect server URL based on page hostname
+            const serverUrlInput = document.getElementById('server-url');
+            if (serverUrlInput) {
+                const hostname = window.location.hostname;
+                // Use the page's hostname if it's an IP or domain (not localhost/file)
+                if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1' && !hostname.includes('github.io')) {
+                    serverUrlInput.value = `ws://${hostname}:8080`;
+                } else if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                    serverUrlInput.value = 'ws://localhost:8080';
+                }
+                // Leave empty for file:// or github.io (user must enter manually)
+            }
+
             // Select all game buttons
             const gameButtons = document.querySelectorAll('.btn, .btnInfo');
 

@@ -7,14 +7,36 @@ import { MessageType, ErrorCode } from './src/protocol.js';
 import { createRoom, joinRoom, leaveRoom, listRooms, startGame, handleDisconnect, getRoom, getOpponent } from './src/lobby.js';
 import { handleSignal, handleFallbackRequest, relayInput, relayNextRound, relayRestartGame, relayPause } from './src/signaling.js';
 
-const PORT = process.env.PORT || 8080;
+import { networkInterfaces } from 'os';
 
-const wss = new WebSocketServer({ port: PORT });
+const PORT = process.env.PORT || 8080;
+const HOST = process.env.HOST || '0.0.0.0'; // Bind to all network interfaces
+
+const wss = new WebSocketServer({ host: HOST, port: PORT });
 
 // Track all connected clients for broadcasting
 const clients = new Set();
 
+// Get local IP addresses for display
+function getLocalIPs() {
+    const nets = networkInterfaces();
+    const ips = [];
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                ips.push({ name, address: net.address });
+            }
+        }
+    }
+    return ips;
+}
+
 console.log(`Maze Battlegrounds Signaling Server running on port ${PORT}`);
+console.log(`Listening on ${HOST}:${PORT}`);
+console.log('\nConnect from other devices using one of these addresses:');
+getLocalIPs().forEach(({ name, address }) => {
+    console.log(`  ws://${address}:${PORT}  (${name})`);
+});
 
 wss.on('connection', (ws) => {
     // Assign unique ID to each connection
