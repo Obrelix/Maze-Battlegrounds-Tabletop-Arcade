@@ -2,6 +2,14 @@ import { CONFIG } from '../config.js';
 import { STATE } from '../state.js';
 import { findPathToTarget } from './pathfinding.js';
 
+/**
+ * Decide high-level AI strategy based on game state
+ * Evaluates multiple tactical options and returns the highest priority target
+ * @param {Object} player - AI player object
+ * @param {Object} opponent - Opponent player object
+ * @param {Object} currentConfig - AI difficulty configuration
+ * @returns {{x: number, y: number, type: string, priority: number, canCharge?: boolean}} Strategy target
+ */
 export function decideStrategy(player, opponent, currentConfig) {
   let goalX = CONFIG.MAZE_OFFSET_X + (player.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
   let goalY = (player.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
@@ -20,8 +28,9 @@ export function decideStrategy(player, opponent, currentConfig) {
     if (scoreDiff <= -2) aggression *= (currentConfig.AGGRESSION_SCALE_DOWN || 0.8);
   } else if (currentConfig.NAME === 'BEGINNER') {
     aggression = 0.4;
-  } else
-    aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3)
+  } else {
+    aggression *= (currentConfig.AGGRESSION_SCALE_UP || 1.3);
+  }
   // PANIC DEFENSE
   if ((enemyDistToTheirGoal < 10 || (enemyDistToTheirGoal + 80 < myDistToGoal)) && currentConfig.NAME !== 'BEGINNER') {
     return { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 10 };

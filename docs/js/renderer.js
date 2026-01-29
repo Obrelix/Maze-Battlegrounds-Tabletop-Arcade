@@ -105,42 +105,62 @@ function drawPlayerBody(x, y, color) {
     drawLED(Math.floor(x) + 1, Math.floor(y) + 1, color);
 }
 
+/**
+ * Render HUD elements for a single player
+ * @param {Object} player - Player object
+ * @param {string} timerStr - Game timer string (3 digits)
+ * @param {string} wallColor - Color for timer display
+ * @param {boolean} isPlayer1 - True for P1 (left side), false for P2 (right side)
+ */
+function renderPlayerHUD(player, timerStr, wallColor, isPlayer1) {
+    const rotation = isPlayer1 ? 90 : -90;
+    const x = isPlayer1 ? 0 : 123;
+
+    // Player name
+    if (player.name) {
+        const nameOffsets = isPlayer1 ? [0, 4, 8] : [61, 57, 53];
+        for (let i = 0; i < 3; i++) {
+            drawChar(x, nameOffsets[i], player.name[i], player.color, rotation);
+        }
+    }
+
+    // Mine count
+    const mineY = isPlayer1 ? 13 : 48;
+    const mineColor = `hsl(${player.minesLeft / 4 * 120},100%,50%)`;
+    drawDigit(x, mineY, player.minesLeft, mineColor, rotation);
+
+    // Energy bar
+    const energyRatio = player.boostEnergy / CONFIG.MAX_ENERGY;
+    const energyColor = `hsl(${energyRatio * 120},100%,50%)`;
+    const barHeight = Math.floor(energyRatio * 26);
+    for (let h = 0; h < barHeight; h++) {
+        for (let w = 0; w < 5; w++) {
+            const barY = isPlayer1 ? (17 + h) : (46 - h);
+            drawLED(x + w, barY, energyColor);
+        }
+    }
+
+    // Timer digits
+    const timerOffsets = isPlayer1 ? [44, 48, 52] : [17, 13, 9];
+    for (let i = 0; i < 3; i++) {
+        drawDigit(x, timerOffsets[i], parseInt(timerStr[i]), wallColor, rotation);
+    }
+
+    // Score
+    const scoreStr = player.score.toString().padStart(2, '0');
+    const scoreOffsets = isPlayer1 ? [57, 61] : [4, 0];
+    for (let i = 0; i < 2; i++) {
+        drawDigit(x, scoreOffsets[i], parseInt(scoreStr[i]), player.color, rotation);
+    }
+}
+
 function renderHUD(wallColor) {
     // This ensures the HUD doesn't shake with the world
     ctx.restore();
-    let p1 = STATE.players[0],
-        p2 = STATE.players[1],
-        s = Math.ceil(STATE.gameTime / 60).toString().padStart(3, '0');
-    if (p1.name) {
-        drawChar(0, 0, p1.name[0], p1.color, 90);
-        drawChar(0, 4, p1.name[1], p1.color, 90);
-        drawChar(0, 8, p1.name[2], p1.color, 90);
-    }
-    drawDigit(0, 13, p1.minesLeft, `hsl(${p1.minesLeft / 4 * 120},100%,50%)`, 90);
-    for (let h = 0; h < Math.floor(p1.boostEnergy / CONFIG.MAX_ENERGY * 26); h++)
-        for (let w = 0; w < 5; w++) drawLED(w, 17 + h, `hsl(${p1.boostEnergy / CONFIG.MAX_ENERGY * 120},100%,50%)`);
+    const timerStr = Math.ceil(STATE.gameTime / 60).toString().padStart(3, '0');
 
-    drawDigit(0, 44, parseInt(s[0]), wallColor, 90);
-    drawDigit(0, 48, parseInt(s[1]), wallColor, 90);
-    drawDigit(0, 52, parseInt(s[2]), wallColor, 90);
-    drawDigit(0, 57, parseInt(p1.score.toString().padStart(2, '0')[0]), p1.color, 90);
-    drawDigit(0, 61, parseInt(p1.score.toString().padStart(2, '0')[1]), p1.color, 90);
-
-    let rx = 123;
-    if (p2.name) {
-        drawChar(rx, 61, p2.name[0], p2.color, -90);
-        drawChar(rx, 57, p2.name[1], p2.color, -90);
-        drawChar(rx, 53, p2.name[2], p2.color, -90);
-    }
-    drawDigit(rx, 48, p2.minesLeft, `hsl(${p2.minesLeft / 4 * 120},100%,50%)`, -90);
-    for (let h = 0; h < Math.floor(p2.boostEnergy / CONFIG.MAX_ENERGY * 26); h++)
-        for (let w = 0; w < 5; w++) drawLED(rx + w, 46 - h, `hsl(${p2.boostEnergy / CONFIG.MAX_ENERGY * 120},100%,50%)`);
-
-    drawDigit(rx, 17, parseInt(s[0]), wallColor, -90);
-    drawDigit(rx, 13, parseInt(s[1]), wallColor, -90);
-    drawDigit(rx, 9, parseInt(s[2]), wallColor, -90);
-    drawDigit(rx, 4, parseInt(p2.score.toString().padStart(2, '0')[0]), p2.color, -90);
-    drawDigit(rx, 0, parseInt(p2.score.toString().padStart(2, '0')[1]), p2.color, -90);
+    renderPlayerHUD(STATE.players[0], timerStr, wallColor, true);
+    renderPlayerHUD(STATE.players[1], timerStr, wallColor, false);
 }
 
 export function preRenderBackground() {
@@ -519,8 +539,8 @@ function drawOverlays() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (STATE.isGameOver) {
-            const winColor = STATE.victimIdx == 0 ? STATE.players[1]?.color : STATE.players[0]?.color;
-            const tauntColor = STATE.victimIdx == 1 ? STATE.players[1]?.color : STATE.players[0]?.color;
+            const winColor = STATE.victimIdx === 0 ? STATE.players[1]?.color : STATE.players[0]?.color;
+            const tauntColor = STATE.victimIdx === 1 ? STATE.players[1]?.color : STATE.players[0]?.color;
             if (Math.floor(Date.now() / 500) % 2 === 0)
                 drawText(STATE.messages.win, 49, 8, winColor);
             let msg = `${STATE.players[STATE.victimIdx].name}: '${STATE.messages.taunt}'`
@@ -680,12 +700,12 @@ export function renderPlayerSetup() {
     const difficulty = DIFFICULTIES[ps.difficultyIdx];
     let previewX = 65;
     const blink = Math.floor(Date.now() / 200) % 2 === 0;
-    const isMulty = GAME.gameMode === 'MULTI';
-    let progressText = isMulty ? "MULTI PLAYER" : "SINGLE PLAYER";
+    const isMulti = GAME.gameMode === 'MULTI';
+    let progressText = isMulti ? "MULTI PLAYER" : "SINGLE PLAYER";
     let previewColorY = 24;                     //"MULTI PLAYER"
     let previewNameY = 34;
-    drawText(progressText, isMulty ? 43 : 39, 3, "#fff");
-    if (isMulty) {
+    drawText(progressText, isMulti ? 43 : 39, 3, "#fff");
+    if (isMulti) {
         drawText(playerLabel, 52, 11, playerColor);
         previewColorY = 24;
         previewNameY = 36;

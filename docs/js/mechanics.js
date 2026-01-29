@@ -1,4 +1,4 @@
-import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES, GAME } from './config.js';
+import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES, GAME, COLLISION } from './config.js';
 import { STATE, saveHighScore, recordMatchStats } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
 import { seededRandom } from './seededRandom.js';
@@ -14,18 +14,29 @@ import {
 //// Helper functions
 
 function handleDetonate(p, input, now) {
-    // Detonate
+    // Detonate - collect mines first to avoid race condition during explosion chain
     if (input.boom && !p.prevDetonateKey) {
         if (p.boostEnergy >= ENERGY_COSTS.DETONATION) {
-            let minesFound = false;
+            // Collect mines to detonate (avoid modifying array during iteration)
+            let minesToDetonate = [];
             for (let i = STATE.mines.length - 1; i >= 0; i--) {
                 if (STATE.mines[i].owner === p.id || STATE.mines[i].owner === -1) {
-                    triggerExplosion(STATE.mines[i].x, STATE.mines[i].y, "WAS FRAGGED");
-                    STATE.mines.splice(i, 1);
-                    minesFound = true;
+                    minesToDetonate.push({ x: STATE.mines[i].x, y: STATE.mines[i].y, idx: i });
                 }
             }
-            if (minesFound) p.boostEnergy -= ENERGY_COSTS.DETONATION;
+
+            if (minesToDetonate.length > 0) {
+                p.boostEnergy -= ENERGY_COSTS.DETONATION;
+                // Remove mines first (in reverse order to preserve indices)
+                minesToDetonate.sort((a, b) => b.idx - a.idx);
+                for (let m of minesToDetonate) {
+                    STATE.mines.splice(m.idx, 1);
+                }
+                // Then trigger explosions (safe - no more array modification)
+                for (let m of minesToDetonate) {
+                    triggerExplosion(m.x, m.y, "WAS FRAGGED");
+                }
+            }
         }
     }
     p.prevDetonateKey = input.boom;
@@ -78,7 +89,7 @@ function handleMovement(p, input, now) {
     // Movement
     let speed = CONFIG.BASE_SPEED;
     if (p.stunIsActive(now)) {
-        speed = CONFIG.BASE_SPEED * 0.5;
+        speed = CONFIG.BASE_SPEED * COLLISION.STUN_SPEED_MULT;
         if (!input.boost && !p.shieldActive) p.boostEnergy = Math.min(CONFIG.MAX_ENERGY, p.boostEnergy + ENERGY_RATES.BOOST_REGEN);
     } else if (p.isCharging) {
         speed = CONFIG.BASE_SPEED * CONFIG.CHARGE_MOVEMENT_PENALTY;
@@ -129,44 +140,33 @@ function handleMovement(p, input, now) {
     }
 
     let dist = Math.hypot(dx, dy);
-    let steps = Math.ceil(dist / 0.5);
+    let steps = Math.ceil(dist / COLLISION.MOVEMENT_STEP_SIZE);
     let sx = dx / steps;
     let sy = dy / steps;
 
-    // --- CORNER ASSIST CONSTANTS ---
-    // How far to "look ahead" for an open space (approx 1/3 of player size)
-    const ASSIST_OFFSET = 0.6;
-    // How fast to push the player into alignment (smoothness)
-    const NUDGE_SPEED = 0.15;
-
     for (let i = 0; i < steps; i++) {
-        // ----------------------
         // X-AXIS MOVEMENT
-        // ----------------------
         if (sx !== 0) {
             if (!checkPlayerCollision(p, sx, 0)) {
-                // Path is clear, move normally
                 p.x += sx;
             } else {
-                if (!checkPlayerCollision(p, sx, -ASSIST_OFFSET)) {
-                    p.y -= NUDGE_SPEED; // Yes! Nudge them Up
-                } else if (!checkPlayerCollision(p, sx, ASSIST_OFFSET)) {
-                    p.y += NUDGE_SPEED; // Yes! Nudge them Down
+                if (!checkPlayerCollision(p, sx, -COLLISION.CORNER_ASSIST_OFFSET)) {
+                    p.y -= COLLISION.CORNER_NUDGE_SPEED;
+                } else if (!checkPlayerCollision(p, sx, COLLISION.CORNER_ASSIST_OFFSET)) {
+                    p.y += COLLISION.CORNER_NUDGE_SPEED;
                 }
             }
         }
 
-        // ----------------------
         // Y-AXIS MOVEMENT
-        // ----------------------
         if (sy !== 0) {
             if (!checkPlayerCollision(p, 0, sy)) {
                 p.y += sy;
             } else {
-                if (!checkPlayerCollision(p, -ASSIST_OFFSET, sy)) {
-                    p.x -= NUDGE_SPEED; // Nudge Left
-                } else if (!checkPlayerCollision(p, ASSIST_OFFSET, sy)) {
-                    p.x += NUDGE_SPEED; // Nudge Right
+                if (!checkPlayerCollision(p, -COLLISION.CORNER_ASSIST_OFFSET, sy)) {
+                    p.x -= COLLISION.CORNER_NUDGE_SPEED;
+                } else if (!checkPlayerCollision(p, COLLISION.CORNER_ASSIST_OFFSET, sy)) {
+                    p.x += COLLISION.CORNER_NUDGE_SPEED;
                 }
             }
         }
@@ -195,7 +195,7 @@ function handleMineDrop(p, input, now) {
 function handleGoal(p, input, now) {
     let gx = CONFIG.MAZE_OFFSET_X + (p.goalC * CONFIG.CELL_SIZE) + 1;
     let gy = (p.goalR * CONFIG.CELL_SIZE) + 1;
-    if (Math.abs(p.x - gx) < 1.0 && Math.abs(p.y - gy) < 1.0) {
+    if (Math.abs(p.x - gx) < COLLISION.GOAL_DISTANCE && Math.abs(p.y - gy) < COLLISION.GOAL_DISTANCE) {
         resolveRound(p.id, 'GOAL');
     }
 }
@@ -203,8 +203,8 @@ function handleGoal(p, input, now) {
 function checkPlayerCollision(p, dx, dy) {
     let nx = p.x + dx;
     let ny = p.y + dy;
-    let hitbox = 0.8;
-    let pad = 0.6;
+    let hitbox = COLLISION.HITBOX_SIZE;
+    let pad = COLLISION.COLLISION_PAD;
     return (
         isWall(nx + pad, ny + pad) ||
         isWall(nx + pad + hitbox, ny + pad) ||
@@ -217,7 +217,7 @@ function handleMultiDeath(indices, reason) {
     if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
 
     // Set global death state
-    STATE.deathTimer = 50;
+    STATE.deathTimer = COLLISION.DEATH_TIMER_FRAMES;
     setDeathMessages(reason);
     playDeathSfx();
 
@@ -246,7 +246,7 @@ function handlePlayerDeath(victimIdx, reason) {
     // 2. Store the reason in the global state (add this property implicitly)
     setDeathMessages(reason || "ELIMINATED BY A SNEAKY BUG");
     // 3. Start the Death Timer
-    STATE.deathTimer = 50;
+    STATE.deathTimer = COLLISION.DEATH_TIMER_FRAMES;
 
     // 4. Extra visual effects
     let p = STATE.players[victimIdx];
@@ -372,10 +372,25 @@ export function triggerExplosion(x, y, reason = "EXPLODED") {
     applyPlayerExplosionDamage(x, y, reason);
 }
 
+/**
+ * Fire a homing beam toward the opponent
+ * @param {Object} p - Player object firing the beam
+ * @returns {boolean} True if beam was fired, false otherwise
+ */
 export function fireBeam(p) {
-    if (p.boostEnergy < ENERGY_COSTS.BEAM) return;
-    if (p.beamIdx < p.beamPixels.length) return;
+    // Validate player state
+    if (!p || typeof p.boostEnergy !== 'number') {
+        console.warn('fireBeam: Invalid player state');
+        return false;
+    }
+    if (p.boostEnergy < ENERGY_COSTS.BEAM) return false;
+    if (p.beamIdx < p.beamPixels.length) return false;
+
     let opponent = STATE.players[(p.id + 1) % 2];
+    if (!opponent) {
+        console.warn('fireBeam: No opponent found');
+        return false;
+    }
 
     // 2. Calculate Opponent's Grid Coordinates
     // We target the center of the opponent for accuracy
@@ -386,7 +401,7 @@ export function fireBeam(p) {
     let start = gridIndex(Math.floor((p.x - CONFIG.MAZE_OFFSET_X + 1) / CONFIG.CELL_SIZE), Math.floor((p.y + 1) / CONFIG.CELL_SIZE));
     let end = gridIndex(targetC, targetR);
 
-    if (!start || !end) return;
+    if (!start || !end) return false;
 
     // Apply costs now that we have a valid path target
     p.boostEnergy -= ENERGY_COSTS.BEAM;
@@ -426,7 +441,7 @@ export function fireBeam(p) {
     if (!found) {
         // Refund energy if shot fails
         p.boostEnergy += ENERGY_COSTS.BEAM;
-        return;
+        return false;
     }
 
     let pathCells = [];
@@ -464,8 +479,14 @@ export function fireBeam(p) {
         y: (pathCells[pathCells.length - 1].r * CONFIG.CELL_SIZE) + 1
     });
     p.beamIdx = 0;
+    return true;
 }
 
+/**
+ * Apply all player actions based on input
+ * @param {Object} p - Player object
+ * @param {Object} input - Input state object
+ */
 export function applyPlayerActions(p, input) {
     let now = STATE.frameCount;
     handleDetonate(p, input, now);
@@ -535,11 +556,23 @@ export function updateProjectiles() {
 
 }
 
+/**
+ * Fire a charged beam projectile toward the opponent
+ * @param {Object} p - Player object firing the beam
+ * @returns {boolean} True if beam was fired, false otherwise
+ */
 export function fireChargedBeam(p) {
-    if (p.boostEnergy < ENERGY_COSTS.CHARGED_BEAM) return;
+    if (!p || typeof p.boostEnergy !== 'number') {
+        console.warn('fireChargedBeam: Invalid player state');
+        return false;
+    }
+    if (p.boostEnergy < ENERGY_COSTS.CHARGED_BEAM) return false;
 
-    // 1. Identify Opponent
     let opponent = STATE.players[(p.id + 1) % 2];
+    if (!opponent) {
+        console.warn('fireChargedBeam: No opponent found');
+        return false;
+    }
 
     // 2. Calculate Vector to Opponent (Center to Center)
     let startX = p.x;
@@ -578,8 +611,13 @@ export function fireChargedBeam(p) {
     // p.y -= vy * 2;
 
     spawnMuzzleFlashParticles(startX, startY);
+    return true;
 }
 
+/**
+ * Check if both player beams collide with each other (beam vs beam)
+ * Must be called BEFORE individual checkBeamActions to ensure fair collision detection
+ */
 export function checkBeamCollisions() {
     let p1 = STATE.players[0];
     let p2 = STATE.players[1];
@@ -589,7 +627,7 @@ export function checkBeamCollisions() {
         if (b1 < p1.beamPixels.length && b2 < p2.beamPixels.length) {
             let h1 = p1.beamPixels[b1];
             let h2 = p2.beamPixels[b2];
-            if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < 4) {
+            if (Math.abs(h1.x - h2.x) + Math.abs(h1.y - h2.y) < COLLISION.BEAM_COLLISION_DIST) {
                 triggerExplosion((h1.x + h2.x) / 2, (h1.y + h2.y) / 2, "ANNIHILATED");
                 p1.beamPixels = [];
                 p1.beamIdx = 9999;
@@ -607,7 +645,7 @@ export function checkBeamActions(p, idx) {
     let tipIdx = Math.floor(opponent.beamIdx);
     if (tipIdx >= 0 && tipIdx < opponent.beamPixels.length) {
         let tip = opponent.beamPixels[tipIdx];
-        if (Math.abs(p.x - tip.x) < 1.5 && Math.abs(p.y - tip.y) < 1.5) {
+        if (Math.abs(p.x - tip.x) < COLLISION.BEAM_HIT_RADIUS && Math.abs(p.y - tip.y) < COLLISION.BEAM_HIT_RADIUS) {
             if (!p.shieldActive) {
                 p.stunStartTime = STATE.frameCount;
                 p.glitchStartTime = STATE.frameCount;
@@ -615,8 +653,8 @@ export function checkBeamActions(p, idx) {
             }
             opponent.beamPixels = [];
             opponent.beamIdx = 9999;
-            opponent.boostEnergy = Math.min(CONFIG.MAX_ENERGY, opponent.boostEnergy + 15); // Attacker gains
-            p.boostEnergy = Math.max(0, p.boostEnergy - 15);                 // Victim loses
+            opponent.boostEnergy = Math.min(CONFIG.MAX_ENERGY, opponent.boostEnergy + ENERGY_COSTS.BEAM_HIT_TRANSFER);
+            p.boostEnergy = Math.max(0, p.boostEnergy - ENERGY_COSTS.BEAM_HIT_TRANSFER);
         }
     }
 }
@@ -636,11 +674,15 @@ export function checkMinesActions(p) {
                 continue;
             }
         }
-        if (m.active && p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
+        // Check player stepping on mine (skip if player has portal invulnerability)
+        if (m.active && p.portalInvulnFrames <= 0 &&
+            p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
             triggerExplosion(m.x, m.y, "TRIPPED MINE");
             STATE.mines.splice(i, 1);
         }
     }
+    // Decrement portal invulnerability
+    if (p.portalInvulnFrames > 0) p.portalInvulnFrames--;
 }
 
 export function checkPortalActions(p) {
@@ -654,7 +696,8 @@ export function checkPortalActions(p) {
             if (dest) {
                 p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5;
                 p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
-                p.portalCooldown = 60;
+                p.portalCooldown = COLLISION.PORTAL_COOLDOWN;
+                p.portalInvulnFrames = COLLISION.PORTAL_INVULN_FRAMES;
                 p.speed = CONFIG.BASE_SPEED;
                 if (seededRandom() < CONFIG.PORTAL_GLITCH_CHANCE) {
                     p.glitchStartTime = STATE.frameCount;

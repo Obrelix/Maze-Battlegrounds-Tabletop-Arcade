@@ -43,7 +43,6 @@ let connectionTimeout = null;
 // Input buffer for lockstep synchronization
 const INPUT_DELAY = 2; // 2-frame input delay for synchronization
 const inputBuffer = new Map(); // Map<frame, {local: cmd, remote: cmd}>
-const pendingInputs = new Map(); // Inputs waiting to be sent
 
 // Callbacks for lobby UI updates
 let onRoomListUpdate = null;
@@ -730,7 +729,6 @@ function cleanup() {
     useFallback = false;
     fallbackRequested = false;
     inputBuffer.clear();
-    pendingInputs.clear();
 }
 
 // Clean up old input buffer entries (keep last 120 frames = 2 seconds)

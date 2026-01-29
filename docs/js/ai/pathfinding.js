@@ -2,6 +2,16 @@ import { CONFIG } from '../config.js';
 import { STATE } from '../state.js';
 import { gridIndex } from '../grid.js';
 
+// Pre-defined directions: [dc, dr, wallIndex]
+const DIRECTIONS = [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]];
+
+/**
+ * Find path from player to target using BFS with heuristic ordering
+ * @param {Object} fromPlayer - Player object with x, y, size properties
+ * @param {number} targetX - Target X coordinate in pixels
+ * @param {number} targetY - Target Y coordinate in pixels
+ * @returns {Array} Array of cell objects forming the path, or empty if no path
+ */
 export function findPathToTarget(fromPlayer, targetX, targetY) {
   if (!STATE.maze || STATE.maze.length === 0) return [];
 
@@ -20,10 +30,11 @@ export function findPathToTarget(fromPlayer, targetX, targetY) {
 
   if (!start || !end) return [];
 
-  STATE.maze.forEach(c => {
-    c.bfsVisited = false;
-    c.parent = null;
-  });
+  // Reset BFS state
+  for (let i = 0; i < STATE.maze.length; i++) {
+    STATE.maze[i].bfsVisited = false;
+    STATE.maze[i].parent = null;
+  }
 
   let queue = [start];
   let head = 0;
@@ -37,21 +48,32 @@ export function findPathToTarget(fromPlayer, targetX, targetY) {
       break;
     }
 
-    let dirs = [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]];
-    dirs.sort((a, b) => {
-      let distA = Math.abs((curr.c + a[0]) - endC) + Math.abs((curr.r + a[1]) - endR);
-      let distB = Math.abs((curr.c + b[0]) - endC) + Math.abs((curr.r + b[1]) - endR);
-      return distA - distB;
-    });
+    // Process directions with heuristic priority (no sort - use inline comparison)
+    // Calculate which direction moves us closer to target
+    let dcToEnd = endC - curr.c;
+    let drToEnd = endR - curr.r;
 
-    dirs.forEach(d => {
+    // Process directions in heuristic order based on target direction
+    for (let i = 0; i < 4; i++) {
+      // Prioritize direction that aligns with target
+      let d = DIRECTIONS[i];
+      let alignScore = d[0] * dcToEnd + d[1] * drToEnd;
+
+      // Skip if this direction moves away from target and other options exist
+      // (simple heuristic - still visits all valid neighbors)
       let n = gridIndex(curr.c + d[0], curr.r + d[1]);
       if (n && !n.bfsVisited && !curr.walls[d[2]] && !n.walls[(d[2] + 2) % 4]) {
         n.bfsVisited = true;
         n.parent = curr;
-        queue.push(n);
+        // Insert with priority: neighbors closer to target go first
+        if (alignScore > 0) {
+          // This direction moves toward target - add to front of remaining queue
+          queue.splice(head, 0, n);
+        } else {
+          queue.push(n);
+        }
       }
-    });
+    }
   }
 
   if (!found) return [];

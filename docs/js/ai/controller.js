@@ -5,6 +5,14 @@ import { decideStrategy } from './strategy.js';
 import { shouldChargeBeam, shouldFireBeamBasic, shouldDetonateNearbyMines, calculateAdvancedMinePositions } from './combat.js';
 import { getActiveConfig, adjustDifficultyDynamically, getEnergyStrategy } from './difficulty.js';
 
+/**
+ * Calculate movement direction toward target using pathfinding
+ * Includes human error simulation for more realistic AI behavior
+ * @param {Object} player - AI player object
+ * @param {Object} target - Target position {x, y}
+ * @param {Object} currentConfig - AI difficulty configuration
+ * @returns {{dx: number, dy: number}} Movement vector
+ */
 function getSmartMovementDirection(player, target, currentConfig) {
   // 1. HUMAN ERROR SIMULATION
   if (player.confusionTimer > 0) {
@@ -60,6 +68,13 @@ function getSmartMovementDirection(player, target, currentConfig) {
   return { dx: (dx / dist) * CONFIG.BASE_SPEED, dy: (dy / dist) * CONFIG.BASE_SPEED };
 }
 
+/**
+ * Generate AI input commands for a CPU-controlled player
+ * Main entry point for AI decision making
+ * @param {Object} player - AI player object
+ * @param {Object} opponent - Human/other player object
+ * @returns {Object} Input command object with movement and action flags
+ */
 export function getCpuInput(player, opponent) {
   let cmd = {
     up: false, down: false, left: false, right: false,

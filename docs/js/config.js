@@ -38,12 +38,16 @@ export const GAME = {
     screen: 'MENU',
     isAttractMode: false,
     demoResetTimer: 0,
-    // setupInputDelay: CONFIG.SETUP_INPUT_DELAY,
     inputDelay: CONFIG.INPUT_DELAY,
     menuSelection: 0, // 0: SINGLE, 1: LOCAL MULTI, 2: ONLINE MULTI, 3: HIGH SCORES
     lastUpdateTime: 0,
     accumulator: 0
 };
+
+/** Reset input delay to prevent rapid key repeat */
+export function setInputDelay() {
+    GAME.inputDelay = CONFIG.INPUT_DELAY;
+}
 
 export const TIMING = {
     SUDDEN_DEATH_TIME: 1800,                                // Frames
@@ -69,6 +73,23 @@ export const ENERGY_COSTS = {
     CHARGED_BEAM: 65,
     SHIELD_ACTIVATION: 10,
     DETONATION: 30,
+    BEAM_HIT_TRANSFER: 15,      // Energy gained/lost on beam hit
+};
+
+// Collision and movement constants
+export const COLLISION = {
+    HITBOX_SIZE: 0.8,           // Player hitbox size for wall collision
+    COLLISION_PAD: 0.6,         // Padding for collision detection
+    CORNER_ASSIST_OFFSET: 0.6,  // How far to look ahead for corner assist
+    CORNER_NUDGE_SPEED: 0.15,   // How fast to nudge player around corners
+    MOVEMENT_STEP_SIZE: 0.5,    // Sub-step size for collision detection
+    GOAL_DISTANCE: 1.0,         // Distance threshold for goal scoring
+    BEAM_HIT_RADIUS: 1.5,       // Distance for beam to hit player
+    BEAM_COLLISION_DIST: 4,     // Distance for beam vs beam collision
+    STUN_SPEED_MULT: 0.5,       // Speed multiplier when stunned
+    PORTAL_COOLDOWN: 60,        // Frames before portal can be used again
+    PORTAL_INVULN_FRAMES: 10,   // Invulnerability frames after portal teleport
+    DEATH_TIMER_FRAMES: 50,     // Frames to wait after death before round ends
 };
 
 export const CONTROLS_P1 = {

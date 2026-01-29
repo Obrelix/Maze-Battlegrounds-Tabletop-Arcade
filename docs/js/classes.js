@@ -187,6 +187,7 @@ export class Player {
         this.boostEnergy = CONFIG.MAX_ENERGY;
         this.boostCooldown = 0;
         this.portalCooldown = 0;
+        this.portalInvulnFrames = 0;
         this.shieldActive = false;
         this.currentSpeed = CONFIG.BASE_SPEED;
         this.prevDetonateKey = false;
