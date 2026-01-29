@@ -6,6 +6,8 @@ This repository contains the source code for **Maze Battlegrounds**, a fast‑pa
 
 **Status:** Early Alpha – mechanics, balance, and UX are under active development and testing, but the core loop is fully playable in the browser.
 
+**Version:** 0.1.4-alpha
+
 ---
 
 ## Play the browser demo
@@ -209,7 +211,7 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - **Momentum‑based movement:** Substepped collision resolution with nudging for tight corners
 
 #### AI (modular architecture under `ai/`)
-- **Breadth‑First Search (BFS) pathfinding:** O(1) dequeue pointer-based BFS; computes safe paths around mines and walls
+- **Breadth‑First Search (BFS) pathfinding:** O(1) dequeue pointer-based BFS with heuristic priority ordering; computes safe paths around mines and walls
 - **Reaction latency:** Configurable think-interval simulates human reaction time (1–20 frames between decisions)
 - **Human error simulation:** Configurable confusion chance causes temporary random movement for realism
 - **Predictive aiming:** Analyzes enemy movement patterns, direction history, and corner-cutting to predict future positions
@@ -246,11 +248,27 @@ Online multiplayer uses lockstep synchronization:
 
 #### Local development
 
-- Modify `config.js` to tune game constants (energy costs, timings, colors, etc.)
+- Modify `config.js` to tune game constants (energy costs, timings, colors, collision parameters, etc.)
 - Edit `mechanics.js` for gameplay logic changes
 - Update `renderer.js` for visual tweaks
 - Adjust modules under `ai/` for CPU difficulty and behavior (`ai/difficulty.js` for presets, `ai/strategy.js` for tactics)
 - **Dev mode:** Append `?dev` to the URL to enable state invariant validation (logs warnings with frame counts to console)
+
+#### Testing
+
+The project uses [Vitest](https://vitest.dev/) for unit testing with jsdom environment.
+
+```bash
+npx vitest              # Run tests in watch mode
+npx vitest run          # Run tests once
+npx vitest run tests/grid.test.js  # Run single test file
+```
+
+**Test coverage includes:**
+- Grid/maze generation and collision detection
+- AI pathfinding and strategy selection
+- Game state management and player mechanics
+- Portal invulnerability and collision constants
 
 #### Build & deploy
 
@@ -309,17 +327,24 @@ MAX_SCORE: 5,        // Points to win match
 GAME_TIME: 20000,    // Round duration (ms)
 MAX_MINES: 4,        // Mines per player
 
-// Energy costs
-BEAM_ENERGY_COST: 30,        // Tap beam
-CHARGED_BEAM_COST: 65,       // Charged beam
-SHIELD_ACTIVATION_COST: 10,  // Shield startup
-SHIELD_DRAIN: 0.556,         // Per-frame drain (~3 sec to empty)
-BOOST_DRAIN: 0.333,          // Per-frame drain (~5 sec to empty)
-DETONATE_COST: 30,           // Mine detonation
+// Energy costs (ENERGY_COSTS object)
+BEAM: 30,                    // Tap beam
+CHARGED_BEAM: 65,            // Charged beam
+SHIELD_ACTIVATION: 10,       // Shield startup
+DETONATION: 30,              // Mine detonation
+BEAM_HIT_TRANSFER: 15,       // Energy gained/lost on beam hit
 
-// Timings
-CHARGE_TIME: 3000,           // Time to full charge (ms)
-STUN_DURATION: 300,          // Stun effect duration (ms)
+// Collision & movement (COLLISION object)
+HITBOX_SIZE: 0.8,            // Player hitbox for wall collision
+CORNER_ASSIST_OFFSET: 0.6,   // Look-ahead for corner assist
+CORNER_NUDGE_SPEED: 0.15,    // Nudge speed around corners
+PORTAL_COOLDOWN: 60,         // Frames before portal reuse
+PORTAL_INVULN_FRAMES: 10,    // Invulnerability after teleport
+DEATH_TIMER_FRAMES: 50,      // Delay before round ends after death
+
+// Timings (TIMING object)
+CHARGE_DURATION: 180,        // Frames to full charge (3 sec @ 60fps)
+STUN_DURATION: 90,           // Stun effect duration (frames)
 GLITCH_DURATION: 180,        // Control inversion duration (frames)
 
 // Controls
@@ -366,6 +391,24 @@ MIT License – Free for personal, educational, and non‑commercial use.
 
 ---
 
+## Recent Changes (v0.1.4-alpha)
+
+### Bug Fixes
+- **Portal-mine death trap:** Players now have brief invulnerability after teleporting to prevent instant mine deaths
+- **Mine detonation race condition:** Fixed simultaneous detonations corrupting game state
+- **Sudden death mine spawning:** Mines no longer spawn on top of players or at map edges
+- **Pathfinding performance:** Removed expensive sort operation from BFS; uses heuristic priority instead
+
+### Code Quality
+- **Extracted magic numbers:** All collision/movement constants now in `config.js` (`COLLISION` object)
+- **Input delay helper:** Replaced 19 duplicate assignments with `setInputDelay()` function
+- **Refactored long functions:** Split player setup handling into focused sub-functions
+- **HUD rendering cleanup:** Extracted `renderPlayerHUD()` to eliminate P1/P2 code duplication
+- **Added JSDoc:** Type documentation for critical AI and mechanics functions
+- **Added tests:** Portal invulnerability, collision constants, and config helpers
+
+---
+
 ## Credits
 
 - **Game design & code:** Obrelix
@@ -376,4 +419,4 @@ MIT License – Free for personal, educational, and non‑commercial use.
 ---
 
 **Last updated:** January 29, 2026
-**Version:** 0.1.3‑alpha
+**Version:** 0.1.4‑alpha
