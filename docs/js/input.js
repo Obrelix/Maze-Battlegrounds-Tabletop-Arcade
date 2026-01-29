@@ -223,7 +223,7 @@ function initTouchControls(startGame, startMatchSetup) {
                 STATE.isPaused = false;
                 GAME.screen = 'MENU';
                 GAME.menuSelection = 0;
-                GAME.inputDelay = CONFIG._INPUT_DELAY;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
                 document.getElementById('statusText').innerText = "SELECT MODE";
             }
 
