@@ -1,12 +1,16 @@
 import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
 import { STATE, suddenDeathIsActive } from './state.js';
 import { gridIndex } from './grid.js';
+import { generateDecorativeMaze } from './menu-maze.js';
 
 const canvas = document.getElementById('ledMatrix');
 const ctx = canvas.getContext('2d');
 const bgCanvas = document.createElement('canvas');
 const bgCtx = bgCanvas.getContext('2d');
 let isBgRendered = false;
+
+let leftMenuMaze = null;
+let rightMenuMaze = null;
 
 function drawLED(lx, ly, color) {
     // 1. FORCE GRID ALIGNMENT
@@ -159,6 +163,47 @@ export function preRenderBackground() {
         }
     }
     isBgRendered = true;
+}
+
+function drawDecorativeMaze(maze, offsetX, offsetY, wallColor, cols, rows) {
+    function decorativeGridIndex(c, r) {
+        if (c < 0 || r < 0 || c >= cols || r >= rows) return undefined;
+        return maze[c + r * cols];
+    }
+
+    maze.forEach(c => {
+        let x = c.c * CONFIG.CELL_SIZE + offsetX;
+        let y = c.r * CONFIG.CELL_SIZE + offsetY;
+
+        let drawCorner = false;
+        if (c.walls[0] || c.walls[3]) drawCorner = true;
+
+        if (!drawCorner) {
+            let left = decorativeGridIndex(c.c - 1, c.r);
+            let top = decorativeGridIndex(c.c, c.r - 1);
+            if (left && left.walls[0]) drawCorner = true;
+            if (top && top.walls[3]) drawCorner = true;
+        }
+
+        // Only draw internal corners (not on the absolute top or left edge)
+        if (drawCorner && c.r > 0 && c.c > 0) {
+            drawLED(x, y, wallColor);
+        }
+
+        // Only draw top wall segments if not on the top-most row
+        if (c.walls[0] && c.r > 0) {
+            drawLED(x + 1, y, wallColor);
+            drawLED(x + 2, y, wallColor);
+        }
+
+        // Only draw left wall segments if not on the left-most column
+        if (c.walls[3] && c.c > 0) {
+            drawLED(x, y + 1, wallColor);
+            drawLED(x, y + 2, wallColor);
+        }
+        // No logic for rightmost column, bottommost row, or bottom-right corner as per user's request.
+        // These parts would draw the outer perimeter, which we want to avoid.
+    });
 }
 
 function drawMazeWalls(wallColor) {
@@ -524,13 +569,26 @@ export function renderPlayerSetup() {
     // Clear screen
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Draw grid background
     for (let y = 0; y < CONFIG.LOGICAL_H; y++) {
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) {
             drawLED(x, y, '#111');
         }
     }
+
+    const mazeCols = 11;
+    const mazeRows = 21;
+    const leftMazeOffsetX = 0;
+    const rightMazeOffsetX = CONFIG.LOGICAL_W - (mazeCols * CONFIG.CELL_SIZE);
+
+    if (!leftMenuMaze) {
+        leftMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 12345);
+    }
+    if (!rightMenuMaze) {
+        rightMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 54321);
+    }
+
+    drawDecorativeMaze(leftMenuMaze, leftMazeOffsetX, 0, '#222', mazeCols, mazeRows);
+    drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, '#222', mazeCols, mazeRows);
 
     const ps = STATE.playerSetup;
     const pId = ps.activePlayer + 1;
@@ -540,10 +598,10 @@ export function renderPlayerSetup() {
     let previewX = 70;
     const blink = Math.floor(Date.now() / 200) % 2 === 0;
     const isMulty = GAME.gameMode === 'MULTI';
-    let progressText = isMulty ? "MULTI PLAYERS" : "SINGLE PLAYER";
-    let previewColorY = 28;
+    let progressText = isMulty ? "MULTI PLAYER" : "SINGLE PLAYER";
+    let previewColorY = 28;                     //"MULTI PLAYER"
     let previewNameY = 38;
-    drawText(progressText, isMulty ? 44 : 40, 3, "#888");
+    drawText(progressText, isMulty ? 44 : 40, 3, "#fff");
     if (isMulty) {
         drawText(playerLabel, 52, 11, playerColor);
         previewColorY = 24;
@@ -578,7 +636,7 @@ export function renderPlayerSetup() {
             }
         }
     }
-    drawText("↑ ↓", 12, 50, "#61ca5d");
+    drawText("↑↓", 13, 50, "#61ca5d");
     drawText("CHANGE ", 5, 56, "#61ca5d");
     drawText("←", 95, 50, "#bb4e4e");
     drawText("→", 114, 50, "#bb4e4e");
@@ -591,24 +649,40 @@ export function renderMenu() {
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
 
+    const mazeCols = 11;
+    const mazeRows = 17;
+    const leftMazeOffsetX = 0;
+    const rightMazeOffsetX = CONFIG.LOGICAL_W - (mazeCols * CONFIG.CELL_SIZE);
+
+    if (!leftMenuMaze) {
+        leftMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 12345);
+    }
+    if (!rightMenuMaze) {
+        rightMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 54321);
+    }
+
     const sel = GAME.menuSelection;
     const blink = Math.floor(Date.now() / 150) % 2 === 0;
 
-    drawText("SELECT MODE", 45, 5, "#fff");
+    const menuColors = ["#08ffff", "#ff00ff", "#00ff88", "#8888ff"];
+    const wallColor = menuColors[sel] + '99'; // Add alpha for a dimmer effect
+
+    drawDecorativeMaze(leftMenuMaze, leftMazeOffsetX, 0, wallColor, mazeCols, mazeRows);
+    drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, wallColor, mazeCols, mazeRows);
+
+    drawText("SELECT MODE", 45, 3, "#fff");
 
     // Draw selection arrow
-    if (blink) drawText("→", 35, 17 + sel * 10, "#fff");
-    if (blink) drawText("←", 92, 17 + sel * 10, "#fff");
+    if (blink) drawText("→", 33, 17 + sel * 10, "#fff");
+    if (blink) drawText("←", 90, 17 + sel * 10, "#fff");
 
     // Menu options - selected one is bright and colored, others are dim
-    drawText("SINGLE PLAYER", 41, 17, sel === 0 ? "#08ffffff" : "#555");
-    drawText("LOCAL MULTI", 45, 27, sel === 1 ? "#ff00ffff" : "#555");
-    drawText("ONLINE MULTI", 43, 37, sel === 2 ? "#00ff88ff" : "#555");
-    drawText("HIGH SCORES", 45, 47, sel === 3 ? "#8888ffff" : "#555");
+    drawText("SINGLE PLAYER", 39, 17, sel === 0 ? menuColors[0] + "ff" : "#555");
+    drawText("LOCAL MULTI", 43, 27, sel === 1 ? menuColors[1] + "ff" : "#555");
+    drawText("ONLINE MULTI", 41, 37, sel === 2 ? menuColors[2] + "ff" : "#555");
+    drawText("HIGH SCORES", 43, 47, sel === 3 ? menuColors[3] + "ff" : "#555");
 
-    // drawText("↑↓ MOVE  BOOM SELECT", 14, 57, "#666");
-    
-    drawText("↑ ↓", 12, 50, "#61ca5d");
+    drawText("↑↓", 13, 50, "#61ca5d");
     drawText("CHANGE ", 5, 56, "#61ca5d");
     drawText("START", 102, 50, "#bb4e4e");
     drawText("SELECT", 100, 56, "#bb4e4e");

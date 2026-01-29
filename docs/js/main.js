@@ -109,13 +109,14 @@ function update() {
         return;
     }
 
-    document.getElementById('joystick-zone').style.display = "flex";
-    document.getElementById('cross-zone').style.display = "none";
-
     if (GAME.screen === 'MENU') {
+        document.getElementById('joystick-zone').style.display = "none";
+        document.getElementById('cross-zone').style.display = "grid";
         handlePlayerMenuInput();
         return;
     }
+    document.getElementById('joystick-zone').style.display = "flex";
+    document.getElementById('cross-zone').style.display = "none";
 
     if (suddenDeathIsActive() && !(STATE.isGameOver || STATE.isRoundOver)) {
         STATE.scrollX += STATE.scrollXVal;
