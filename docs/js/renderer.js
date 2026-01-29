@@ -1,5 +1,5 @@
 import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
-import { STATE, suddenDeathIsActive } from './state.js';
+import { STATE, suddenDeathIsActive, getFormattedStats } from './state.js';
 import { gridIndex } from './grid.js';
 import { generateDecorativeMaze } from './menu-maze.js';
 
@@ -490,11 +490,30 @@ function drawOverlays() {
         }
     }
     if (STATE.isPaused) {
-        ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+        ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        drawText("PAUSED", 52, 25, "#ffffff");
-        if (Math.floor(Date.now() / 500) % 2 === 0)
-            drawText("PRESS ESC TO RESUME", 28, 40, "#ffff00");
+        drawText("PAUSED", 52, 10, "#ffffff");
+
+        // Pause menu options
+        const menuOptions = GAME.gameMode === 'ONLINE'
+            ? ["RESUME", "QUIT"]
+            : ["RESUME", "RESTART", "QUIT"];
+        const menuStartY = 24;
+        const menuSpacing = 10;
+
+        menuOptions.forEach((option, idx) => {
+            const isSelected = STATE.pauseMenuSelection === idx;
+            const color = isSelected ? "#ffff00" : "#888888";
+            const prefix = isSelected ? "> " : "  ";
+            const x = isSelected ? 44 : 48;
+            drawText(prefix + option, x, menuStartY + idx * menuSpacing, color);
+        });
+
+        // Controls hint
+        const blink = Math.floor(STATE.frameCount / 30) % 2 === 0;
+        if (blink) {
+            drawText("W/S:SELECT SPACE:OK", 24, 56, "#555555");
+        }
     } else if (STATE.isGameOver || STATE.isRoundOver) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -556,41 +575,91 @@ export function renderHighScores() {
         }
     }
 
-    // Title
-    drawText("LEADERBOARD", 43, 3, "#ffff00");
+    // Tab headers
+    const isLeaderboard = STATE.highScoreTab === 0;
+    drawText("SCORES", 10, 2, isLeaderboard ? "#ffff00" : "#555");
+    drawText("STATS", 95, 2, isLeaderboard ? "#555" : "#ffff00");
+    drawText("<", 2, 2, "#888");
+    drawText(">", 122, 2, "#888");
 
+    if (isLeaderboard) {
+        renderLeaderboard();
+    } else {
+        renderStats();
+    }
+
+    // Instructions
+    const blink = Math.floor(Date.now() / 500) % 2 === 0;
+    if (blink) {
+        drawText("A/D:TAB  ANY:BACK", 30, 57, "#666");
+    }
+}
+
+function renderLeaderboard() {
     // High scores list
     if (!STATE.highScores || STATE.highScores.length === 0) {
         drawText("NO SCORES YET", 35, 20, "#888");
         drawText("PLAY A GAME", 42, 30, "#666");
     } else {
-        STATE.highScores.forEach((entry, idx) => {
-            // Calculate Y position based on rank
-            let yPos = 12 + (idx * 6);
-
-            // Color based on rank (gold, silver, bronze)
+        STATE.highScores.slice(0, 8).forEach((entry, idx) => {
+            let yPos = 10 + (idx * 6);
             let rankColor = idx === 0 ? "#ffff00" : (idx === 1 ? "#ff8800" : "#888");
             let nameColor = entry.winColor;
             let oppColor = entry.oppColor;
 
-            // Rank number3
             drawText(`${idx + 1}.`, 5, yPos, rankColor);
-            // Player name (max 3 chars)
             let displayName = entry.name.substring(0, 3).toUpperCase();
             drawText(displayName, 14, yPos, nameColor);
             drawText("VS", 29, yPos, "#666");
             let oppName = entry.opponent;
             drawText(oppName, 40, yPos, oppColor);
-            // Score
-            let score = Math.round((entry.score- entry.oppScore) * entry.multiplier);
-            drawText(`Score:${score}`, 97, yPos, rankColor);
-
+            let score = Math.round((entry.score - entry.oppScore) * entry.multiplier);
+            drawText(`${score}`, 110, yPos, rankColor);
         });
     }
+}
 
-    // Instructions
-    if (Math.floor(Date.now() / 500) % 2 === 0) {
-        drawText("PRESS ANY TO BACK", 30, 57, "#666");
+function renderStats() {
+    const stats = getFormattedStats();
+
+    // Overall stats
+    drawText("MATCHES", 5, 10, "#888");
+    drawText(`${stats.totalMatches}`, 45, 10, "#fff");
+
+    drawText("WINS", 65, 10, "#888");
+    drawText(`${stats.wins}`, 85, 10, "#00ff00");
+
+    drawText("LOSSES", 95, 10, "#888");
+    drawText(`${stats.losses}`, 122, 10, "#ff0000");
+
+    // Win rate
+    drawText("WIN RATE", 5, 18, "#888");
+    const winRateColor = stats.winRate >= 50 ? "#00ff00" : "#ff8800";
+    drawText(`${stats.winRate}%`, 50, 18, winRateColor);
+
+    drawText("PLAY TIME", 70, 18, "#888");
+    drawText(`${stats.totalPlayTime}M`, 112, 18, "#fff");
+
+    // By mode section
+    drawText("BY MODE", 5, 28, "#ffff00");
+    let modeY = 34;
+    const modes = ['SINGLE', 'MULTI', 'ONLINE'];
+    modes.forEach((mode, idx) => {
+        const modeStats = stats.byMode[mode] || { wins: 0, losses: 0 };
+        const x = 5 + idx * 43;
+        drawText(mode.substring(0, 6), x, modeY, "#888");
+        drawText(`${modeStats.wins}W`, x, modeY + 6, "#00ff00");
+        drawText(`${modeStats.losses}L`, x + 16, modeY + 6, "#ff0000");
+    });
+
+    // Recent matches
+    drawText("RECENT", 5, 48, "#ffff00");
+    if (stats.recentMatches.length === 0) {
+        drawText("NO MATCHES", 45, 48, "#555");
+    } else {
+        const recent = stats.recentMatches[0];
+        const resultColor = recent.winner === recent.p1Name ? "#00ff00" : "#ff0000";
+        drawText(`${recent.p1Name} ${recent.p1Score}-${recent.p2Score} ${recent.p2Name}`, 45, 48, resultColor);
     }
 }
 

@@ -32,6 +32,7 @@ export function setupInputs(startGame, startMatchSetup) {
         if (k === 'Escape') {
             if (GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
                 STATE.isPaused = !STATE.isPaused;
+                STATE.pauseMenuSelection = 0; // Reset menu selection when pausing
                 if (GAME.gameMode === 'ONLINE') {
                     sendPause(STATE.isPaused);
                 }
@@ -41,6 +42,53 @@ export function setupInputs(startGame, startMatchSetup) {
                 GAME.menuSelection = 0;
                 GAME.inputDelay = CONFIG.INPUT_DELAY;
                 document.getElementById('statusText').innerText = "SELECT MODE";
+            }
+        }
+
+        // Pause menu navigation
+        if (GAME.screen === 'PLAYING' && STATE.isPaused && GAME.inputDelay <= 0) {
+            const maxOptions = GAME.gameMode === 'ONLINE' ? 2 : 3; // Online: Resume/Quit, Others: Resume/Restart/Quit
+
+            if (k === 'KeyW' || k === 'ArrowUp') {
+                STATE.pauseMenuSelection = (STATE.pauseMenuSelection - 1 + maxOptions) % maxOptions;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
+            }
+            if (k === 'KeyS' || k === 'ArrowDown') {
+                STATE.pauseMenuSelection = (STATE.pauseMenuSelection + 1) % maxOptions;
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
+            }
+            if (k === 'Space' || k === 'Enter' || k === 'KeyF') {
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
+                if (GAME.gameMode === 'ONLINE') {
+                    // Online mode: 0=Resume, 1=Quit
+                    if (STATE.pauseMenuSelection === 0) {
+                        // Resume
+                        STATE.isPaused = false;
+                        sendPause(false);
+                    } else if (STATE.pauseMenuSelection === 1) {
+                        // Quit
+                        STATE.isPaused = false;
+                        GAME.screen = 'MENU';
+                        GAME.menuSelection = 0;
+                        document.getElementById('statusText').innerText = "SELECT MODE";
+                    }
+                } else {
+                    // Local mode: 0=Resume, 1=Restart, 2=Quit
+                    if (STATE.pauseMenuSelection === 0) {
+                        // Resume
+                        STATE.isPaused = false;
+                    } else if (STATE.pauseMenuSelection === 1) {
+                        // Restart
+                        STATE.isPaused = false;
+                        startGame();
+                    } else if (STATE.pauseMenuSelection === 2) {
+                        // Quit
+                        STATE.isPaused = false;
+                        GAME.screen = 'MENU';
+                        GAME.menuSelection = 0;
+                        document.getElementById('statusText').innerText = "SELECT MODE";
+                    }
+                }
             }
         }
 
@@ -133,12 +181,53 @@ export function pollGamepads(startGame, startMatchSetup) {
         if (GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
             if (isStart && !gp._prevStart) {
                 STATE.isPaused = !STATE.isPaused;
+                STATE.pauseMenuSelection = 0; // Reset menu selection
                 if (GAME.gameMode === 'ONLINE') {
                     sendPause(STATE.isPaused);
                 }
             }
         }
         gp._prevStart = isStart;
+
+        // PAUSE MENU NAVIGATION (when paused)
+        if (GAME.screen === 'PLAYING' && STATE.isPaused && !gp._prevPauseNav) {
+            const maxOptions = GAME.gameMode === 'ONLINE' ? 2 : 3;
+
+            if (targetState.up) {
+                STATE.pauseMenuSelection = (STATE.pauseMenuSelection - 1 + maxOptions) % maxOptions;
+                gp._prevPauseNav = true;
+            } else if (targetState.down) {
+                STATE.pauseMenuSelection = (STATE.pauseMenuSelection + 1) % maxOptions;
+                gp._prevPauseNav = true;
+            } else if (targetState.beam || isStart) {
+                // Select current option
+                if (GAME.gameMode === 'ONLINE') {
+                    if (STATE.pauseMenuSelection === 0) {
+                        STATE.isPaused = false;
+                        sendPause(false);
+                    } else if (STATE.pauseMenuSelection === 1) {
+                        STATE.isPaused = false;
+                        GAME.screen = 'MENU';
+                        GAME.menuSelection = 0;
+                    }
+                } else {
+                    if (STATE.pauseMenuSelection === 0) {
+                        STATE.isPaused = false;
+                    } else if (STATE.pauseMenuSelection === 1) {
+                        STATE.isPaused = false;
+                        startGame();
+                    } else if (STATE.pauseMenuSelection === 2) {
+                        STATE.isPaused = false;
+                        GAME.screen = 'MENU';
+                        GAME.menuSelection = 0;
+                    }
+                }
+                gp._prevPauseNav = true;
+            } else {
+                gp._prevPauseNav = false;
+            }
+        }
+        if (!STATE.isPaused) gp._prevPauseNav = false;
 
         // MENU -> START GAME
         if (GAME.screen === 'MENU') {

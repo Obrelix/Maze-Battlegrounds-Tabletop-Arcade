@@ -1,5 +1,5 @@
 import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES, GAME } from './config.js';
-import { STATE, saveHighScore } from './state.js';
+import { STATE, saveHighScore, recordMatchStats } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
 import { seededRandom } from './seededRandom.js';
 import {
@@ -344,6 +344,10 @@ export function resolveRound(winnerIdx, reason) {
     if (winner.score >= CONFIG.MAX_SCORE) {
         playWinSfx();
         if (winner.name !== "CPU") saveHighScore();
+        // Record match statistics (skip in attract mode)
+        if (!GAME.isAttractMode) {
+            recordMatchStats(winnerIdx);
+        }
         STATE.isGameOver = true;
         STATE.messages.win = `${winner.name} WINS!`;
         STATE.messages.taunt = TAUNTS[Math.floor(seededRandom() * TAUNTS.length)];

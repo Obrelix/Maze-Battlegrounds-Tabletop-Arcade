@@ -214,10 +214,25 @@ function loop(now) {
 }
 
 function handlePlayerHSInput() {
-    if (STATE.keys['Digit1'] || STATE.keys['Digit2'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart']) {
+    // Tab switching with A/D or Left/Right
+    if (STATE.keys['KeyA'] || STATE.keys['ArrowLeft']) {
+        STATE.highScoreTab = 0; // Leaderboard
+        GAME.inputDelay = CONFIG.INPUT_DELAY;
+        return;
+    }
+    if (STATE.keys['KeyD'] || STATE.keys['ArrowRight']) {
+        STATE.highScoreTab = 1; // Stats
+        GAME.inputDelay = CONFIG.INPUT_DELAY;
+        return;
+    }
+
+    // Exit to menu with other keys
+    if (STATE.keys['Escape'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart'] ||
+        STATE.keys['KeyW'] || STATE.keys['KeyS'] || STATE.keys['ArrowUp'] || STATE.keys['ArrowDown']) {
         GAME.screen = 'MENU';
         GAME.menuSelection = 0;
         GAME.inputDelay = CONFIG.INPUT_DELAY;
+        STATE.highScoreTab = 0; // Reset tab
     }
 }
 
