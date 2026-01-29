@@ -5,7 +5,7 @@ import { WebSocketServer } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageType, ErrorCode } from './src/protocol.js';
 import { createRoom, joinRoom, leaveRoom, listRooms, startGame, handleDisconnect, getRoom, getOpponent } from './src/lobby.js';
-import { handleSignal, handleFallbackRequest, relayInput, relayNextRound, relayRestartGame } from './src/signaling.js';
+import { handleSignal, handleFallbackRequest, relayInput, relayNextRound, relayRestartGame, relayPause } from './src/signaling.js';
 
 const PORT = process.env.PORT || 8080;
 
@@ -78,6 +78,10 @@ wss.on('connection', (ws) => {
 
             case MessageType.RESTART_GAME:
                 relayRestartGame(ws);
+                break;
+
+            case MessageType.PAUSE:
+                relayPause(ws, message);
                 break;
 
             default:

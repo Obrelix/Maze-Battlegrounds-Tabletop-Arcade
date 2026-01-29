@@ -20,6 +20,7 @@ const MessageType = {
     INPUT: 'INPUT',
     NEXT_ROUND: 'NEXT_ROUND', // Signal to start next round
     RESTART_GAME: 'RESTART_GAME', // Signal to restart after game over
+    PAUSE: 'PAUSE', // Signal pause/unpause state
     FALLBACK_REQUEST: 'FALLBACK_REQUEST',
     FALLBACK_CONFIRMED: 'FALLBACK_CONFIRMED',
     ERROR: 'ERROR'
@@ -52,6 +53,7 @@ let onPlayerLeft = null;
 let onGameStart = null;
 let onNextRound = null;
 let onRestartGame = null;
+let onPause = null;
 let onDisconnect = null;
 let onError = null;
 
@@ -244,6 +246,30 @@ export function getRestartGameSeed() {
  */
 export function setOnRestartGame(callback) {
     onRestartGame = callback;
+}
+
+/**
+ * Send pause state to remote player
+ * @param {boolean} isPaused - Whether the game is paused
+ */
+export function sendPause(isPaused) {
+    const message = { type: 'PAUSE', isPaused };
+
+    if (useFallback) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: MessageType.PAUSE, isPaused }));
+        }
+    } else if (dataChannel && dataChannel.readyState === 'open') {
+        dataChannel.send(JSON.stringify(message));
+    }
+}
+
+/**
+ * Set callback for pause signal from remote player
+ * @param {function} callback - Receives isPaused boolean
+ */
+export function setOnPause(callback) {
+    onPause = callback;
 }
 
 /**
@@ -459,6 +485,12 @@ function handleServerMessage(message) {
             if (onRestartGame) onRestartGame();
             break;
 
+        case MessageType.PAUSE:
+            // Remote player toggled pause
+            console.log('Received PAUSE signal from remote player:', message.isPaused);
+            if (onPause) onPause(message.isPaused);
+            break;
+
         case MessageType.ERROR:
             console.error('Server error:', message.message);
             if (onError) onError(message);
@@ -589,6 +621,9 @@ function setupDataChannel(channel) {
         } else if (data.type === 'RESTART_GAME') {
             console.log('Received RESTART_GAME signal via P2P');
             if (onRestartGame) onRestartGame();
+        } else if (data.type === 'PAUSE') {
+            console.log('Received PAUSE signal via P2P:', data.isPaused);
+            if (onPause) onPause(data.isPaused);
         }
     };
 }

@@ -74,3 +74,15 @@ export function relayRestartGame(ws) {
         from: ws.id
     }));
 }
+
+export function relayPause(ws, data) {
+    const opponent = getOpponent(ws);
+    if (!opponent) return;
+
+    // Relay pause signal to opponent
+    opponent.send(JSON.stringify({
+        type: MessageType.PAUSE,
+        isPaused: data.isPaused,
+        from: ws.id
+    }));
+}

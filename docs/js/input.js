@@ -1,7 +1,7 @@
 import { CONFIG, TIMING, GAME } from './config.js';
 import { STATE } from './state.js';
 import { initMaze } from './grid.js';
-import { getNextRoundSeed, sendNextRound, getRestartGameSeed, sendRestartGame } from './network.js';
+import { getNextRoundSeed, sendNextRound, getRestartGameSeed, sendRestartGame, sendPause } from './network.js';
 
 export let lastInputTime = Date.now();
 
@@ -32,6 +32,9 @@ export function setupInputs(startGame, startMatchSetup) {
         if (k === 'Escape') {
             if (GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
                 STATE.isPaused = !STATE.isPaused;
+                if (GAME.gameMode === 'ONLINE') {
+                    sendPause(STATE.isPaused);
+                }
             } else {
                 STATE.isPaused = false;
                 GAME.screen = 'MENU';
@@ -124,6 +127,9 @@ export function pollGamepads(startGame, startMatchSetup) {
         if (GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
             if (isStart && !gp._prevStart) {
                 STATE.isPaused = !STATE.isPaused;
+                if (GAME.gameMode === 'ONLINE') {
+                    sendPause(STATE.isPaused);
+                }
             }
         }
         gp._prevStart = isStart;
@@ -196,9 +202,12 @@ function initTouchControls(startGame, startMatchSetup) {
             e.preventDefault();
             if (STATE.sfx) STATE.sfx.init();
             STATE.keys[code] = true;
-            if ((code === "KeyStart" || code === "KeySelect") && GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) 
+            if ((code === "KeyStart" || code === "KeySelect") && GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
                 STATE.isPaused = !STATE.isPaused;
-            else if (code === "KeySelect"){
+                if (GAME.gameMode === 'ONLINE') {
+                    sendPause(STATE.isPaused);
+                }
+            } else if (code === "KeySelect"){
                 STATE.isPaused = false;
                 GAME.screen = 'MENU';
                 GAME.menuSelection = 0;

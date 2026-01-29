@@ -8,7 +8,7 @@ import {
     connectToServer, disconnect, requestRoomList, createRoom, joinRoom, leaveRoom,
     startGame as networkStartGame, getLocalPlayerIndex, getNextRoundSeed, getRestartGameSeed,
     setOnRoomListUpdate, setOnRoomJoined, setOnPlayerJoined, setOnPlayerLeft,
-    setOnGameStart, setOnNextRound, setOnRestartGame, setOnDisconnect, setOnError
+    setOnGameStart, setOnNextRound, setOnRestartGame, setOnPause, setOnDisconnect, setOnError
 } from './network.js';
 
 // Callbacks that will be set by main.js
@@ -213,6 +213,14 @@ function setupNetworkCallbacks() {
             if (onStartGame) {
                 onStartGame(getRestartGameSeed());
             }
+        }
+    });
+
+    setOnPause((isPaused) => {
+        // Remote player toggled pause - synchronize our pause state
+        console.log('Remote player toggled pause:', isPaused);
+        if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
+            STATE.isPaused = isPaused;
         }
     });
 
