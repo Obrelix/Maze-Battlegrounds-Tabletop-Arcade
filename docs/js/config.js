@@ -56,7 +56,7 @@ export const TIMING = {
     AMMO_RESPAWN_DELAY: Math.round(1500 / FIXED_STEP_MS),   // 90 frames
     MINE_COOLDOWN: Math.round(250 / FIXED_STEP_MS),         // 15 frames
     BOOST_SOUND_THROTTLE: Math.round(600 / FIXED_STEP_MS),  // 36 frames
-    IDLE_THRESHOLD: 8000,                                    // milliseconds (wall-clock)
+    IDLE_THRESHOLD: 15000,                                    // milliseconds (wall-clock)
 };
 
 export const ENERGY_RATES = {
