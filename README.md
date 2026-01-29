@@ -349,7 +349,7 @@ High scores are persisted to browser `localStorage` under key `LED_MAZE_HIGHSCOR
 - **Sound effects** – Currently Web Audio API only; needs external audio for physical cabinet
 - **Gamepad support** – Tested on Xbox and SNES controllers; other layouts may need remapping
 - **Mobile responsiveness** – Optimized for portrait mobile; landscape recommended for best gameplay
-- **Online multiplayer** – Server code included; requires self-hosting (not hosted publicly yet)
+- **Online multiplayer** – Server code included; self-hosting || `wss://maze-battlegrounds-tabletop-arcade.onrender.com` 
 - **Customizable layouts** – Theme/color customization planned
 
 ---

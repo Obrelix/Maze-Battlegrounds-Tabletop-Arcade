@@ -66,6 +66,9 @@ const ICE_SERVERS = [
 // Connection timeout (10 seconds for P2P)
 const P2P_TIMEOUT = 10000;
 
+// Connection timeout (60 seconds to allow for server wake-up)
+const CONNECTION_TIMEOUT = 60000;
+
 /**
  * Connect to the signaling server
  * @param {string} url - WebSocket server URL
@@ -76,18 +79,27 @@ export async function connectToServer(url) {
         try {
             ws = new WebSocket(url);
 
+            // Timeout if connection takes too long
+            const timeout = setTimeout(() => {
+                ws.close();
+                reject(new Error('Connection timeout'));
+            }, CONNECTION_TIMEOUT);
+
             ws.onopen = () => {
+                clearTimeout(timeout);
                 console.log('Connected to signaling server');
                 resolve(true);
             };
 
             ws.onclose = () => {
+                clearTimeout(timeout);
                 console.log('Disconnected from signaling server');
                 cleanup();
                 if (onDisconnect) onDisconnect('server');
             };
 
             ws.onerror = (error) => {
+                clearTimeout(timeout);
                 console.error('WebSocket error:', error);
                 reject(error);
             };

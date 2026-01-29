@@ -273,8 +273,14 @@ function setupLobbyUI() {
             connectBtn.disabled = true;
             connectBtn.textContent = 'Connecting...';
 
+            // Show wake-up message after 3 seconds (server might be sleeping)
+            const wakeUpTimer = setTimeout(() => {
+                connectBtn.textContent = 'Waking server...';
+            }, 3000);
+
             try {
                 await connectToServer(url);
+                clearTimeout(wakeUpTimer);
                 connectBtn.textContent = 'Connected';
                 connectBtn.classList.add('connected');
                 requestRoomList();
@@ -294,12 +300,14 @@ function setupLobbyUI() {
                 if (connectSection) connectSection.style.display = 'none';
                 if (lobbyView) lobbyView.style.display = 'block';
             } catch (error) {
+                clearTimeout(wakeUpTimer);
                 connectBtn.disabled = false;
                 connectBtn.textContent = 'Connect';
                 const errorDisplay = document.getElementById('lobby-error');
                 if (errorDisplay) {
-                    errorDisplay.textContent = 'Failed to connect to server';
+                    errorDisplay.textContent = 'Failed to connect. Check URL or try again.';
                     errorDisplay.style.display = 'block';
+                    setTimeout(() => errorDisplay.style.display = 'none', 5000);
                 }
             }
         });
