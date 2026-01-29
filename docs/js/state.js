@@ -21,6 +21,7 @@ export const STATE = {
     victimIdx: -1,
     isPaused: false,
     isDraw: false,
+    onlineTransitionPending: false, // Prevents double round/game transitions in online mode
     messages: {
         deathReason: "",
         win: "",
@@ -140,6 +141,7 @@ export function resetStateForMatch() {
     STATE.victimIdx = -1;
     STATE.isPaused = false;
     STATE.isDraw = false;
+    STATE.onlineTransitionPending = false;
     STATE.messages = {
         deathReason: "",
         win: "",

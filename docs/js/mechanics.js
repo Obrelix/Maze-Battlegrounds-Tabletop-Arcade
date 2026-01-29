@@ -299,6 +299,9 @@ function handleWallDestruction(x, y) {
  * @param {string} reason - 'GOAL', 'DRAW', 'TIMEOUT', or 'COMBAT'
  */
 export function resolveRound(winnerIdx, reason) {
+    // Reset online transition flag for the next transition
+    STATE.onlineTransitionPending = false;
+
     // --- DRAW ---
     if (reason === 'DRAW') {
         STATE.messages.round = "DOUBLE KO! DRAW!";

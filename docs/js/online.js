@@ -201,18 +201,28 @@ function setupNetworkCallbacks() {
     setOnNextRound(() => {
         // Remote player signaled to start next round
         console.log('Remote player started next round');
-        if (GAME.gameMode === 'ONLINE' && STATE.isRoundOver && !STATE.isGameOver) {
-            initMaze(getNextRoundSeed());
+        if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
+            // Check if we haven't already initiated the transition
+            if (!STATE.onlineTransitionPending) {
+                STATE.onlineTransitionPending = true;
+                initMaze(getNextRoundSeed());
+            }
+            // If onlineTransitionPending is true, we already triggered locally, skip
         }
     });
 
     setOnRestartGame(() => {
         // Remote player signaled to restart the game
         console.log('Remote player restarted the game');
-        if (GAME.gameMode === 'ONLINE' && STATE.isGameOver) {
-            if (onStartGame) {
-                onStartGame(getRestartGameSeed());
+        if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
+            // Check if we haven't already initiated the transition
+            if (!STATE.onlineTransitionPending) {
+                STATE.onlineTransitionPending = true;
+                if (onStartGame) {
+                    onStartGame(getRestartGameSeed());
+                }
             }
+            // If onlineTransitionPending is true, we already triggered locally, skip
         }
     });
 
