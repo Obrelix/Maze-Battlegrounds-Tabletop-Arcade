@@ -11,6 +11,7 @@ let isBgRendered = false;
 
 let leftMenuMaze = null;
 let rightMenuMaze = null;
+let bottomMenuMaze = null;
 
 function drawLED(lx, ly, color) {
     // 1. FORCE GRID ALIGNMENT
@@ -204,6 +205,34 @@ function drawDecorativeMaze(maze, offsetX, offsetY, wallColor, cols, rows) {
         // No logic for rightmost column, bottommost row, or bottom-right corner as per user's request.
         // These parts would draw the outer perimeter, which we want to avoid.
     });
+}
+
+function drawMenuDecoratives(wallColor){
+
+    const mazeCols = 11;
+    const mazeRows = 17;
+    const leftMazeOffsetX = 0;
+    const rightMazeOffsetX = CONFIG.LOGICAL_W - (mazeCols * CONFIG.CELL_SIZE);
+
+    if (!leftMenuMaze) {
+        leftMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 12345);
+    }
+    if (!rightMenuMaze) {
+        rightMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 54321);
+    }
+
+    drawDecorativeMaze(leftMenuMaze, leftMazeOffsetX, 0, '#222', mazeCols, mazeRows);
+    drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, '#222', mazeCols, mazeRows);    
+    
+    const mazeBotCols = 24;
+    const mazeBotRows = 5;
+    if(!bottomMenuMaze){
+        bottomMenuMaze = generateDecorativeMaze(mazeBotCols, mazeBotRows, 36579);
+    }
+    
+    drawDecorativeMaze(leftMenuMaze, leftMazeOffsetX, 0, wallColor, mazeCols, mazeRows);
+    drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, wallColor, mazeCols, mazeRows);
+    drawDecorativeMaze(bottomMenuMaze, 29, 49, wallColor, mazeBotCols, mazeBotRows);
 }
 
 function drawMazeWalls(wallColor) {
@@ -574,44 +603,29 @@ export function renderPlayerSetup() {
             drawLED(x, y, '#111');
         }
     }
-
-    const mazeCols = 11;
-    const mazeRows = 21;
-    const leftMazeOffsetX = 0;
-    const rightMazeOffsetX = CONFIG.LOGICAL_W - (mazeCols * CONFIG.CELL_SIZE);
-
-    if (!leftMenuMaze) {
-        leftMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 12345);
-    }
-    if (!rightMenuMaze) {
-        rightMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 54321);
-    }
-
-    drawDecorativeMaze(leftMenuMaze, leftMazeOffsetX, 0, '#222', mazeCols, mazeRows);
-    drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, '#222', mazeCols, mazeRows);
-
+    drawMenuDecoratives("#8888ff33");
     const ps = STATE.playerSetup;
     const pId = ps.activePlayer + 1;
     const playerLabel = `PLAYER ${pId}`;
     const playerColor = COLORS[ps.colorIdx].hex;
     const difficulty = DIFFICULTIES[ps.difficultyIdx];
-    let previewX = 70;
+    let previewX = 65;
     const blink = Math.floor(Date.now() / 200) % 2 === 0;
     const isMulty = GAME.gameMode === 'MULTI';
     let progressText = isMulty ? "MULTI PLAYER" : "SINGLE PLAYER";
-    let previewColorY = 28;                     //"MULTI PLAYER"
-    let previewNameY = 38;
-    drawText(progressText, isMulty ? 44 : 40, 3, "#fff");
+    let previewColorY = 24;                     //"MULTI PLAYER"
+    let previewNameY = 34;
+    drawText(progressText, isMulty ? 43 : 39, 3, "#fff");
     if (isMulty) {
         drawText(playerLabel, 52, 11, playerColor);
         previewColorY = 24;
         previewNameY = 36;
     } else {
-        drawText("DIFFICULTY: ", 23, 20, "#888");
-        drawText(difficulty.name, previewX, 20, (blink && ps.phase === 'DIFFICULTY') ? "#555" : difficulty.hex);
+        drawText("DIFF: ", 43, 16, "#888");
+        drawText(difficulty.name, previewX, 16, (blink && ps.phase === 'DIFFICULTY') ? "#555" : difficulty.hex);
     }
 
-    drawText("COLOR: ", 43, previewColorY + 1, "#888");
+    drawText("COLOR: ", 39, previewColorY + 1, "#888");
     for (let x = 0; x < 7; x++) {
         for (let y = 0; y < 7; y++) {
             drawLED(previewX + x, previewColorY + y, (blink && ps.phase === 'COLOR') ? "#555" : playerColor);
@@ -619,7 +633,7 @@ export function renderPlayerSetup() {
     }
     drawText(COLORS[ps.colorIdx].name, previewX + 11, previewColorY + 1, (blink && ps.phase === 'COLOR') ? "#555" : playerColor);
 
-    drawText("NAME: ", 47, previewNameY, "#888");
+    drawText("NAME: ", 43, previewNameY, "#888");
     let charSpacing = 6;
     for (let i = 0; i < 3; i++) {
         let char = String.fromCharCode(ps.nameChars[i]);
@@ -638,9 +652,9 @@ export function renderPlayerSetup() {
     }
     drawText("↑↓", 13, 50, "#61ca5d");
     drawText("CHANGE ", 5, 56, "#61ca5d");
-    drawText("←", 95, 50, "#bb4e4e");
-    drawText("→", 114, 50, "#bb4e4e");
-    drawText("PREV NEXT", 90, 56, "#bb4e4e");
+    drawText("←", 99, 50, "#bb4e4e");
+    drawText("→", 118, 50, "#bb4e4e");
+    drawText("PREV NEXT", 94, 56, "#bb4e4e");
 }
 
 export function renderMenu() {
@@ -648,42 +662,30 @@ export function renderMenu() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
-
-    const mazeCols = 11;
-    const mazeRows = 17;
-    const leftMazeOffsetX = 0;
-    const rightMazeOffsetX = CONFIG.LOGICAL_W - (mazeCols * CONFIG.CELL_SIZE);
-
-    if (!leftMenuMaze) {
-        leftMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 12345);
-    }
-    if (!rightMenuMaze) {
-        rightMenuMaze = generateDecorativeMaze(mazeCols, mazeRows, 54321);
-    }
+    
+    drawMenuDecoratives();
 
     const sel = GAME.menuSelection;
     const blink = Math.floor(Date.now() / 150) % 2 === 0;
 
     const menuColors = ["#08ffff", "#ff00ff", "#00ff88", "#8888ff"];
     const wallColor = menuColors[sel] + '99'; // Add alpha for a dimmer effect
+    drawMenuDecoratives(wallColor);
 
-    drawDecorativeMaze(leftMenuMaze, leftMazeOffsetX, 0, wallColor, mazeCols, mazeRows);
-    drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, wallColor, mazeCols, mazeRows);
-
-    drawText("SELECT MODE", 45, 3, "#fff");
+    drawText("SELECT MODE", 43, 3, "#fff");
 
     // Draw selection arrow
-    if (blink) drawText("→", 33, 17 + sel * 10, "#fff");
-    if (blink) drawText("←", 90, 17 + sel * 10, "#fff");
+    if (blink) drawText("→", 33, 13 + sel * 10, "#fff");
+    if (blink) drawText("←", 90, 13 + sel * 10, "#fff");
 
     // Menu options - selected one is bright and colored, others are dim
-    drawText("SINGLE PLAYER", 39, 17, sel === 0 ? menuColors[0] + "ff" : "#555");
-    drawText("LOCAL MULTI", 43, 27, sel === 1 ? menuColors[1] + "ff" : "#555");
-    drawText("ONLINE MULTI", 41, 37, sel === 2 ? menuColors[2] + "ff" : "#555");
-    drawText("HIGH SCORES", 43, 47, sel === 3 ? menuColors[3] + "ff" : "#555");
+    drawText("SINGLE PLAYER", 39, 13, sel === 0 ? menuColors[0] + "ff" : "#555");
+    drawText("LOCAL MULTI", 43, 23, sel === 1 ? menuColors[1] + "ff" : "#555");
+    drawText("ONLINE MULTI", 41, 33, sel === 2 ? menuColors[2] + "ff" : "#555");
+    drawText("HIGH SCORES", 43, 43, sel === 3 ? menuColors[3] + "ff" : "#555");
 
     drawText("↑↓", 13, 50, "#61ca5d");
     drawText("CHANGE ", 5, 56, "#61ca5d");
-    drawText("START", 102, 50, "#bb4e4e");
-    drawText("SELECT", 100, 56, "#bb4e4e");
+    drawText("START", 105, 50, "#bb4e4e");
+    drawText("SELECT", 103, 56, "#bb4e4e");
 }
