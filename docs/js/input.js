@@ -420,8 +420,12 @@ function initJoystick(startMatchSetup) {
             zone: joystickZone,
             mode: 'static',
             position: { left: '50%', top: '50%' },
+            catchDistance: 150,
+            multitouch: true,
             color: 'white',
-            size: 85
+            size: 100,
+            restJoystick: true,
+            follow: true
         });
 
         // Track joystick state for safety resets

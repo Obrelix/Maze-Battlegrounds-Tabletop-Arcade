@@ -138,13 +138,13 @@ function update() {
     // Decrement inputDelay even while paused (for pause menu navigation)
     if (GAME.inputDelay > 0) GAME.inputDelay--;
 
-    if (STATE.isPaused) return;
-    STATE.frameCount++;
-    clearLoSCache(STATE.frameCount);
-    if (GAME.screen !== 'PLAYING') {
+    if (GAME.screen !== 'PLAYING' || STATE.isPaused) {
         document.getElementById('joystick-zone').style.display = "none";
         document.getElementById('cross-zone').style.display = "grid";
     }
+    if (STATE.isPaused) return;
+    STATE.frameCount++;
+    clearLoSCache(STATE.frameCount);
     if (GAME.inputDelay > 0) return;
     switch (GAME.screen) {
         case 'HIGHSCORES': handlePlayerHSInput(); return;

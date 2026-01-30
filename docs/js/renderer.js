@@ -760,9 +760,8 @@ export function renderMenu() {
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
 
     drawMenuDecoratives();
-
+    const blink = Math.floor(Date.now() / 500) % 2 === 0;
     // const sel = GAME.menuSelection;
-    const blink = Math.floor(Date.now() / 150) % 2 === 0;
 
     const menuColors = ["#08ffff", "#ff00ff", "#00ff88", "#8888ff"];
 

@@ -10,8 +10,9 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 
-<body tabindex="0" onclick="focus()">
+<!-- <body tabindex="0" onclick="focus()"> -->
 
+<body tabindex="0">
     <div class="arcade-header">
         <div class="header-bar">
             <div class="game-title">MAZE BATTLEGROUNDS<span
@@ -128,41 +129,69 @@
             <div class="dm-columns">
                 <div class="dm-section">
                     <h4 class="hl-gold">OBJECTIVE</h4>
-                    <p>First to <strong>5 points</strong> wins. Score by reaching the opponent's spawn zone (Goal) or eliminating them with mines, explosions, or a charged beam.</p>
+                    <p>First to <strong>5 points</strong> wins. Score by reaching the opponent's spawn zone (Goal) or
+                        eliminating them with mines, explosions, or a charged beam.</p>
                 </div>
 
                 <div class="dm-section">
                     <h4 class="hl-gold">ENERGY SYSTEM</h4>
-                    <p>All actions share a single <strong>Energy bar (0-150)</strong> that slowly regenerates. Mismanaging energy leaves you vulnerable.</p>
+                    <p>All actions share a single <strong>Energy bar (0-150)</strong> that slowly regenerates.
+                        Mismanaging energy leaves you vulnerable.</p>
                     <table class="dm-table">
-                        <tr><td class="hl-gold">Tap Beam</td><td>30 energy</td><td>Quick stun attack</td></tr>
-                        <tr><td class="hl-gold">Charged Beam</td><td>65 energy</td><td>Hold ~3s, lethal + breaks walls (no regen while charging)</td></tr>
-                        <tr><td class="hl-blue">Shield</td><td>10 + drain</td><td>Blocks all damage (~6s to empty)</td></tr>
-                        <tr><td class="hl-green">Boost</td><td>drain</td><td>Sprint speed (~6s to empty)</td></tr>
-                        <tr><td class="hl-red">Detonate</td><td>30 energy</td><td>Remote-trigger your mines</td></tr>
+                        <tr>
+                            <td class="hl-gold">Tap Beam</td>
+                            <td>30 energy</td>
+                            <td>Quick stun attack</td>
+                        </tr>
+                        <tr>
+                            <td class="hl-gold">Charged Beam</td>
+                            <td>65 energy</td>
+                            <td>Hold ~3s, lethal + breaks walls (no regen while charging)</td>
+                        </tr>
+                        <tr>
+                            <td class="hl-blue">Shield</td>
+                            <td>10 + drain</td>
+                            <td>Blocks all damage (~6s to empty)</td>
+                        </tr>
+                        <tr>
+                            <td class="hl-green">Boost</td>
+                            <td>drain</td>
+                            <td>Sprint speed (~6s to empty)</td>
+                        </tr>
+                        <tr>
+                            <td class="hl-red">Detonate</td>
+                            <td>30 energy</td>
+                            <td>Remote-trigger your mines</td>
+                        </tr>
                     </table>
                 </div>
 
                 <div class="dm-section">
                     <h4 class="hl-red">MINES</h4>
-                    <p>Place up to <strong>4 mines</strong> (refill via green ammo crates). Mines arm after ~1 second. Stepping on or detonating a mine creates a large explosion that destroys nearby walls and kills players in range. Friendly fire applies.</p>
+                    <p>Place up to <strong>4 mines</strong> (refill via green ammo crates). Mines arm after ~1 second.
+                        Stepping on or detonating a mine creates a large explosion that destroys nearby walls and kills
+                        players in range. Friendly fire applies.</p>
                 </div>
 
                 <div class="dm-section">
                     <h4 class="hl-purple">PORTALS</h4>
-                    <p>Two portals link points on the map. Entering one teleports you to the other with brief invulnerability. Each use has a <strong>30% chance</strong> of glitching your controls (inverted movement for ~3 seconds).</p>
+                    <p>Two portals link points on the map. Entering one teleports you to the other with brief
+                        invulnerability. Each use has a <strong>30% chance</strong> of glitching your controls (inverted
+                        movement for ~3 seconds).</p>
                 </div>
 
                 <div class="dm-section">
                     <h4 class="hl-red">SUDDEN DEATH</h4>
-                    <p>When time runs low (&lt;30s), neutral mines spawn randomly (max 12, spaced apart) every ~830ms, increasing chaos until one player is eliminated.</p>
+                    <p>When time runs low (&lt;30s), neutral mines spawn randomly (max 12, spaced apart) every ~830ms,
+                        increasing chaos until one player is eliminated.</p>
                 </div>
 
                 <div class="dm-section">
                     <h4 class="hl-blue">SCORING</h4>
                     <ul>
                         <li><strong>Goal:</strong> Reach the opponent's spawn zone (+1 pt)</li>
-                        <li><strong>Elimination:</strong> Kill the opponent via mine, explosion, or charged beam (+1 pt)</li>
+                        <li><strong>Elimination:</strong> Kill the opponent via mine, explosion, or charged beam (+1 pt)
+                        </li>
                         <li><strong>Double KO:</strong> Both players die simultaneously (draw, no points)</li>
                         <li><strong>Timeout:</strong> Player with higher score wins; draw if tied</li>
                     </ul>
@@ -185,7 +214,8 @@
             <div id="connect-section" class="lobby-section">
                 <label for="server-url">Server URL:</label>
                 <div class="input-row">
-                    <input type="text" id="server-url" placeholder="wss://maze-battlegrounds-tabletop-arcade.onrender.com">
+                    <input type="text" id="server-url"
+                        placeholder="wss://maze-battlegrounds-tabletop-arcade.onrender.com">
                     <button id="connect-btn" class="lobby-btn">Connect</button>
                 </div>
             </div>
@@ -221,7 +251,8 @@
 
                 <div class="room-actions">
                     <button id="leave-room-btn" class="lobby-btn danger">Leave Room</button>
-                    <button id="start-game-btn" class="lobby-btn accent" style="display: none;" disabled>Start Game</button>
+                    <button id="start-game-btn" class="lobby-btn accent" style="display: none;" disabled>Start
+                        Game</button>
                 </div>
             </div>
 
