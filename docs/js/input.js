@@ -94,6 +94,7 @@ export function setupInputs(startGame, startMatchSetup) {
 
         if (GAME.screen === 'PLAYING' && !STATE.isPaused) {
             if (STATE.isGameOver) {
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
                 // In online mode, use synchronized seed and notify other player
                 if (GAME.gameMode === 'ONLINE') {
                     if (!STATE.onlineTransitionPending) {
@@ -105,6 +106,7 @@ export function setupInputs(startGame, startMatchSetup) {
                     startGame(); // Full Reset
                 }
             } else if (STATE.isRoundOver) {
+                GAME.inputDelay = CONFIG.INPUT_DELAY;
                 // In online mode, use synchronized seed and notify other player
                 if (GAME.gameMode === 'ONLINE') {
                     if (!STATE.onlineTransitionPending) {
@@ -243,7 +245,9 @@ export function pollGamepads(startGame, startMatchSetup, startNextRound = null) 
         // GAME OVER / ROUND OVER -> RESET
         if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
             if (isStart || isSelect || targetState.shield) { // 'Shield' is often top button (Restart)
+                // GAME.inputDelay = CONFIG.INPUT_DELAY;
                 if (STATE.isGameOver) {
+                    GAME.inputDelay = CONFIG.INPUT_DELAY;
                     if (GAME.gameMode === 'ONLINE') {
                         if (!STATE.onlineTransitionPending) {
                             STATE.onlineTransitionPending = true;
@@ -254,6 +258,7 @@ export function pollGamepads(startGame, startMatchSetup, startNextRound = null) 
                         startGame();
                     }
                 } else if (GAME.gameMode === 'ONLINE') {
+                    GAME.inputDelay = CONFIG.INPUT_DELAY;
                     if (!STATE.onlineTransitionPending) {
                         STATE.onlineTransitionPending = true;
                         sendNextRound();
@@ -311,7 +316,7 @@ function initTouchControls(startGame, startMatchSetup) {
                 if (GAME.gameMode === 'ONLINE') {
                     sendPause(STATE.isPaused);
                 }
-            } else if (code === "KeySelect"){
+            } else if (code === "KeySelect") {
                 STATE.isPaused = false;
                 GAME.screen = 'MENU';
                 GAME.menuSelection = 0;
@@ -365,7 +370,7 @@ function initTouchControls(startGame, startMatchSetup) {
 
 function initJoystick(startMatchSetup) {
     const joystickZone = document.getElementById('joystick-zone');
-    if (joystickZone !== undefined) {
+    if (joystickZone) {
         const manager = nipplejs.create({
             zone: joystickZone,
             mode: 'static',

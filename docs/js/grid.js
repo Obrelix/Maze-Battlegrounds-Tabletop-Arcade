@@ -2,9 +2,74 @@ import { CONFIG, COLORS } from './config.js';
 import { STATE } from './state.js';
 import { Cell } from './classes.js';
 import { setSeed, seededRandom } from './seededRandom.js';
+
 export function gridIndex(c, r) {
     if (c < 0 || r < 0 || c >= CONFIG.COLS || r >= CONFIG.ROWS) return undefined;
     return STATE.maze[c + r * CONFIG.COLS];
+}
+
+// Line of sight cache - cleared each frame
+let losCache = new Map();
+let losCacheFrame = -1;
+
+/**
+ * Clear the LoS cache (call once per frame from game loop)
+ */
+export function clearLoSCache(frameCount) {
+    if (losCacheFrame !== frameCount) {
+        losCache.clear();
+        losCacheFrame = frameCount;
+    }
+}
+
+/**
+ * Check if there's a clear line of sight between two points (no walls blocking)
+ * Uses ray-casting with small steps to detect wall intersections
+ * Results are cached per frame for performance
+ * @param {number} fromX - Starting X position
+ * @param {number} fromY - Starting Y position
+ * @param {number} toX - Target X position
+ * @param {number} toY - Target Y position
+ * @returns {boolean} True if path is clear (no walls), false if blocked
+ */
+export function hasLineOfSight(fromX, fromY, toX, toY) {
+    // Round positions to create cache key (reduces cache misses for nearby checks)
+    const fx = Math.round(fromX);
+    const fy = Math.round(fromY);
+    const tx = Math.round(toX);
+    const ty = Math.round(toY);
+
+    // Check cache first
+    const cacheKey = `${fx},${fy},${tx},${ty}`;
+    if (losCache.has(cacheKey)) {
+        return losCache.get(cacheKey);
+    }
+
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < 0.5) {
+        losCache.set(cacheKey, true);
+        return true;
+    }
+
+    // Ray-cast with 2.0 pixel steps (optimized from 0.5)
+    const steps = Math.ceil(dist / 2.0);
+    const stepX = dx / steps;
+    const stepY = dy / steps;
+
+    for (let i = 1; i < steps; i++) {
+        const checkX = fromX + stepX * i;
+        const checkY = fromY + stepY * i;
+        if (isWall(checkX, checkY)) {
+            losCache.set(cacheKey, false);
+            return false;
+        }
+    }
+
+    losCache.set(cacheKey, true);
+    return true;
 }
 
 export function isWall(pixelX, pixelY) {

@@ -78,6 +78,7 @@ function drawDigit(x, y, num, color, rotateDeg) {
 
 function drawChar(x, y, char, color, rotateDeg) {
     const map = BITMAP_FONT[char.toUpperCase()];
+    if (!map) return;
     for (let i = 0; i < 15; i++) {
         if (map[i]) {
             let c = i % 3;
@@ -227,7 +228,7 @@ function drawDecorativeMaze(maze, offsetX, offsetY, wallColor, cols, rows) {
     });
 }
 
-function drawMenuDecoratives(wallColor){
+function drawMenuDecoratives(wallColor) {
 
     const mazeCols = 11;
     const mazeRows = 17;
@@ -242,14 +243,14 @@ function drawMenuDecoratives(wallColor){
     }
 
     drawDecorativeMaze(leftMenuMaze, leftMazeOffsetX, 0, '#222', mazeCols, mazeRows);
-    drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, '#222', mazeCols, mazeRows);    
-    
+    drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, '#222', mazeCols, mazeRows);
+
     const mazeBotCols = 24;
     const mazeBotRows = 5;
-    if(!bottomMenuMaze){
+    if (!bottomMenuMaze) {
         bottomMenuMaze = generateDecorativeMaze(mazeBotCols, mazeBotRows, 36579);
     }
-    
+
     drawDecorativeMaze(leftMenuMaze, leftMazeOffsetX, 0, wallColor, mazeCols, mazeRows);
     drawDecorativeMaze(rightMenuMaze, rightMazeOffsetX, 0, wallColor, mazeCols, mazeRows);
     drawDecorativeMaze(bottomMenuMaze, 29, 49, wallColor, mazeBotCols, mazeBotRows);
@@ -541,9 +542,14 @@ function drawOverlays() {
         if (STATE.isGameOver) {
             const winColor = STATE.victimIdx === 0 ? STATE.players[1]?.color : STATE.players[0]?.color;
             const tauntColor = STATE.victimIdx === 1 ? STATE.players[1]?.color : STATE.players[0]?.color;
+            let msg = `TIME OUT`;
+            if (STATE.victimIdx === -1) {
+                winColor = COLORS.find(x => x.name === 'MAGENTA');
+                tauntColor = COLORS.find(x => x.name === 'CYAN');;
+            }else
+                msg = `${STATE.players[STATE.victimIdx].name}: '${STATE.messages.taunt}'`
             if (Math.floor(Date.now() / 500) % 2 === 0)
                 drawText(STATE.messages.win, 49, 8, winColor);
-            let msg = `${STATE.players[STATE.victimIdx].name}: '${STATE.messages.taunt}'`
             drawText(msg, STATE.scrollX, 29, tauntColor);
             if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS ANY TO RESET", 30, 52, "#6f6deb");
         } else {
@@ -751,7 +757,7 @@ export function renderMenu() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (let y = 0; y < CONFIG.LOGICAL_H; y++)
         for (let x = 0; x < CONFIG.LOGICAL_W; x++) drawLED(x, y, '#111');
-    
+
     drawMenuDecoratives();
 
     const sel = GAME.menuSelection;

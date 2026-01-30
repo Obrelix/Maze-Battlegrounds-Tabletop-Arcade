@@ -1,6 +1,6 @@
 import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES, GAME, setInputDelay } from './config.js';
 import { STATE, resetStateForMatch, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
-import { initMaze, spawnAmmoCrate } from './grid.js';
+import { initMaze, spawnAmmoCrate, clearLoSCache } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput } from './ai/controller.js';
 import { setDifficulty, getDynamicDifficulty, setActiveConfig } from './ai/difficulty.js';
@@ -136,6 +136,7 @@ function update() {
         STATE.gpData = pollGamepads(startGame, startMatchSetup, startNextRound);
     if (STATE.isPaused) return;
     STATE.frameCount++;
+    clearLoSCache(STATE.frameCount);
     if (GAME.screen !== 'PLAYING') {
         document.getElementById('joystick-zone').style.display = "none";
         document.getElementById('cross-zone').style.display = "grid";
