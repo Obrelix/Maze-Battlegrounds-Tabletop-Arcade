@@ -12,7 +12,7 @@ import { getActiveConfig, adjustDifficultyDynamically, getEnergyStrategy } from 
  * @param {Object} player - AI player
  * @param {Object} opponent - Opponent player
  * @param {Object} currentConfig - AI difficulty configuration
- * @param {Object} context - Additional context (threatAssessment, dangerLevel, etc.)
+ * @param {Object} context - Additional context (threatAssessment, dangerLevel, nearbyMines, etc.)
  * @returns {boolean} True if shield should be activated
  */
 function shouldActivateShield(player, opponent, currentConfig, context = {}) {
@@ -21,8 +21,40 @@ function shouldActivateShield(player, opponent, currentConfig, context = {}) {
     return false;
   }
 
-  const { threatAssessment, dangerLevel = 0 } = context;
+  const { threatAssessment, dangerLevel = 0, nearbyMines = [] } = context;
+  const isInsane = currentConfig.NAME === 'INSANE';
 
+  // INSANE: Smart predictive shielding
+  if (isInsane) {
+    // Priority 1: Shield BEFORE beam hits (predictive)
+    // Urgency > 0.3 means beam path is short (1-4 cells) - shield early!
+    if (threatAssessment && threatAssessment.danger && threatAssessment.urgency > 0.3) {
+      return true;
+    }
+
+    // Priority 2: Shield when crossing near mines (any mine within 6 pixels)
+    if (nearbyMines.length > 0) {
+      const closestMine = nearbyMines.reduce((closest, m) => m.dist < closest.dist ? m : closest, nearbyMines[0]);
+      if (closestMine.dist < 6) {
+        return true;
+      }
+    }
+
+    // Priority 3: Shield if any mine danger
+    if (dangerLevel > 0.5) {
+      return true;
+    }
+
+    // Priority 4: Shield if opponent is close and has energy to attack
+    const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+    if (dist < 12 && opponent.boostEnergy > 35) {
+      return true;
+    }
+
+    return false;
+  }
+
+  // Non-INSANE difficulties use original logic
   // Priority 1: Immediate beam threat (urgency > 0.7)
   if (threatAssessment && threatAssessment.danger && threatAssessment.urgency > 0.7) {
     return true;
@@ -33,8 +65,8 @@ function shouldActivateShield(player, opponent, currentConfig, context = {}) {
     return true;
   }
 
-  // Priority 3: Predictive shielding (HARD+ only)
-  if (currentConfig.NAME === 'HARD' || currentConfig.NAME === 'INSANE') {
+  // Priority 3: Predictive shielding (HARD only, not INSANE)
+  if (currentConfig.NAME === 'HARD') {
     const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
     const enemyHasEnergy = opponent.boostEnergy >= 30;
 
@@ -178,7 +210,7 @@ function isAlignedWithOpponent(player, opponent) {
 
 /**
  * Calculate movement direction toward target using pathfinding
- * Includes human error simulation for more realistic AI behavior
+ * Simplified and reliable for INSANE difficulty
  * @param {Object} player - AI player object
  * @param {Object} target - Target position {x, y}
  * @param {Object} currentConfig - AI difficulty configuration
@@ -190,57 +222,70 @@ function getSmartMovementDirection(player, target, currentConfig) {
     return { dx: 0, dy: 0 };
   }
 
-  // 1. HUMAN ERROR SIMULATION
-  if (player.confusionTimer > 0) {
-    player.confusionTimer--;
-    if (player.confusedDir) return player.confusedDir;
+  // 1. HUMAN ERROR SIMULATION (non-INSANE only)
+  if (currentConfig.NAME !== 'INSANE') {
+    if (player.confusionTimer > 0) {
+      player.confusionTimer--;
+      if (player.confusedDir) return player.confusedDir;
+    }
+
+    if (currentConfig.MOVEMENT_ERROR_CHANCE > 0 && Math.random() < currentConfig.MOVEMENT_ERROR_CHANCE * 0.1) {
+       player.confusionTimer = Math.floor(Math.random() * 10) + 5;
+       let dirs = [{dx:1,dy:0}, {dx:-1,dy:0}, {dx:0,dy:1}, {dx:0,dy:-1}];
+       player.confusedDir = dirs[Math.floor(Math.random() * dirs.length)];
+       player.confusedDir.dx *= CONFIG.BASE_SPEED;
+       player.confusedDir.dy *= CONFIG.BASE_SPEED;
+       return player.confusedDir;
+    }
   }
 
-  // Roll for error (only if not already confused)
-  if (currentConfig.MOVEMENT_ERROR_CHANCE > 0 && Math.random() < currentConfig.MOVEMENT_ERROR_CHANCE * 0.1) {
-     player.confusionTimer = Math.floor(Math.random() * 10) + 5;
-     let dirs = [{dx:1,dy:0}, {dx:-1,dy:0}, {dx:0,dy:1}, {dx:0,dy:-1}];
-     player.confusedDir = dirs[Math.floor(Math.random() * dirs.length)];
-     player.confusedDir.dx *= CONFIG.BASE_SPEED;
-     player.confusedDir.dy *= CONFIG.BASE_SPEED;
-     return player.confusedDir;
-  }
-
-  // 2. STANDARD PATHFINDING
+  // 2. PATHFINDING - Always get fresh path for INSANE (no caching that causes issues)
   let path = findPathToTarget(player, target.x, target.y);
 
   let dxRaw = target.x - player.x;
   let dyRaw = target.y - player.y;
 
-  // Direct line if very close
+  // Direct line if very close to target
   if (Math.hypot(dxRaw, dyRaw) < CONFIG.CELL_SIZE * 1.5) {
     let dist = Math.hypot(dxRaw, dyRaw);
     if (dist < 0.5) return { dx: 0, dy: 0 };
     return { dx: (dxRaw / dist) * CONFIG.BASE_SPEED, dy: (dyRaw / dist) * CONFIG.BASE_SPEED };
   }
 
-  if (path.length < 2) return { dx: 0, dy: 0 };
+  // FALLBACK: If path is empty or too short, move directly toward target
+  if (path.length < 2) {
+    let dist = Math.hypot(dxRaw, dyRaw);
+    if (dist < 0.5) return { dx: 0, dy: 0 };
+    return { dx: (dxRaw / dist) * CONFIG.BASE_SPEED, dy: (dyRaw / dist) * CONFIG.BASE_SPEED };
+  }
 
+  // Simple path following - target cell 1 or 2
   let targetIndex = 1;
-  if (path.length > 2) {
-    let c1 = path[1];
-    let p1x = CONFIG.MAZE_OFFSET_X + c1.c * CONFIG.CELL_SIZE + 1.5;
-    let p1y = c1.r * CONFIG.CELL_SIZE + 1.5;
+  const playerCenterX = player.x + player.size / 2;
+  const playerCenterY = player.y + player.size / 2;
 
-    if (Math.hypot(p1x - player.x, p1y - player.y) < 2.5) {
+  // If close to cell 1, look at cell 2
+  if (path.length > 2) {
+    const c1 = path[1];
+    const c1x = CONFIG.MAZE_OFFSET_X + c1.c * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2;
+    const c1y = c1.r * CONFIG.CELL_SIZE + CONFIG.CELL_SIZE / 2;
+    if (Math.hypot(c1x - playerCenterX, c1y - playerCenterY) < CONFIG.CELL_SIZE * 0.5) {
       targetIndex = 2;
     }
   }
 
-  let nextCell = path[targetIndex];
-  let tx = CONFIG.MAZE_OFFSET_X + (nextCell.c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
-  let ty = (nextCell.r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+  const nextCell = path[targetIndex];
+  const tx = CONFIG.MAZE_OFFSET_X + (nextCell.c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
+  const ty = (nextCell.r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
 
-  let dx = tx - (player.x + player.size / 2);
-  let dy = ty - (player.y + player.size / 2);
-  let dist = Math.hypot(dx, dy);
+  const dx = tx - playerCenterX;
+  const dy = ty - playerCenterY;
+  const dist = Math.hypot(dx, dy);
 
-  if (dist < 0.1) return { dx: 0, dy: 0 };
+  if (dist < 0.5) return { dx: 0, dy: 0 };
+
+  // Simple normalized movement toward next cell
+  player.aiIsOscillating = false;
   return { dx: (dx / dist) * CONFIG.BASE_SPEED, dy: (dy / dist) * CONFIG.BASE_SPEED };
 }
 
@@ -266,7 +311,7 @@ export function getCpuInput(player, opponent) {
     currentConfig = adjustDifficultyDynamically(player.score, opponent.score, currentConfig);
   }
 
-  // --- 1. STUCK DETECTION ---
+  // --- 1. STUCK DETECTION (Simple) ---
   if (isPlayerStuck(player)) {
     player.stuckCounter = (player.stuckCounter || 0) + 1;
     if (player.stuckCounter > 15) {
@@ -304,6 +349,9 @@ export function getCpuInput(player, opponent) {
   const shouldThink = player.aiFrameCounter % (currentConfig.REACTION_INTERVAL || 1) === 0;
 
   if (shouldThink) {
+      // Reset per-frame flags
+      player.aiMentalModel.forceShieldForMine = false;
+
       // Track opponent behavior for pattern recognition
       trackOpponentBehavior(player, opponent);
 
@@ -311,7 +359,7 @@ export function getCpuInput(player, opponent) {
       const opponentPrediction = getOpponentPrediction(player, opponent);
       player.aiMentalModel.opponentPrediction = opponentPrediction;
 
-      // A. Decide High-Level Strategy
+      // A. Decide High-Level Strategy (simple, no complex locking)
       player.aiMentalModel.strategy = decideStrategy(player, opponent, currentConfig, opponentPrediction);
 
       // Pre-calculate alignment for threat context (used by energy strategy)
@@ -341,8 +389,8 @@ export function getCpuInput(player, opponent) {
             player.aiMentalModel.moveDir.dx += dodgeDir.dx * CONFIG.BASE_SPEED * 1.5;
             player.aiMentalModel.moveDir.dy += dodgeDir.dy * CONFIG.BASE_SPEED * 1.5;
 
-            // Also boost if available for faster dodge
-            if (player.boostEnergy > 40) {
+            // Only boost for dodge if non-INSANE (INSANE saves energy for beams)
+            if (currentConfig.NAME !== 'INSANE' && player.boostEnergy > 40) {
               player.aiMentalModel.energyStrat.boost = true;
             }
           }
@@ -355,26 +403,39 @@ export function getCpuInput(player, opponent) {
       let nearbyMines = [];
       let dangerLevel = 0;
       const mineDetectRadius = currentConfig.MINE_DETECT_RADIUS || 8;
+      // INSANE: Larger detection radius for own mines to avoid walking into them
+      const ownMineDetectRadius = currentConfig.NAME === 'INSANE' ? 12 : mineDetectRadius;
+      let criticalMineNearby = false; // Flag for mines we're about to hit
 
       STATE.mines.forEach(mine => {
         let dist = Math.hypot(mine.x - player.x, mine.y - player.y);
-        if (dist < mineDetectRadius) {
-          nearbyMines.push({ mine, dist });
-          // Closer mines are more dangerous
-          dangerLevel += (mineDetectRadius - dist) / mineDetectRadius;
+        const isOwnMine = mine.owner === player.id;
+        const detectRadius = isOwnMine ? ownMineDetectRadius : mineDetectRadius;
+
+        if (dist < detectRadius) {
+          // INSANE: Own mines are just as dangerous - don't walk through them!
+          const dangerMultiplier = (currentConfig.NAME === 'INSANE' && isOwnMine) ? 1.5 : 1.0;
+          nearbyMines.push({ mine, dist, isOwnMine });
+          dangerLevel += ((detectRadius - dist) / detectRadius) * dangerMultiplier;
+
+          // Critical: mine is very close (about to hit)
+          if (dist < 5) {
+            criticalMineNearby = true;
+          }
         }
       });
 
       // Calculate escape vector
       let escapeX = 0;
       let escapeY = 0;
-      nearbyMines.forEach(({ mine, dist }) => {
+      nearbyMines.forEach(({ mine, dist, isOwnMine }) => {
         let pushX = player.x - mine.x;
         let pushY = player.y - mine.y;
         let pushDist = Math.hypot(pushX, pushY);
         if (pushDist > 0.1) {
-          // Stronger push for closer mines
-          let pushStrength = (mineDetectRadius - dist) / dist;
+          // INSANE: Much stronger push from own mines to prevent walking through
+          const ownMinePushMultiplier = (currentConfig.NAME === 'INSANE' && isOwnMine) ? 3.0 : 1.0;
+          let pushStrength = ((mineDetectRadius - dist) / dist) * ownMinePushMultiplier;
           escapeX += (pushX / pushDist) * pushStrength;
           escapeY += (pushY / pushDist) * pushStrength;
         }
@@ -382,19 +443,27 @@ export function getCpuInput(player, opponent) {
 
       // Apply escape vector with increased urgency based on danger
       if (nearbyMines.length > 0) {
-        // INSANE AI reacts more strongly to mines
-        const escapeMultiplier = currentConfig.NAME === 'INSANE' ? 2.5 : 1.5;
-        const escapeMax = currentConfig.NAME === 'INSANE' ? 6 : 4;
+        // INSANE AI reacts MUCH more strongly to mines
+        const escapeMultiplier = currentConfig.NAME === 'INSANE' ? 4.0 : 1.5;
+        const escapeMax = currentConfig.NAME === 'INSANE' ? 10 : 4;
         let escapeStrength = Math.min(dangerLevel * escapeMultiplier, escapeMax);
         player.aiMentalModel.moveDir.dx += escapeX * escapeStrength;
         player.aiMentalModel.moveDir.dy += escapeY * escapeStrength;
 
+        // INSANE: Force shield when about to cross through a mine
+        if (currentConfig.NAME === 'INSANE' && criticalMineNearby && player.boostEnergy > 10) {
+          player.aiMentalModel.energyStrat.shield = true;
+          player.aiMentalModel.forceShieldForMine = true;
+        }
+
         // If trapped by multiple mines (high danger), use defensive measures
-        const dangerThreshold = currentConfig.NAME === 'INSANE' ? 1.0 : 1.5;
+        const dangerThreshold = currentConfig.NAME === 'INSANE' ? 0.5 : 1.5;
         if (dangerLevel > dangerThreshold) {
           player.aiMentalModel.mineTrapDanger = true;
-          // Boost to escape faster if possible
-          if (player.boostEnergy > 20) {
+          // Only boost to escape if non-INSANE or if energy is very high
+          if (currentConfig.NAME !== 'INSANE' && player.boostEnergy > 20) {
+            player.aiMentalModel.energyStrat.boost = true;
+          } else if (currentConfig.NAME === 'INSANE' && player.boostEnergy > 85) {
             player.aiMentalModel.energyStrat.boost = true;
           }
         } else {
@@ -414,7 +483,7 @@ export function getCpuInput(player, opponent) {
       if (!player.aiMentalModel.energyStrat.shield) {
         player.aiMentalModel.energyStrat.shield = shouldActivateShield(
           player, opponent, currentConfig,
-          { threatAssessment, dangerLevel }
+          { threatAssessment, dangerLevel, nearbyMines }
         );
       }
 
@@ -426,17 +495,26 @@ export function getCpuInput(player, opponent) {
         }
       }
 
-      // I. INSANE Aggression - Always boost when pursuing, intercepting, or rushing
+      // I. INSANE Tactical Boost - Only boost in critical moments with high energy
       if (currentConfig.NAME === 'INSANE') {
         const stratType = player.aiMentalModel.strategy?.type;
-        const isAggressive = ['HUNT', 'INTERCEPT', 'BLOCK_GOAL', 'EXECUTE', 'GOAL_RUSH'].includes(stratType);
-        if (isAggressive && player.boostEnergy > 20) {
-          player.aiMentalModel.energyStrat.boost = true;
+
+        // Only boost with nearly full energy for urgent situations
+        if (player.boostEnergy > 80) {
+          // Boost to block goal when opponent is about to score - critical!
+          if (stratType === 'BLOCK_GOAL' && player.aiMentalModel.strategy?.urgent) {
+            player.aiMentalModel.energyStrat.boost = true;
+          }
+          // Boost for final goal rush when we have clear advantage
+          else if (stratType === 'GOAL_RUSH' && player.aiMentalModel.strategy?.urgent) {
+            player.aiMentalModel.energyStrat.boost = true;
+          }
         }
+        // Otherwise, don't boost - save energy for beams
       }
 
-      // J. Goal Rush Boost - All difficulties boost when rushing to goal with advantage
-      if (player.aiMentalModel.strategy?.type === 'GOAL_RUSH' && player.boostEnergy > 30) {
+      // J. Goal Rush Boost - Non-INSANE difficulties boost when rushing
+      if (currentConfig.NAME !== 'INSANE' && player.aiMentalModel.strategy?.type === 'GOAL_RUSH' && player.boostEnergy > 50) {
         player.aiMentalModel.energyStrat.boost = true;
       }
   }
@@ -483,7 +561,10 @@ export function getCpuInput(player, opponent) {
             cmd.beam = true;
             break;
           case 'boost':
-            cmd.boost = true;
+            // INSANE: Only boost in combos if energy is very high
+            if (currentConfig.NAME !== 'INSANE' || player.boostEnergy > 80) {
+              cmd.boost = true;
+            }
             break;
           case 'shield':
             cmd.shield = true;
@@ -495,14 +576,22 @@ export function getCpuInput(player, opponent) {
 
   // Actions (Shield/Boost) - only if not overridden by combo
   if (!combo) {
-    if (energyStrat.shield && Math.random() <= currentConfig.SHIELD_CHANCE) cmd.shield = true;
+    // INSANE: Force shield when crossing mines (no random check)
+    if (player.aiMentalModel?.forceShieldForMine) {
+      cmd.shield = true;
+    } else if (energyStrat.shield && Math.random() <= currentConfig.SHIELD_CHANCE) {
+      cmd.shield = true;
+    }
     const minBoostEnergy = currentConfig.MIN_BOOST_ENERGY || 25;
-    if (player.boostEnergy > minBoostEnergy && energyStrat.boost) cmd.boost = true;
+    if (player.boostEnergy > minBoostEnergy && energyStrat.boost) {
+      cmd.boost = true;
+    }
   }
 
   if (shouldDetonateNearbyMines(player, opponent)) cmd.boom = true;
 
   // Beam Logic (only if combo doesn't override)
+  // BEAMS USE MAZE PATHFINDING - they navigate through corridors to hit target
   if (!combo && player.boostEnergy > currentConfig.MIN_BEAM_ENERGY) {
     let shouldFire = false;
     const opponentPrediction = player.aiMentalModel.opponentPrediction;
@@ -512,20 +601,6 @@ export function getCpuInput(player, opponent) {
       // Use distance-based firing probability if enabled
       const useDistanceCheck = currentConfig.DISTANCE_BEAM_FIRING || false;
       shouldFire = shouldFireBeamBasic(player, opponent, useDistanceCheck, opponentPrediction, currentConfig);
-    }
-
-    // INSANE: Pressure firing when energy is high - fire more aggressively
-    if (!shouldFire && currentConfig.NAME === 'INSANE' && player.boostEnergy > 70) {
-      // Check if roughly aligned (within 8 pixels) and has line of sight
-      const playerCX = player.x + player.size / 2;
-      const playerCY = player.y + player.size / 2;
-      const oppCX = opponent.x + opponent.size / 2;
-      const oppCY = opponent.y + opponent.size / 2;
-      const dx = Math.abs(playerCX - oppCX);
-      const dy = Math.abs(playerCY - oppCY);
-      if ((dx < 8 || dy < 8) && hasLineOfSight(playerCX, playerCY, oppCX, oppCY)) {
-        shouldFire = Math.random() < 0.5; // 50% chance to pressure fire
-      }
     }
 
     // INSANE has no random miss, others have 5% miss chance

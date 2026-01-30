@@ -327,6 +327,31 @@ export function getEnergyStrategy(player, opponent, currentConfig, threatContext
   }
 
   const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+  const isInsane = currentConfig.NAME === 'INSANE';
+
+  // INSANE: Conservative with boost, but shield when needed
+  if (isInsane) {
+    // Shield if there's a threat (beam or close combat)
+    if (threatContext.incomingThreat?.urgency > 0.5) {
+      return { shield: true, boost: false };
+    }
+
+    // Shield if opponent is close and dangerous
+    if (dist < 12 && opponent.boostEnergy > 40) {
+      return { shield: true, boost: false };
+    }
+
+    // Almost never boost - save energy for beams
+    // Only boost if energy is nearly full AND very far from opponent
+    if (dist > 40 && player.boostEnergy > 85) {
+      return { shield: false, boost: true };
+    }
+
+    // Don't waste energy on boost - conserve for offense
+    return { shield: false, boost: false };
+  }
+
+  // Non-INSANE difficulties use the original logic
   const shieldThreshold = currentConfig.SHIELD_HP_THRESHOLD || 30;
   const boostThreshold = currentConfig.MIN_BOOST_ENERGY || 25;
   const aggressiveDist = currentConfig.AGGRESSIVE_DISTANCE || 12;

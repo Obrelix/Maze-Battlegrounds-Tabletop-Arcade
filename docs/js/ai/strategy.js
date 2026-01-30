@@ -314,26 +314,48 @@ export function decideStrategy(player, opponent, currentConfig, opponentPredicti
     }
 
     // AGGRESSIVE INTERCEPT - Cut off player's path to their goal
-    if ((currentConfig.ALWAYS_INTERCEPT || currentConfig.INTERCEPT_PRIORITY) && currentConfig.NAME !== 'BEGINNER') {
+    if (currentConfig.NAME !== 'BEGINNER') {
       // Calculate if opponent is heading toward their goal
       const oppGoalX = CONFIG.MAZE_OFFSET_X + (opponent.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
       const oppGoalY = (opponent.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
       const oppDistToGoal = Math.hypot(oppGoalX - opponent.x, oppGoalY - opponent.y);
       const aiDistToOppGoal = Math.hypot(oppGoalX - player.x, oppGoalY - player.y);
 
-      // If opponent is closer to their goal than us, intercept!
-      if (oppDistToGoal < aiDistToOppGoal && oppDistToGoal < 50) {
-        // Calculate intercept point - between opponent and their goal
-        const interceptX = (opponent.x + oppGoalX) / 2;
-        const interceptY = (opponent.y + oppGoalY) / 2;
-        const candidate = { x: interceptX, y: interceptY, type: 'INTERCEPT', priority: 9.5, urgent: true };
-        if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
+      // INSANE: Goal-focused with blocking when needed
+      if (currentConfig.NAME === 'INSANE') {
+        // PRIORITY 1: If opponent is VERY close to their goal, must block
+        if (oppDistToGoal < 25) {
+          const candidate = { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 11, urgent: true };
+          if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
+        }
+        // PRIORITY 2: Rush to goal if we're reasonably close (main strategy!)
+        else if (myDistToGoal < 60) {
+          const candidate = { x: goalX, y: goalY, type: 'GOAL_RUSH', priority: 10.5, urgent: true };
+          if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
+        }
+        // PRIORITY 3: Block if opponent is heading to goal
+        else if (oppDistToGoal < 40) {
+          const candidate = { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 10, urgent: true };
+          if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
+        }
+        // PRIORITY 4: Rush to goal (default - always try to score!)
+        else {
+          const candidate = { x: goalX, y: goalY, type: 'GOAL_RUSH', priority: 9, urgent: true };
+          if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
+        }
       }
-
-      // If opponent is very close to goal, block the goal directly
-      if (oppDistToGoal < 20) {
-        const candidate = { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 10.5, urgent: true };
-        if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
+      // Non-INSANE: Use original intercept logic
+      else if (currentConfig.ALWAYS_INTERCEPT || currentConfig.INTERCEPT_PRIORITY) {
+        if (oppDistToGoal < aiDistToOppGoal && oppDistToGoal < 50) {
+          const interceptX = (opponent.x + oppGoalX) / 2;
+          const interceptY = (opponent.y + oppGoalY) / 2;
+          const candidate = { x: interceptX, y: interceptY, type: 'INTERCEPT', priority: 9.5, urgent: true };
+          if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
+        }
+        if (oppDistToGoal < 20) {
+          const candidate = { x: oppGoalX, y: oppGoalY, type: 'BLOCK_GOAL', priority: 10.5, urgent: true };
+          if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
+        }
       }
     }
 
@@ -387,6 +409,18 @@ export function decideStrategy(player, opponent, currentConfig, opponentPredicti
         return currentStrategy;
       }
     }
+  }
+
+  // INSANE FALLBACK: Never return basic GOAL - always rush!
+  if (currentConfig.NAME === 'INSANE' && bestStrategy.type === 'GOAL' && bestStrategy.priority <= 1) {
+    // Default to rushing the goal
+    bestStrategy = {
+      x: goalX,
+      y: goalY,
+      type: 'GOAL_RUSH',
+      priority: 9,
+      urgent: true
+    };
   }
 
   // Update strategy state
@@ -519,7 +553,8 @@ export function shouldExecuteCombo(player, opponent, currentConfig) {
 
   const dist = Math.hypot(player.x - opponent.x, player.y - opponent.y);
   const stunTime = opponent.stunRemaining(STATE.frameCount);
-  const glitchTime = opponent.glitchRemaining(STATE.frameCount);
+  // Only check glitch time if glitch is actually active (glitchStartTime !== 0)
+  const glitchTime = opponent.glitchStartTime !== 0 ? opponent.glitchRemaining(STATE.frameCount) : 0;
 
   // STUN_EXECUTE COMBO: Multi-phase attack on stunned opponent
   // Phase 1: If far, boost close
@@ -586,8 +621,11 @@ export function shouldExecuteCombo(player, opponent, currentConfig) {
     }
   }
 
-  // CHASE COMBO: Boost to close distance when far (no LoS check needed)
-  if (player.boostEnergy > 40 && dist > 25) {
+  // CHASE COMBO: Boost to close distance - only for non-INSANE or very high energy
+  // INSANE conserves energy for beams, only boosts with 90%+ energy
+  const boostHuntMinEnergy = currentConfig.NAME === 'INSANE' ? 90 : 40;
+  const boostHuntMaxDist = currentConfig.NAME === 'INSANE' ? 35 : 25;
+  if (player.boostEnergy > boostHuntMinEnergy && dist > boostHuntMaxDist) {
     return {
       type: 'BOOST_HUNT',
       actions: ['boost'],

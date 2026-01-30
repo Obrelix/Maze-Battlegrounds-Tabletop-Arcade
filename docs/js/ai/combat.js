@@ -1,6 +1,6 @@
 import { CONFIG, TIMING } from '../config.js';
 import { STATE } from '../state.js';
-import { hasLineOfSight, isWall } from '../grid.js';
+import { hasLineOfSight, isWall, gridIndex } from '../grid.js';
 import { predictPlayerMovement } from './strategy.js';
 
 // Re-export hasLineOfSight for backward compatibility
@@ -9,8 +9,58 @@ export { hasLineOfSight };
 // Opponent prediction will be passed as parameter to avoid circular import
 
 /**
- * Check if opponent is aiming at player (aligned and has energy to fire)
- * Used for dodge logic and predictive shielding
+ * Check if there's a valid beam path to opponent through the maze
+ * Uses same logic as actual beam firing
+ * @param {Object} player - AI player
+ * @param {Object} opponent - Opponent player
+ * @returns {{hasPath: boolean, pathLength: number}} Path info
+ */
+function checkBeamPath(player, opponent) {
+  if (!STATE.maze || STATE.maze.length === 0) {
+    return { hasPath: false, pathLength: Infinity };
+  }
+
+  const startC = Math.floor((player.x - CONFIG.MAZE_OFFSET_X + 1) / CONFIG.CELL_SIZE);
+  const startR = Math.floor((player.y + 1) / CONFIG.CELL_SIZE);
+  const endC = Math.floor((opponent.x + opponent.size / 2 - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+  const endR = Math.floor((opponent.y + opponent.size / 2) / CONFIG.CELL_SIZE);
+
+  const start = gridIndex(startC, startR);
+  const end = gridIndex(endC, endR);
+
+  if (!start || !end) {
+    return { hasPath: false, pathLength: Infinity };
+  }
+
+  // Quick BFS to check path existence and length
+  const visited = new Set();
+  const queue = [{ cell: start, dist: 0 }];
+  visited.add(start);
+
+  const directions = [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]];
+
+  while (queue.length > 0) {
+    const { cell: curr, dist } = queue.shift();
+
+    if (curr === end) {
+      return { hasPath: true, pathLength: dist };
+    }
+
+    for (const d of directions) {
+      const n = gridIndex(curr.c + d[0], curr.r + d[1]);
+      if (n && !visited.has(n) && !curr.walls[d[2]] && !n.walls[(d[2] + 2) % 4]) {
+        visited.add(n);
+        queue.push({ cell: n, dist: dist + 1 });
+      }
+    }
+  }
+
+  return { hasPath: false, pathLength: Infinity };
+}
+
+/**
+ * Check if opponent is aiming at player (has path and energy to fire)
+ * Uses maze pathfinding since beams navigate through corridors
  * @param {Object} player - AI player to check danger for
  * @param {Object} opponent - Opponent who might be firing
  * @returns {{danger: boolean, direction: string|null, urgency: number}} Danger assessment
@@ -21,40 +71,31 @@ export function isOpponentAimingAtMe(player, opponent) {
     return { danger: false, direction: null, urgency: 0 };
   }
 
-  const TOLERANCE = 3.0;
+  // Check if opponent has a valid beam path to us
+  const { hasPath, pathLength } = checkBeamPath(opponent, player);
+
+  if (!hasPath) {
+    return { danger: false, direction: null, urgency: 0 };
+  }
+
+  // Calculate direction based on relative position
   const playerCenterX = player.x + player.size / 2;
   const playerCenterY = player.y + player.size / 2;
   const oppCenterX = opponent.x + opponent.size / 2;
   const oppCenterY = opponent.y + opponent.size / 2;
 
-  const dx = Math.abs(playerCenterX - oppCenterX);
-  const dy = Math.abs(playerCenterY - oppCenterY);
-
-  const alignedHorizontally = dy < TOLERANCE;
-  const alignedVertically = dx < TOLERANCE;
-
-  // Early exit if not aligned
-  if (!alignedHorizontally && !alignedVertically) {
-    return { danger: false, direction: null, urgency: 0 };
-  }
-
-  // Only check line of sight if aligned (expensive operation)
-  const hasLoS = hasLineOfSight(oppCenterX, oppCenterY, playerCenterX, playerCenterY);
-
-  if (!hasLoS) {
-    return { danger: false, direction: null, urgency: 0 };
-  }
-
-  // Calculate direction and urgency
   let direction = null;
-  if (alignedHorizontally) {
-    direction = playerCenterX > oppCenterX ? 'right' : 'left';
+  const dx = playerCenterX - oppCenterX;
+  const dy = playerCenterY - oppCenterY;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    direction = dx > 0 ? 'right' : 'left';
   } else {
-    direction = playerCenterY > oppCenterY ? 'down' : 'up';
+    direction = dy > 0 ? 'down' : 'up';
   }
 
-  const dist = Math.hypot(dx, dy);
-  const urgency = Math.max(0, 1 - (dist / 40));
+  // Urgency based on path length (shorter = more urgent)
+  // Path of 1-2 = very urgent, 3-4 = urgent, 5+ = less urgent
+  const urgency = Math.max(0, 1 - (pathLength - 1) / 6);
 
   return { danger: true, direction, urgency };
 }
@@ -115,7 +156,7 @@ export function getDodgeDirection(threatDirection, player = null, wallAware = fa
 
 export function shouldChargeBeam(player, opponent, currentConfig) {
   if (!currentConfig.TACTICAL_CHARGING_ENABLED) {
-    return shouldFireBeamBasic(player, opponent);
+    return shouldFireBeamBasic(player, opponent, false, null, currentConfig);
   }
 
   // Don't waste energy firing at shielded opponents
@@ -127,31 +168,25 @@ export function shouldChargeBeam(player, opponent, currentConfig) {
     return false;
   }
 
-  const playerCenterX = player.x + player.size / 2;
-  const playerCenterY = player.y + player.size / 2;
-  const oppCenterX = opponent.x + opponent.size / 2;
-  const oppCenterY = opponent.y + opponent.size / 2;
+  // Check if there's a valid path through the maze
+  const { hasPath, pathLength } = checkBeamPath(player, opponent);
 
-  // Check line of sight before considering firing
-  if (!hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY)) {
+  if (!hasPath) {
     return false;
   }
 
+  // Charge beam is worth it if opponent is glitched (can't dodge well)
   if (opponent.glitchRemaining(STATE.frameCount) > 60) {
-    return true;
+    return pathLength <= 6; // Only if reasonably close
   }
 
-  // Check predicted alignment (skip extra LoS check - use cached result)
-  const predictedPos = predictPlayerMovement(opponent, currentConfig);
-  const TOLERANCE = 5;
-  const predictedAlignedX = Math.abs(player.y - predictedPos.y) < TOLERANCE;
-  const predictedAlignedY = Math.abs(player.x - predictedPos.x) < TOLERANCE;
-
-  return (predictedAlignedX || predictedAlignedY);
+  // Charge beam for close targets (path length 1-4)
+  return pathLength <= 4;
 }
 
 /**
  * Check if AI should fire beam at opponent
+ * BEAMS USE MAZE PATHFINDING - they navigate through corridors, not straight lines!
  * @param {Object} player - AI player
  * @param {Object} opponent - Opponent player
  * @param {boolean} useDistanceCheck - Whether to apply distance-based firing probability
@@ -165,106 +200,57 @@ export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false, 
     return false;
   }
 
-  // If opponent frequently shields, consider delaying or using charged beam
-  // But INSANE AI doesn't hesitate
   const isInsane = currentConfig?.NAME === 'INSANE';
-  if (!isInsane && opponentPrediction && opponentPrediction.shieldProbability > 0.3) {
-    // High shield probability - 40% chance to hold fire and wait for better opportunity
+
+  // Check if there's a valid path through the maze to hit opponent
+  const { hasPath, pathLength } = checkBeamPath(player, opponent);
+
+  if (!hasPath) {
+    return false; // No path = no hit possible
+  }
+
+  // INSANE: Fire if path exists and is reasonably short
+  if (isInsane) {
+    // Short path (1-3 cells) = always fire
+    if (pathLength <= 3) {
+      return true;
+    }
+    // Medium path (4-6 cells) = fire if we have good energy
+    if (pathLength <= 6 && player.boostEnergy > 50) {
+      return true;
+    }
+    // Long path (7+ cells) = only fire if energy is high (opponent might dodge)
+    if (pathLength <= 10 && player.boostEnergy > 70) {
+      return true;
+    }
+    return false;
+  }
+
+  // Non-INSANE difficulties
+  // If opponent frequently shields, consider delaying
+  if (opponentPrediction && opponentPrediction.shieldProbability > 0.3) {
     if (Math.random() < 0.4) {
       return false;
     }
   }
 
-  const playerCenterX = player.x + player.size / 2;
-  const playerCenterY = player.y + player.size / 2;
-  const oppCenterX = opponent.x + opponent.size / 2;
-  const oppCenterY = opponent.y + opponent.size / 2;
-
-  // INSANE has wider tolerance - fires more often
-  const TOLERANCE = isInsane ? 4.0 : 2.5;
-  const dx = Math.abs(playerCenterX - oppCenterX);
-  const dy = Math.abs(playerCenterY - oppCenterY);
-
-  const currentlyAlignedX = dy < TOLERANCE;
-  const currentlyAlignedY = dx < TOLERANCE;
-
-  // Quick check: currently aligned?
-  if (currentlyAlignedX || currentlyAlignedY) {
-    if (!hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY)) {
-      return false;
+  // Apply distance-based firing probability based on path length
+  if (useDistanceCheck) {
+    let fireChance;
+    if (pathLength <= 2) {
+      fireChance = 1.0;  // Very close: always fire
+    } else if (pathLength <= 4) {
+      fireChance = 0.8;  // Close: high chance
+    } else if (pathLength <= 6) {
+      fireChance = 0.5;  // Medium: moderate chance
+    } else {
+      fireChance = 0.2;  // Far: low chance
     }
-
-    // INSANE always fires when aligned - no distance check
-    if (isInsane) {
-      return true;
-    }
-
-    // Apply distance-based firing probability
-    if (useDistanceCheck) {
-      const dist = Math.hypot(dx, dy);
-      let fireChance;
-      if (dist < 12) {
-        fireChance = 1.0;  // Close range: always fire
-      } else if (dist < 24) {
-        fireChance = 0.6;  // Medium range: 60% chance
-      } else {
-        fireChance = 0.3;  // Long range: 30% chance
-      }
-      return Math.random() < fireChance;
-    }
-
-    return true;
+    return Math.random() < fireChance;
   }
 
-  // INSANE: Also fire if NEARLY aligned (will hit if opponent moves into beam path)
-  if (isInsane) {
-    const nearTolerance = 6.0;
-    const nearlyAlignedX = dy < nearTolerance;
-    const nearlyAlignedY = dx < nearTolerance;
-
-    if ((nearlyAlignedX || nearlyAlignedY) && hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY)) {
-      // Fire with some probability based on how close to aligned
-      const alignmentQuality = nearlyAlignedX ? (nearTolerance - dy) / nearTolerance : (nearTolerance - dx) / nearTolerance;
-      if (Math.random() < alignmentQuality * 0.7) {
-        return true;
-      }
-    }
-  }
-
-  // Check future alignment (prediction)
-  if (opponent.lastDir) {
-    // INSANE predicts further ahead
-    const predictionFrames = isInsane ? 12 : 8;
-    const futureX = oppCenterX + opponent.lastDir.x * predictionFrames;
-    const futureY = oppCenterY + opponent.lastDir.y * predictionFrames;
-    const willBeAlignedX = Math.abs(playerCenterY - futureY) < TOLERANCE;
-    const willBeAlignedY = Math.abs(playerCenterX - futureX) < TOLERANCE;
-
-    if (willBeAlignedX || willBeAlignedY) {
-      if (!hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY)) {
-        return false;
-      }
-
-      // Apply distance-based check for predicted shots too (slightly lower chances)
-      // INSANE doesn't use distance check
-      if (useDistanceCheck && !isInsane) {
-        const dist = Math.hypot(dx, dy);
-        let fireChance;
-        if (dist < 12) {
-          fireChance = 0.9;  // Close range: high chance
-        } else if (dist < 24) {
-          fireChance = 0.45; // Medium range: moderate chance
-        } else {
-          fireChance = 0.2;  // Long range: low chance
-        }
-        return Math.random() < fireChance;
-      }
-
-      return true;
-    }
-  }
-
-  return false;
+  // Default: fire if path is reasonable
+  return pathLength <= 8;
 }
 
 export function shouldDetonateNearbyMines(player, opponent) {
