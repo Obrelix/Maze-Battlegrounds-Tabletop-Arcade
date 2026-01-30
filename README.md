@@ -4,9 +4,9 @@ A DIY head‑to‑head tabletop arcade console powered by a Raspberry Pi Zero 2 
 
 This repository contains the source code for **Maze Battlegrounds**, a fast‑paced tactical 1v1 shooter designed specifically for low‑resolution LED displays—along with the hardware specifications to build the physical machine.
 
-**Status:** Early Alpha – mechanics, balance, and UX are under active development and testing, but the core loop is fully playable in the browser.
+**Status:** Beta – the browser version is feature-complete and stable. Hardware deployment (Raspberry Pi / LED matrix) is in progress.
 
-**Version:** 0.1.5-alpha
+**Version:** 0.5.0-beta
 
 ---
 
@@ -216,12 +216,16 @@ For narrow viewports (phones/tablets), the demo activates a touch UI with:
 - **Human error simulation:** Configurable confusion chance causes temporary random movement for realism
 - **Predictive aiming:** Analyzes enemy movement patterns, direction history, and corner-cutting to predict future positions
 - **Tactical charging:** AI decides when to charge beams based on enemy alignment, stun state, and energy levels
+- **Distance-based firing:** Considers range when firing—higher accuracy at close range, conservative at long range
 - **Adaptive difficulty:** Dynamically adjusts aggression, energy thresholds, and reaction times based on score differential
-- **Combo chains:** Executes tactical sequences (STUN_CHARGE when opponent stunned, BOOST_HUNT for aggressive chase)
-- **Strategic mine placement:** Places mines defensively around own goal or aggressively along enemy paths based on difficulty preset
+- **Combo chains:** Executes multi-phase tactical sequences (boost to close distance → charge beam on stunned opponents)
+- **Strategic mine placement:** Places mines at chokepoints with density checks to prevent clustering
+- **Unified shield logic:** Priority-based shield activation considering beam threats, mine danger, and predictive defense
+- **Wall-aware dodging:** Checks perpendicular directions for walls before dodging, avoiding self-trapping
+- **Strategy hysteresis:** Requires significant priority change to switch strategies, reducing erratic behavior
 - **Energy management:** Context-aware shield/boost decisions; won't fire at shielded opponents; respects actual energy costs
 - **Mine trap escape:** Calculates danger level from nearby mines; uses boost/shield to escape when surrounded
-- **Unstuck detection:** Breaks out of stuck states with randomized jiggle after 15 frames of no movement
+- **Smart unstuck recovery:** Wall-aware direction selection, prefers opposite of last movement direction
 
 #### Audio
 - **Minimal SFX:** Beam charge, shield activation, mine drop, detonation, damage, death (Web Audio API)
@@ -356,9 +360,9 @@ CONTROLS_P1, CONTROLS_P2     // Keyboard key mappings
 
 Available difficulty levels:
 - **BEGINNER** – Slower reactions (thinks 3×/sec), 25% movement error chance, basic pathfinding, defensive mine placement
-- **INTERMEDIATE** – Balanced behavior (thinks 6×/sec), moderate aggression, adaptive difficulty scaling
-- **HARD** – Fast reactions (thinks 15×/sec), predictive aiming, tactical charging, strategic mine placement, combo chains
-- **INSANE** – Every-frame reactions, advanced prediction (35-frame window), near-perfect aim, aggressive mine strategy
+- **INTERMEDIATE** – Balanced behavior (thinks 6×/sec), moderate aggression, adaptive difficulty, distance-based firing, strategy hysteresis
+- **HARD** – Fast reactions (thinks 15×/sec), predictive aiming, tactical charging, wall-aware dodging, mine density checks, combo chains
+- **INSANE** – Every-frame reactions, advanced prediction (35-frame window), near-perfect aim, all AI features enabled
 - **DYNAMIC** – Starts at INTERMEDIATE; adjusts to HARD when losing badly or BEGINNER when dominating
 
 To change AI difficulty, call `setDifficulty('HARD')` from `ai/difficulty.js`. The active config is managed via `getActiveConfig()` / `setActiveConfig()` module exports (no global `window.AI_CONFIG`).
@@ -392,7 +396,55 @@ MIT License – Free for personal, educational, and non‑commercial use.
 
 ---
 
-## Recent Changes (v0.1.5-alpha)
+## Recent Changes (v0.5.0-beta)
+
+### Major AI Overhaul
+Comprehensive AI improvements for smarter combat, better navigation, and higher challenge at HARD/INSANE difficulties.
+
+#### Smart Dodge System
+- **Wall-aware dodging:** AI now checks both perpendicular directions for walls before dodging, preferring wall-free paths
+- **No more suicidal dodges:** AI won't dodge into walls when evading beams (HARD+ difficulties)
+
+#### Improved Beam Combat
+- **Distance-based firing:** AI now considers distance when firing beams:
+  - Close range (<12px): Always fires
+  - Medium range (12-24px): 60% chance
+  - Long range (>24px): 30% chance
+- **Better accuracy:** Reduces wasted shots at max range where beams are easily dodged
+
+#### Unified Shield Logic
+- **Consolidated shield decisions:** Single priority-based system replaces scattered shield checks:
+  1. Immediate beam threat (high urgency)
+  2. Mine trap danger (multiple nearby mines)
+  3. Predictive shielding when enemy can fire (HARD+ only)
+
+#### Smarter Navigation
+- **Intelligent stuck recovery:** When stuck, AI now:
+  - Checks all 8 directions for walls
+  - Prefers directions opposite to last movement
+  - Only moves into wall-free paths
+- **Strategy stability (hysteresis):** AI requires significant priority difference (2+) to switch strategies, reducing erratic behavior
+
+#### Enhanced Mine Placement
+- **Mine density check:** AI avoids clustering mines in the same area (HARD+ difficulties)
+- **Better trap coverage:** Mines spread across chokepoints for more effective area denial
+
+#### Combo Exploitation
+- **Multi-phase stun combos:** When opponent is stunned, AI executes:
+  - Phase 1: Boost to close distance if far
+  - Phase 2: Charge beam when close enough
+- **Glitch hunting:** Distance-based combo phases for aggressive pursuit of glitched opponents
+
+#### New Difficulty Features
+Added feature flags that scale by difficulty:
+- `DODGE_WALL_AWARE`: HARD/INSANE only
+- `DISTANCE_BEAM_FIRING`: INTERMEDIATE+
+- `MINE_DENSITY_CHECK`: HARD/INSANE only
+- `STRATEGY_HYSTERESIS`: INTERMEDIATE+
+
+---
+
+## Previous Changes (v0.1.5-alpha)
 
 ### Game Balance
 - **Shield energy drain balanced:** Shield now drains at same rate as boost (~6 seconds to empty)
@@ -440,5 +492,5 @@ MIT License – Free for personal, educational, and non‑commercial use.
 
 ---
 
-**Last updated:** January 29, 2026
-**Version:** 0.1.5‑alpha
+**Last updated:** January 30, 2026
+**Version:** 0.5.0‑beta
