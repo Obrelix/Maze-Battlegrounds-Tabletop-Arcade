@@ -761,40 +761,31 @@ export function renderMenu() {
 
     drawMenuDecoratives();
 
-    const sel = GAME.menuSelection;
+    // const sel = GAME.menuSelection;
     const blink = Math.floor(Date.now() / 150) % 2 === 0;
 
     const menuColors = ["#08ffff", "#ff00ff", "#00ff88", "#8888ff"];
 
     drawText("SELECT MODE", 43, 3, "#fff");
 
-    let center = 52 + (("SELECT MODE".length * 4) - 1) / 2;
+    let center = 43 + (("SELECT MODE".length * 4) - 1) / 2;
     const menuOptions = ["SINGLE PLAYER", "LOCAL MULTI", "ONLINE MULTI", "HIGH SCORES"];
 
-    const menuStartY = 24;
+    const menuStartY = 13;
     const menuSpacing = 10;
 
-    let wallColor = menuColors[sel] + '99'; // Add alpha for a dimmer effect
-    // menuOptions.forEach((option, idx) => {
-    //     const optionLength = option.length * 4;
-    //     const isSelected = GAME.menuSelection === idx;
-    //     const color = isSelected ? menuColors[idx] : "#888888";
-    //     const x = center - optionLength / 2;
-    //     if (blink && isSelected) drawText("→", x - 6, menuStartY + idx * menuSpacing, "#fff");
-    //     if (blink && isSelected) drawText("←", x + optionLength, menuStartY + idx * menuSpacing, "#fff");
-    //     drawText(option, x, menuStartY + idx * menuSpacing, color);
-    //     wallColor = menuColors[idx] + '99'; 
-    // });
+    let wallColor = ''; 
+    menuOptions.forEach((option, idx) => {
+        const optionLength = option.length * 4;
+        const isSelected = GAME.menuSelection === idx;
+        const color = isSelected ? menuColors[idx] : "#888888";
+        const x = center - optionLength / 2;
+        if (blink && isSelected) drawText("→", x - 6, menuStartY + idx * menuSpacing, "#fff");
+        if (blink && isSelected) drawText("←", x + optionLength - 1, menuStartY + idx * menuSpacing, "#fff");
+        drawText(option, x, menuStartY + idx * menuSpacing, color);
+        if (isSelected) wallColor = menuColors[idx] + '88';
+    });
     drawMenuDecoratives(wallColor);
-    // Draw selection arrow
-    if (blink) drawText("→", 33, 13 + sel * 10, "#fff");
-    if (blink) drawText("←", 90, 13 + sel * 10, "#fff");
-
-    // Menu options - selected one is bright and colored, others are dim
-    drawText("SINGLE PLAYER", 39, 13, sel === 0 ? menuColors[0] + "ff" : "#555");
-    drawText("LOCAL MULTI", 43, 23, sel === 1 ? menuColors[1] + "ff" : "#555");
-    drawText("ONLINE MULTI", 41, 33, sel === 2 ? menuColors[2] + "ff" : "#555");
-    drawText("HIGH SCORES", 43, 43, sel === 3 ? menuColors[3] + "ff" : "#555");
 
     drawText("↑↓", 13, 50, "#61ca5d");
     drawText("CHANGE ", 5, 56, "#61ca5d");
