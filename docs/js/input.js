@@ -424,20 +424,34 @@ function initJoystick(startMatchSetup) {
             size: 85
         });
 
+        // Track joystick state for safety resets
+        let joystickTouchId = null;
+
         function resetMoveKeys() {
             STATE.keys['KeyW'] = false;
             STATE.keys['KeyS'] = false;
             STATE.keys['KeyA'] = false;
             STATE.keys['KeyD'] = false;
+            joystickTouchId = null;
         }
 
-        manager.on('start', () => {
+        manager.on('start', (evt, data) => {
             if (STATE.sfx) STATE.sfx.init();
+            // Track the touch identifier for this joystick interaction
+            if (data.identifier !== undefined) {
+                joystickTouchId = data.identifier;
+            }
         });
 
         manager.on('move', (evt, data) => {
             resetIdleTimer();
-            resetMoveKeys();
+
+            // Reset all movement keys first
+            STATE.keys['KeyW'] = false;
+            STATE.keys['KeyS'] = false;
+            STATE.keys['KeyA'] = false;
+            STATE.keys['KeyD'] = false;
+
             if (data.direction) {
                 const dir = data.direction;
                 if (dir.angle === 'up' || dir.y === 'up') STATE.keys['KeyW'] = true;
@@ -449,9 +463,66 @@ function initJoystick(startMatchSetup) {
             }
         });
 
-        manager.on('end', (evt, data) => {
+        manager.on('end', () => {
             resetMoveKeys();
         });
+
+        // Safety: Also handle 'destroyed' event
+        manager.on('destroyed', () => {
+            resetMoveKeys();
+        });
+
+        // Safety: Reset on visibility change (tab switch, app switch, notification)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                resetMoveKeys();
+            }
+        });
+
+        // Safety: Reset when window loses focus
+        window.addEventListener('blur', () => {
+            resetMoveKeys();
+        });
+
+        // Safety: Track touch events directly as backup
+        // This catches cases where nipplejs fails to fire 'end'
+        let activeTouches = new Set();
+
+        joystickZone.addEventListener('touchstart', (e) => {
+            for (const touch of e.changedTouches) {
+                activeTouches.add(touch.identifier);
+            }
+        }, { passive: true });
+
+        const handleTouchEnd = (e) => {
+            for (const touch of e.changedTouches) {
+                activeTouches.delete(touch.identifier);
+            }
+            // If no more touches on joystick zone, ensure keys are reset
+            if (activeTouches.size === 0) {
+                resetMoveKeys();
+            }
+        };
+
+        joystickZone.addEventListener('touchend', handleTouchEnd, { passive: true });
+        joystickZone.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+        // Safety: Global touchend listener as final fallback
+        // If all touches end anywhere, reset joystick
+        document.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+                // No more touches on screen at all
+                activeTouches.clear();
+                resetMoveKeys();
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchcancel', (e) => {
+            if (e.touches.length === 0) {
+                activeTouches.clear();
+                resetMoveKeys();
+            }
+        }, { passive: true });
 
     }
 }
