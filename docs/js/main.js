@@ -134,6 +134,10 @@ function updateMinesAndCrates() {
 function update() {
     if (navigator.getGamepads)
         STATE.gpData = pollGamepads(startGame, startMatchSetup, startNextRound);
+
+    // Decrement inputDelay even while paused (for pause menu navigation)
+    if (GAME.inputDelay > 0) GAME.inputDelay--;
+
     if (STATE.isPaused) return;
     STATE.frameCount++;
     clearLoSCache(STATE.frameCount);
@@ -141,7 +145,7 @@ function update() {
         document.getElementById('joystick-zone').style.display = "none";
         document.getElementById('cross-zone').style.display = "grid";
     }
-    if (GAME.inputDelay > 0) { GAME.inputDelay--; return; }
+    if (GAME.inputDelay > 0) return;
     switch (GAME.screen) {
         case 'HIGHSCORES': handlePlayerHSInput(); return;
         case 'PLAYER_SETUP': handlePlayerSetupInput(); return;
