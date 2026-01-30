@@ -3,7 +3,7 @@ import { STATE } from '../state.js';
 import { hasLineOfSight } from '../grid.js';
 import { findPathToTarget, isPlayerStuck, getUnstuckDirection } from './pathfinding.js';
 import { decideStrategy, shouldExecuteCombo } from './strategy.js';
-import { shouldChargeBeam, shouldFireBeamBasic, shouldDetonateNearbyMines, calculateAdvancedMinePositions, isOpponentAimingAtMe, getDodgeDirection } from './combat.js';
+import { shouldChargeBeam, shouldFireBeamBasic, shouldDetonateNearbyMines, calculateAdvancedMinePositions, isOpponentAimingAtMe, getDodgeDirection, recordMinePlacement } from './combat.js';
 import { getActiveConfig, adjustDifficultyDynamically, getEnergyStrategy } from './difficulty.js';
 
 /**
@@ -110,6 +110,70 @@ function trackOpponentBehavior(player, opponent) {
   if (opponent.shieldActive) {
     profile.shieldUsage++;
   }
+}
+
+/**
+ * Get prediction data from opponent profile for use in combat/strategy decisions
+ * @param {Object} player - AI player with opponentProfile
+ * @param {Object} opponent - Opponent player
+ * @returns {Object|null} Prediction data or null if not enough samples
+ */
+export function getOpponentPrediction(player, opponent) {
+  const profile = player.opponentProfile;
+  if (!profile || profile.distanceSamples < 30) {
+    return null; // Not enough data
+  }
+
+  return {
+    preferredDirection: profile.favoredDirection,
+    preferredDistance: profile.avgDistanceKept,
+    shieldProbability: profile.shieldUsage / profile.distanceSamples,
+    directionWeights: profile.directionCounts
+  };
+}
+
+/**
+ * Validate if combo conditions are still met (mid-combo validation)
+ * @param {Object} combo - Active combo object
+ * @param {Object} player - AI player
+ * @param {Object} opponent - Opponent player
+ * @returns {boolean} True if combo should continue
+ */
+function validateComboConditions(combo, player, opponent) {
+  if (!combo || !combo.type) return false;
+
+  const stunTime = opponent.stunRemaining(STATE.frameCount);
+  const glitchTime = opponent.glitchRemaining(STATE.frameCount);
+  const dist = Math.hypot(player.x - opponent.x, player.y - opponent.y);
+
+  switch (combo.type) {
+    case 'STUN_EXECUTE_CLOSE':
+    case 'STUN_EXECUTE_FIRE':
+    case 'STUN_CHARGE':
+      return stunTime > 10; // Still stunned with some margin
+    case 'GLITCH_HUNT':
+    case 'GLITCH_APPROACH':
+    case 'GLITCH_EXECUTE':
+      return glitchTime > 30; // Still glitched
+    case 'BOOST_HUNT':
+      return dist > 15; // Still far enough to need boost
+    case 'SHIELD_BAIT':
+      return dist < 12 && player.boostEnergy > 10; // Still close and can shield
+    default:
+      return true;
+  }
+}
+
+/**
+ * Check if player is aligned with opponent (can hit with beam)
+ * @param {Object} player - AI player
+ * @param {Object} opponent - Opponent player
+ * @returns {boolean} True if aligned horizontally or vertically
+ */
+function isAlignedWithOpponent(player, opponent) {
+  const dx = Math.abs((player.x + player.size/2) - (opponent.x + opponent.size/2));
+  const dy = Math.abs((player.y + player.size/2) - (opponent.y + opponent.size/2));
+  return dx < 3 || dy < 3;
 }
 
 /**
@@ -243,11 +307,19 @@ export function getCpuInput(player, opponent) {
       // Track opponent behavior for pattern recognition
       trackOpponentBehavior(player, opponent);
 
-      // A. Decide High-Level Strategy
-      player.aiMentalModel.strategy = decideStrategy(player, opponent, currentConfig);
+      // Get opponent prediction data for use in decisions
+      const opponentPrediction = getOpponentPrediction(player, opponent);
+      player.aiMentalModel.opponentPrediction = opponentPrediction;
 
-      // B. Decide Energy Usage
-      player.aiMentalModel.energyStrat = getEnergyStrategy(player, opponent, currentConfig);
+      // A. Decide High-Level Strategy
+      player.aiMentalModel.strategy = decideStrategy(player, opponent, currentConfig, opponentPrediction);
+
+      // Pre-calculate alignment for threat context (used by energy strategy)
+      const preAligned = isAlignedWithOpponent(player, opponent);
+
+      // B. Decide Energy Usage (will be updated with full threat context after tactical adjustments)
+      // Initial pass without full threat context
+      player.aiMentalModel.energyStrat = { shield: false, boost: false };
 
       // B2. Check for Combo Opportunities
       player.aiMentalModel.combo = shouldExecuteCombo(player, opponent, currentConfig);
@@ -282,13 +354,14 @@ export function getCpuInput(player, opponent) {
       // E. Tactical Adjustments (Mine avoidance and escape)
       let nearbyMines = [];
       let dangerLevel = 0;
+      const mineDetectRadius = currentConfig.MINE_DETECT_RADIUS || 8;
 
       STATE.mines.forEach(mine => {
         let dist = Math.hypot(mine.x - player.x, mine.y - player.y);
-        if (dist < 8) {
+        if (dist < mineDetectRadius) {
           nearbyMines.push({ mine, dist });
           // Closer mines are more dangerous
-          dangerLevel += (8 - dist) / 8;
+          dangerLevel += (mineDetectRadius - dist) / mineDetectRadius;
         }
       });
 
@@ -301,7 +374,7 @@ export function getCpuInput(player, opponent) {
         let pushDist = Math.hypot(pushX, pushY);
         if (pushDist > 0.1) {
           // Stronger push for closer mines
-          let pushStrength = (8 - dist) / dist;
+          let pushStrength = (mineDetectRadius - dist) / dist;
           escapeX += (pushX / pushDist) * pushStrength;
           escapeY += (pushY / pushDist) * pushStrength;
         }
@@ -309,15 +382,19 @@ export function getCpuInput(player, opponent) {
 
       // Apply escape vector with increased urgency based on danger
       if (nearbyMines.length > 0) {
-        let escapeStrength = Math.min(dangerLevel * 1.5, 4);
+        // INSANE AI reacts more strongly to mines
+        const escapeMultiplier = currentConfig.NAME === 'INSANE' ? 2.5 : 1.5;
+        const escapeMax = currentConfig.NAME === 'INSANE' ? 6 : 4;
+        let escapeStrength = Math.min(dangerLevel * escapeMultiplier, escapeMax);
         player.aiMentalModel.moveDir.dx += escapeX * escapeStrength;
         player.aiMentalModel.moveDir.dy += escapeY * escapeStrength;
 
         // If trapped by multiple mines (high danger), use defensive measures
-        if (dangerLevel > 1.5) {
+        const dangerThreshold = currentConfig.NAME === 'INSANE' ? 1.0 : 1.5;
+        if (dangerLevel > dangerThreshold) {
           player.aiMentalModel.mineTrapDanger = true;
           // Boost to escape faster if possible
-          if (player.boostEnergy > 30) {
+          if (player.boostEnergy > 20) {
             player.aiMentalModel.energyStrat.boost = true;
           }
         } else {
@@ -325,7 +402,15 @@ export function getCpuInput(player, opponent) {
         }
       }
 
-      // F. Unified Shield Decision - Single consolidated shield check
+      // F. Threat-aware Energy Strategy - Pass full threat context
+      const isAligned = isAlignedWithOpponent(player, opponent);
+      player.aiMentalModel.energyStrat = getEnergyStrategy(player, opponent, currentConfig, {
+        incomingThreat: player.aiMentalModel.incomingThreat,
+        dangerLevel: dangerLevel,
+        isAligned: isAligned
+      });
+
+      // G. Unified Shield Decision - Additional shield check for urgent threats
       if (!player.aiMentalModel.energyStrat.shield) {
         player.aiMentalModel.energyStrat.shield = shouldActivateShield(
           player, opponent, currentConfig,
@@ -333,12 +418,26 @@ export function getCpuInput(player, opponent) {
         );
       }
 
-      // G. Sudden Death Urgency - Move faster when time is critical
+      // H. Sudden Death Urgency - Move faster when time is critical
       if (STATE.gameTime < TIMING.SUDDEN_DEATH_TIME && player.aiMentalModel.strategy?.urgent) {
         // Boost more aggressively in sudden death
         if (player.boostEnergy > 25) {
           player.aiMentalModel.energyStrat.boost = true;
         }
+      }
+
+      // I. INSANE Aggression - Always boost when pursuing, intercepting, or rushing
+      if (currentConfig.NAME === 'INSANE') {
+        const stratType = player.aiMentalModel.strategy?.type;
+        const isAggressive = ['HUNT', 'INTERCEPT', 'BLOCK_GOAL', 'EXECUTE', 'GOAL_RUSH'].includes(stratType);
+        if (isAggressive && player.boostEnergy > 20) {
+          player.aiMentalModel.energyStrat.boost = true;
+        }
+      }
+
+      // J. Goal Rush Boost - All difficulties boost when rushing to goal with advantage
+      if (player.aiMentalModel.strategy?.type === 'GOAL_RUSH' && player.boostEnergy > 30) {
+        player.aiMentalModel.energyStrat.boost = true;
       }
   }
 
@@ -358,20 +457,38 @@ export function getCpuInput(player, opponent) {
     cmd.down = moveDir.dy > 0;
   }
 
-  // Execute Combo if active (high priority)
+  // Execute Combo if active (high priority) with mid-combo validation
   if (combo && combo.actions) {
-    for (let action of combo.actions) {
-      switch (action) {
-        case 'charge_beam':
-          // Hold beam for charged shot when opponent is stunned
-          cmd.beam = true;
-          break;
-        case 'boost':
-          cmd.boost = true;
-          break;
-        case 'shield':
-          cmd.shield = true;
-          break;
+    // Re-validate combo conditions
+    const stillValid = validateComboConditions(combo, player, opponent);
+
+    if (!stillValid) {
+      // Abort combo, try immediate action instead
+      player.aiMentalModel.combo = null;
+      combo = null;
+
+      // If we were charging, fire immediately if aligned
+      if (combo?.type?.includes('CHARGE') || combo?.type?.includes('EXECUTE')) {
+        const aligned = isAlignedWithOpponent(player, opponent);
+        if (aligned && player.boostEnergy > 30) {
+          cmd.beam = true; // Fire immediately instead of continuing charge
+        }
+      }
+    } else {
+      // Original combo execution
+      for (let action of combo.actions) {
+        switch (action) {
+          case 'charge_beam':
+            // Hold beam for charged shot when opponent is stunned
+            cmd.beam = true;
+            break;
+          case 'boost':
+            cmd.boost = true;
+            break;
+          case 'shield':
+            cmd.shield = true;
+            break;
+        }
       }
     }
   }
@@ -388,14 +505,32 @@ export function getCpuInput(player, opponent) {
   // Beam Logic (only if combo doesn't override)
   if (!combo && player.boostEnergy > currentConfig.MIN_BEAM_ENERGY) {
     let shouldFire = false;
+    const opponentPrediction = player.aiMentalModel.opponentPrediction;
     if (currentConfig.TACTICAL_CHARGING_ENABLED && strategy?.canCharge) {
       shouldFire = shouldChargeBeam(player, opponent, currentConfig);
     } else {
       // Use distance-based firing probability if enabled
       const useDistanceCheck = currentConfig.DISTANCE_BEAM_FIRING || false;
-      shouldFire = shouldFireBeamBasic(player, opponent, useDistanceCheck);
+      shouldFire = shouldFireBeamBasic(player, opponent, useDistanceCheck, opponentPrediction, currentConfig);
     }
-    if (shouldFire && Math.random() < 0.95) cmd.beam = true;
+
+    // INSANE: Pressure firing when energy is high - fire more aggressively
+    if (!shouldFire && currentConfig.NAME === 'INSANE' && player.boostEnergy > 70) {
+      // Check if roughly aligned (within 8 pixels) and has line of sight
+      const playerCX = player.x + player.size / 2;
+      const playerCY = player.y + player.size / 2;
+      const oppCX = opponent.x + opponent.size / 2;
+      const oppCY = opponent.y + opponent.size / 2;
+      const dx = Math.abs(playerCX - oppCX);
+      const dy = Math.abs(playerCY - oppCY);
+      if ((dx < 8 || dy < 8) && hasLineOfSight(playerCX, playerCY, oppCX, oppCY)) {
+        shouldFire = Math.random() < 0.5; // 50% chance to pressure fire
+      }
+    }
+
+    // INSANE has no random miss, others have 5% miss chance
+    const fireChance = currentConfig.NAME === 'INSANE' ? 1.0 : 0.95;
+    if (shouldFire && Math.random() < fireChance) cmd.beam = true;
   }
 
   // Mine Drop Logic
@@ -408,6 +543,11 @@ export function getCpuInput(player, opponent) {
   if (cmd.mine && currentConfig.ADVANCED_MINING_ENABLED) {
     let strategicPos = calculateAdvancedMinePositions(player, opponent, currentConfig);
     player._suggestedMinePos = strategicPos;
+  }
+
+  // Record mine placement for density tracking
+  if (cmd.mine) {
+    recordMinePlacement(player, player.x, player.y, STATE.frameCount);
   }
 
   // Update State for next frame

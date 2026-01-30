@@ -56,17 +56,19 @@ export const DIFFICULTY_PRESETS = {
     COLOR:"#ff0000ff",
     MIN_BEAM_ENERGY: 30,           // Maximum aggression: fires at exact cost
     MIN_CHARGE_ENERGY: 65,         // Maximum aggression: charges at exact cost
-    MIN_BOOST_ENERGY: 20,          // Maximum aggression boosting
-    SHIELD_HP_THRESHOLD: 20,
-    AGGRESSIVE_DISTANCE: 5,
-    HUNT_THRESHOLD: 85,
-    DEFENSE_THRESHOLD: 10,
-    MINE_ARM_DISTANCE: 3,
-    COMBO_COOLDOWN: 40,
-    TACTICAL_PROBABILITY: 0.95,
-    REACTION_INTERVAL: 2,
+    MIN_BOOST_ENERGY: 15,          // Maximum aggression boosting (lowered)
+    SHIELD_HP_THRESHOLD: 15,
+    AGGRESSIVE_DISTANCE: 3,        // Very aggressive close combat
+    HUNT_THRESHOLD: 100,           // Hunt from further away
+    DEFENSE_THRESHOLD: 8,          // React to threats sooner
+    MINE_ARM_DISTANCE: 2,
+    COMBO_COOLDOWN: 30,
+    TACTICAL_PROBABILITY: 1.0,     // Always use tactics
+    REACTION_INTERVAL: 1,          // Think EVERY frame
     MOVEMENT_ERROR_CHANCE: 0.0,
-    HIGHSCORE_MULTIPLIER: 1
+    HIGHSCORE_MULTIPLIER: 1,
+    MINE_DETECT_RADIUS: 15,        // Detect mines from further
+    INTERCEPT_PRIORITY: true       // Prioritize intercepting player
   },
   DYNAMIC: {
     // DYNAMIC inherits from INTERMEDIATE but adjusts between rounds
@@ -170,7 +172,7 @@ export const DIFFICULTY_FEATURES = {
     BEAM_DODGE_ENABLED: true,
     DODGE_WALL_AWARE: false,
     DISTANCE_BEAM_FIRING: true,
-    MINE_DENSITY_CHECK: false,
+    MINE_DENSITY_CHECK: true,  // Enabled to prevent mine clustering
     STRATEGY_HYSTERESIS: true,
     PREDICTION_WINDOW: 15,
     BASE_AGGRESSION: 0.35,
@@ -211,14 +213,15 @@ export const DIFFICULTY_FEATURES = {
     PORTAL_AWARENESS_ENABLED: true,
     BEAM_DODGE_ENABLED: true,
     DODGE_WALL_AWARE: true,
-    DISTANCE_BEAM_FIRING: true,
+    DISTANCE_BEAM_FIRING: false,   // No distance penalty - always fire when aligned
     MINE_DENSITY_CHECK: true,
-    STRATEGY_HYSTERESIS: true,
-    PREDICTION_WINDOW: 35,
-    BASE_AGGRESSION: 0.98,
-    AGGRESSION_SCALE_UP: 1.7,
-    AGGRESSION_SCALE_DOWN: 0.2,
+    STRATEGY_HYSTERESIS: false,    // React instantly to new situations
+    PREDICTION_WINDOW: 45,         // Predict further ahead
+    BASE_AGGRESSION: 1.0,          // Maximum aggression
+    AGGRESSION_SCALE_UP: 2.0,
+    AGGRESSION_SCALE_DOWN: 0.1,
     MINE_STRATEGY: 'AGGRESSIVE',
+    ALWAYS_INTERCEPT: true,        // Always try to intercept player
   },
   DYNAMIC: {
     // DYNAMIC uses inter-round adjustment + intra-round adaptation
@@ -309,27 +312,68 @@ export function adjustDifficultyDynamically(playerScore, cpuScore, currentConfig
   return currentConfig;
 }
 
-export function getEnergyStrategy(player, opponent, currentConfig) {
-  if (currentConfig.NAME === 'BEGINNER') return { shield: Math.random() > 0.9, boost: Math.random() > 0.9 };
+/**
+ * Determine energy usage strategy based on threat assessment
+ * Uses composite threat score for better shield/boost decisions
+ * @param {Object} player - AI player
+ * @param {Object} opponent - Opponent player
+ * @param {Object} currentConfig - AI difficulty configuration
+ * @param {Object} threatContext - Additional threat context (incomingThreat, dangerLevel, isAligned)
+ * @returns {{shield: boolean, boost: boolean}} Energy usage recommendation
+ */
+export function getEnergyStrategy(player, opponent, currentConfig, threatContext = {}) {
+  if (currentConfig.NAME === 'BEGINNER') {
+    return { shield: Math.random() > 0.9, boost: Math.random() > 0.9 };
+  }
 
-  let dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+  const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
   const shieldThreshold = currentConfig.SHIELD_HP_THRESHOLD || 30;
   const boostThreshold = currentConfig.MIN_BOOST_ENERGY || 25;
   const aggressiveDist = currentConfig.AGGRESSIVE_DISTANCE || 12;
 
-  // Shield when close and have energy
-  if (dist < aggressiveDist && player.boostEnergy > shieldThreshold) {
+  // Calculate composite threat score (0-10+ range)
+  let threatScore = 0;
+
+  // Proximity threat (0-3)
+  threatScore += Math.max(0, (20 - dist) / 7);
+
+  // Alignment threat (0-2) - opponent can hit us
+  if (threatContext.isAligned) {
+    threatScore += 2;
+  }
+
+  // Opponent energy threat (0-1) - opponent has energy to attack
+  if (opponent.boostEnergy > 50) {
+    threatScore += 1;
+  }
+
+  // Incoming beam threat (0-3)
+  if (threatContext.incomingThreat?.urgency > 0.5) {
+    threatScore += threatContext.incomingThreat.urgency * 3;
+  }
+
+  // Mine proximity threat (0-2)
+  threatScore += Math.min(2, (threatContext.dangerLevel || 0));
+
+  // Decision based on threat level
+  if (threatScore > 4 && player.boostEnergy > 15) {
+    // High threat - prioritize shield
     return { shield: true, boost: false };
   }
 
-  // Boost aggressively when have plenty of energy
-  if (player.boostEnergy > boostThreshold * 2) {
-    return { shield: false, boost: true };
+  if (threatScore > 2 && threatScore <= 4 && dist > aggressiveDist) {
+    // Moderate threat + far - boost to reposition
+    return { shield: false, boost: player.boostEnergy > boostThreshold };
   }
 
-  // Conserve energy when low
-  if (player.boostEnergy < boostThreshold) {
+  if (player.boostEnergy < shieldThreshold && threatScore > 1) {
+    // Low energy + some threat - conserve
     return { shield: false, boost: false };
+  }
+
+  if (player.boostEnergy > boostThreshold * 2) {
+    // Abundant energy - boost aggressively
+    return { shield: false, boost: true };
   }
 
   return { shield: false, boost: Math.random() < 0.4 };

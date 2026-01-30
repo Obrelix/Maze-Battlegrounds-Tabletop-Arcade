@@ -6,6 +6,8 @@ import { predictPlayerMovement } from './strategy.js';
 // Re-export hasLineOfSight for backward compatibility
 export { hasLineOfSight };
 
+// Opponent prediction will be passed as parameter to avoid circular import
+
 /**
  * Check if opponent is aiming at player (aligned and has energy to fire)
  * Used for dodge logic and predictive shielding
@@ -153,12 +155,24 @@ export function shouldChargeBeam(player, opponent, currentConfig) {
  * @param {Object} player - AI player
  * @param {Object} opponent - Opponent player
  * @param {boolean} useDistanceCheck - Whether to apply distance-based firing probability
+ * @param {Object} opponentPrediction - Optional opponent behavior prediction data
+ * @param {Object} currentConfig - AI difficulty configuration (optional)
  * @returns {boolean} True if should fire
  */
-export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false) {
+export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false, opponentPrediction = null, currentConfig = null) {
   // Don't waste energy firing at shielded opponents
   if (opponent.shieldActive) {
     return false;
+  }
+
+  // If opponent frequently shields, consider delaying or using charged beam
+  // But INSANE AI doesn't hesitate
+  const isInsane = currentConfig?.NAME === 'INSANE';
+  if (!isInsane && opponentPrediction && opponentPrediction.shieldProbability > 0.3) {
+    // High shield probability - 40% chance to hold fire and wait for better opportunity
+    if (Math.random() < 0.4) {
+      return false;
+    }
   }
 
   const playerCenterX = player.x + player.size / 2;
@@ -166,7 +180,8 @@ export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false) 
   const oppCenterX = opponent.x + opponent.size / 2;
   const oppCenterY = opponent.y + opponent.size / 2;
 
-  const TOLERANCE = 2.5;
+  // INSANE has wider tolerance - fires more often
+  const TOLERANCE = isInsane ? 4.0 : 2.5;
   const dx = Math.abs(playerCenterX - oppCenterX);
   const dy = Math.abs(playerCenterY - oppCenterY);
 
@@ -177,6 +192,11 @@ export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false) 
   if (currentlyAlignedX || currentlyAlignedY) {
     if (!hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY)) {
       return false;
+    }
+
+    // INSANE always fires when aligned - no distance check
+    if (isInsane) {
+      return true;
     }
 
     // Apply distance-based firing probability
@@ -196,10 +216,27 @@ export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false) 
     return true;
   }
 
+  // INSANE: Also fire if NEARLY aligned (will hit if opponent moves into beam path)
+  if (isInsane) {
+    const nearTolerance = 6.0;
+    const nearlyAlignedX = dy < nearTolerance;
+    const nearlyAlignedY = dx < nearTolerance;
+
+    if ((nearlyAlignedX || nearlyAlignedY) && hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY)) {
+      // Fire with some probability based on how close to aligned
+      const alignmentQuality = nearlyAlignedX ? (nearTolerance - dy) / nearTolerance : (nearTolerance - dx) / nearTolerance;
+      if (Math.random() < alignmentQuality * 0.7) {
+        return true;
+      }
+    }
+  }
+
   // Check future alignment (prediction)
   if (opponent.lastDir) {
-    const futureX = oppCenterX + opponent.lastDir.x * 8;
-    const futureY = oppCenterY + opponent.lastDir.y * 8;
+    // INSANE predicts further ahead
+    const predictionFrames = isInsane ? 12 : 8;
+    const futureX = oppCenterX + opponent.lastDir.x * predictionFrames;
+    const futureY = oppCenterY + opponent.lastDir.y * predictionFrames;
     const willBeAlignedX = Math.abs(playerCenterY - futureY) < TOLERANCE;
     const willBeAlignedY = Math.abs(playerCenterX - futureX) < TOLERANCE;
 
@@ -209,7 +246,8 @@ export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false) 
       }
 
       // Apply distance-based check for predicted shots too (slightly lower chances)
-      if (useDistanceCheck) {
+      // INSANE doesn't use distance check
+      if (useDistanceCheck && !isInsane) {
         const dist = Math.hypot(dx, dy);
         let fireChance;
         if (dist < 12) {
@@ -297,23 +335,56 @@ function findChokepoints(nearPlayer, radius) {
 }
 
 /**
+ * Record mine placement in player's history for density tracking
+ * @param {Object} player - AI player
+ * @param {number} x - X position of placed mine
+ * @param {number} y - Y position of placed mine
+ * @param {number} frameCount - Current frame count
+ */
+export function recordMinePlacement(player, x, y, frameCount) {
+  if (!player.minePlacementHistory) {
+    player.minePlacementHistory = [];
+  }
+  player.minePlacementHistory.push({ x, y, frame: frameCount });
+  // Keep only last 10 placements
+  if (player.minePlacementHistory.length > 10) {
+    player.minePlacementHistory.shift();
+  }
+}
+
+/**
  * Check if placing a mine at position would cause clustering
+ * Enhanced version also checks against recent placement history
  * @param {number} x - X position
  * @param {number} y - Y position
+ * @param {Object} player - Player object with minePlacementHistory (optional)
  * @param {number} minDistance - Minimum distance between mines (in cells)
  * @param {number} maxNearby - Maximum mines allowed within minDistance
  * @returns {boolean} True if position is too crowded
  */
-function isMineAreaCrowded(x, y, minDistance = 2, maxNearby = 1) {
+function isMineAreaCrowded(x, y, player = null, minDistance = 2, maxNearby = 1) {
   const minDistPixels = minDistance * CONFIG.CELL_SIZE;
   let nearbyCount = 0;
 
+  // Check against existing mines
   for (const mine of STATE.mines) {
     const dist = Math.hypot(mine.x - x, mine.y - y);
     if (dist < minDistPixels) {
       nearbyCount++;
       if (nearbyCount > maxNearby) {
         return true;
+      }
+    }
+  }
+
+  // Check against recent placements (avoid re-mining same spots)
+  if (player?.minePlacementHistory) {
+    for (const placement of player.minePlacementHistory) {
+      if (Math.hypot(placement.x - x, placement.y - y) < minDistPixels * 1.5) {
+        nearbyCount++;
+        if (nearbyCount > maxNearby) {
+          return true;
+        }
       }
     }
   }
@@ -351,7 +422,7 @@ export function calculateAdvancedMinePositions(player, opponent, currentConfig) 
       // Filter chokepoints by mine density if enabled
       let validChokepoints = chokepoints;
       if (checkDensity) {
-        validChokepoints = chokepoints.filter(cp => !isMineAreaCrowded(cp.x, cp.y));
+        validChokepoints = chokepoints.filter(cp => !isMineAreaCrowded(cp.x, cp.y, player));
       }
 
       if (validChokepoints.length > 0) {

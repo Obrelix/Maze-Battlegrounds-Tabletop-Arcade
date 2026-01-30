@@ -6,7 +6,65 @@ import { gridIndex, isWall } from '../grid.js';
 const DIRECTIONS = [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]];
 
 /**
- * Find path from player to target using BFS with heuristic ordering
+ * Simple binary heap for A* priority queue
+ * O(log n) push and pop operations instead of O(n) splice
+ */
+class MinHeap {
+  constructor() {
+    this.heap = [];
+  }
+
+  push(node, priority) {
+    this.heap.push({ node, priority });
+    this._bubbleUp(this.heap.length - 1);
+  }
+
+  pop() {
+    if (this.heap.length === 0) return null;
+    const min = this.heap[0];
+    const last = this.heap.pop();
+    if (this.heap.length > 0) {
+      this.heap[0] = last;
+      this._bubbleDown(0);
+    }
+    return min.node;
+  }
+
+  isEmpty() {
+    return this.heap.length === 0;
+  }
+
+  _bubbleUp(i) {
+    while (i > 0) {
+      const parent = Math.floor((i - 1) / 2);
+      if (this.heap[parent].priority <= this.heap[i].priority) break;
+      [this.heap[parent], this.heap[i]] = [this.heap[i], this.heap[parent]];
+      i = parent;
+    }
+  }
+
+  _bubbleDown(i) {
+    const len = this.heap.length;
+    while (true) {
+      const left = 2 * i + 1;
+      const right = 2 * i + 2;
+      let smallest = i;
+      if (left < len && this.heap[left].priority < this.heap[smallest].priority) {
+        smallest = left;
+      }
+      if (right < len && this.heap[right].priority < this.heap[smallest].priority) {
+        smallest = right;
+      }
+      if (smallest === i) break;
+      [this.heap[smallest], this.heap[i]] = [this.heap[i], this.heap[smallest]];
+      i = smallest;
+    }
+  }
+}
+
+/**
+ * Find path from player to target using A* algorithm with Manhattan heuristic
+ * Uses binary heap priority queue for O(log n) operations
  * @param {Object} fromPlayer - Player object with x, y, size properties
  * @param {number} targetX - Target X coordinate in pixels
  * @param {number} targetY - Target Y coordinate in pixels
@@ -25,67 +83,64 @@ export function findPathToTarget(fromPlayer, targetX, targetY) {
   endC = Math.max(0, Math.min(endC, CONFIG.COLS - 1));
   endR = Math.max(0, Math.min(endR, CONFIG.ROWS - 1));
 
-  let start = gridIndex(startC, startR);
-  let end = gridIndex(endC, endR);
+  const start = gridIndex(startC, startR);
+  const end = gridIndex(endC, endR);
 
   if (!start || !end) return [];
 
-  // Reset BFS state
+  // Reset A* state
   for (let i = 0; i < STATE.maze.length; i++) {
-    STATE.maze[i].bfsVisited = false;
+    STATE.maze[i].gCost = Infinity;
     STATE.maze[i].parent = null;
   }
 
-  let queue = [start];
-  let head = 0;
-  start.bfsVisited = true;
-  let found = false;
+  // Manhattan distance heuristic
+  const heuristic = (c, r) => Math.abs(c - endC) + Math.abs(r - endR);
 
-  while (head < queue.length) {
-    let curr = queue[head++];
-    if (curr === end) {
-      found = true;
-      break;
-    }
+  const heap = new MinHeap();
+  start.gCost = 0;
+  heap.push(start, heuristic(startC, startR));
 
-    // Process directions with heuristic priority (no sort - use inline comparison)
-    // Calculate which direction moves us closer to target
-    let dcToEnd = endC - curr.c;
-    let drToEnd = endR - curr.r;
+  while (!heap.isEmpty()) {
+    const curr = heap.pop();
 
-    // Process directions in heuristic order based on target direction
+    // Found target
+    if (curr === end) break;
+
+    // Skip if we've already found a better path to this node
+    // (can happen with duplicate entries in heap)
+    if (curr.gCost === Infinity) continue;
+
     for (let i = 0; i < 4; i++) {
-      // Prioritize direction that aligns with target
-      let d = DIRECTIONS[i];
-      let alignScore = d[0] * dcToEnd + d[1] * drToEnd;
+      const d = DIRECTIONS[i];
+      const nc = curr.c + d[0];
+      const nr = curr.r + d[1];
+      const neighbor = gridIndex(nc, nr);
 
-      // Skip if this direction moves away from target and other options exist
-      // (simple heuristic - still visits all valid neighbors)
-      let n = gridIndex(curr.c + d[0], curr.r + d[1]);
-      if (n && !n.bfsVisited && !curr.walls[d[2]] && !n.walls[(d[2] + 2) % 4]) {
-        n.bfsVisited = true;
-        n.parent = curr;
-        // Insert with priority: neighbors closer to target go first
-        if (alignScore > 0) {
-          // This direction moves toward target - add to front of remaining queue
-          queue.splice(head, 0, n);
-        } else {
-          queue.push(n);
-        }
+      // Check if neighbor is valid and reachable (no wall blocking)
+      if (!neighbor || curr.walls[d[2]] || neighbor.walls[(d[2] + 2) % 4]) continue;
+
+      const newG = curr.gCost + 1;
+      if (newG < neighbor.gCost) {
+        neighbor.gCost = newG;
+        neighbor.parent = curr;
+        const f = newG + heuristic(nc, nr);
+        heap.push(neighbor, f);
       }
     }
   }
 
-  if (!found) return [];
+  // No path found
+  if (end.gCost === Infinity) return [];
 
-  let path = [];
+  // Reconstruct path
+  const path = [];
   let temp = end;
   while (temp) {
     path.push(temp);
     temp = temp.parent;
   }
-  path.reverse();
-  return path;
+  return path.reverse();
 }
 
 export function isPlayerStuck(player) {
