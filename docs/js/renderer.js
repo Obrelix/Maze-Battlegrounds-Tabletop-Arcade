@@ -510,31 +510,32 @@ function drawOverlays() {
             drawText("PRESS ANY BUTTON", 34, 35, "#ffff00aa");
         }
     }
+    const blink = Math.floor(Date.now() / 500) % 2 === 0;
     if (STATE.isPaused) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawText("PAUSED", 52, 10, "#ffffff");
-
+        let center = 52 + (("PAUSED".length * 4) - 1) / 2;
         // Pause menu options
-        const menuOptions = GAME.gameMode === 'ONLINE'
-            ? ["RESUME", "QUIT"]
-            : ["RESUME", "RESTART", "QUIT"];
+        const menuOptions = GAME.gameMode === 'ONLINE' ? ["RESUME", "QUIT"] : ["RESUME", "RESTART", "QUIT"];
         const menuStartY = 24;
         const menuSpacing = 10;
 
         menuOptions.forEach((option, idx) => {
+            const optionLength = option.length * 4;
             const isSelected = STATE.pauseMenuSelection === idx;
             const color = isSelected ? "#ffff00" : "#888888";
-            const prefix = isSelected ? "> " : "  ";
-            const x = isSelected ? 44 : 48;
-            drawText(prefix + option, x, menuStartY + idx * menuSpacing, color);
+            const x = center - optionLength / 2;
+            if (blink && isSelected) drawText("→", x - 6, menuStartY + idx * menuSpacing, "#fff");
+            if (blink && isSelected) drawText("←", x + optionLength, menuStartY + idx * menuSpacing, "#fff");
+            drawText(option, x, menuStartY + idx * menuSpacing, color);
+
         });
 
-        // Controls hint
-        const blink = Math.floor(STATE.frameCount / 30) % 2 === 0;
-        if (blink) {
-            drawText("W/S:SELECT SPACE:OK", 24, 56, "#555555");
-        }
+        drawText("↑↓", 13, 50, "#61ca5d");
+        drawText("CHANGE ", 5, 56, "#61ca5d");
+        drawText("BOOM", 104, 50, "#bb4e4e");
+        drawText("SELECT", 100, 56, "#bb4e4e");
     } else if (STATE.isGameOver || STATE.isRoundOver) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -546,16 +547,16 @@ function drawOverlays() {
             if (STATE.victimIdx === -1) {
                 winColor = COLORS.find(x => x.name === 'MAGENTA');
                 tauntColor = COLORS.find(x => x.name === 'CYAN');;
-            }else
+            } else
                 msg = `${STATE.players[STATE.victimIdx].name}: '${STATE.messages.taunt}'`
-            if (Math.floor(Date.now() / 500) % 2 === 0)
+            if (blink)
                 drawText(STATE.messages.win, 49, 8, winColor);
             drawText(msg, STATE.scrollX, 29, tauntColor);
-            if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS ANY TO RESET", 30, 52, "#6f6deb");
+            if (blink) drawText("PRESS ANY TO RESET", 30, 52, "#6f6deb");
         } else {
             drawText("ROUND OVER", 46, 8, "#fff");
             drawText(STATE.messages.round, STATE.scrollX, 29, STATE.messages.roundColor);
-            if (Math.floor(Date.now() / 500) % 2 === 0) drawText("PRESS ANY BUTTON", 34, 52, "#ffff00");
+            if (blink) drawText("PRESS ANY BUTTON", 34, 52, "#ffff00");
         }
     }
 }
@@ -764,11 +765,27 @@ export function renderMenu() {
     const blink = Math.floor(Date.now() / 150) % 2 === 0;
 
     const menuColors = ["#08ffff", "#ff00ff", "#00ff88", "#8888ff"];
-    const wallColor = menuColors[sel] + '99'; // Add alpha for a dimmer effect
-    drawMenuDecoratives(wallColor);
 
     drawText("SELECT MODE", 43, 3, "#fff");
 
+    let center = 52 + (("SELECT MODE".length * 4) - 1) / 2;
+    const menuOptions = ["SINGLE PLAYER", "LOCAL MULTI", "ONLINE MULTI", "HIGH SCORES"];
+
+    const menuStartY = 24;
+    const menuSpacing = 10;
+
+    let wallColor = menuColors[sel] + '99'; // Add alpha for a dimmer effect
+    // menuOptions.forEach((option, idx) => {
+    //     const optionLength = option.length * 4;
+    //     const isSelected = GAME.menuSelection === idx;
+    //     const color = isSelected ? menuColors[idx] : "#888888";
+    //     const x = center - optionLength / 2;
+    //     if (blink && isSelected) drawText("→", x - 6, menuStartY + idx * menuSpacing, "#fff");
+    //     if (blink && isSelected) drawText("←", x + optionLength, menuStartY + idx * menuSpacing, "#fff");
+    //     drawText(option, x, menuStartY + idx * menuSpacing, color);
+    //     wallColor = menuColors[idx] + '99'; 
+    // });
+    drawMenuDecoratives(wallColor);
     // Draw selection arrow
     if (blink) drawText("→", 33, 13 + sel * 10, "#fff");
     if (blink) drawText("←", 90, 13 + sel * 10, "#fff");
