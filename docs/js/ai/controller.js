@@ -7,6 +7,59 @@ import { shouldChargeBeam, shouldFireBeamBasic, shouldDetonateNearbyMines, calcu
 import { getActiveConfig, adjustDifficultyDynamically, getEnergyStrategy } from './difficulty.js';
 
 /**
+ * Unified shield decision function
+ * Consolidates all shield activation logic into single priority-based check
+ * @param {Object} player - AI player
+ * @param {Object} opponent - Opponent player
+ * @param {Object} currentConfig - AI difficulty configuration
+ * @param {Object} context - Additional context (threatAssessment, dangerLevel, etc.)
+ * @returns {boolean} True if shield should be activated
+ */
+function shouldActivateShield(player, opponent, currentConfig, context = {}) {
+  // No energy for shield
+  if (player.boostEnergy < 15) {
+    return false;
+  }
+
+  const { threatAssessment, dangerLevel = 0 } = context;
+
+  // Priority 1: Immediate beam threat (urgency > 0.7)
+  if (threatAssessment && threatAssessment.danger && threatAssessment.urgency > 0.7) {
+    return true;
+  }
+
+  // Priority 2: Mine trap danger (dangerLevel > 2.5)
+  if (dangerLevel > 2.5 && player.boostEnergy > 20) {
+    return true;
+  }
+
+  // Priority 3: Predictive shielding (HARD+ only)
+  if (currentConfig.NAME === 'HARD' || currentConfig.NAME === 'INSANE') {
+    const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
+    const enemyHasEnergy = opponent.boostEnergy >= 30;
+
+    // Only check alignment if basic conditions are met (avoid expensive LoS check)
+    if (enemyHasEnergy && dist < 20 && player.boostEnergy > 20) {
+      const playerCenterX = player.x + player.size / 2;
+      const playerCenterY = player.y + player.size / 2;
+      const oppCenterX = opponent.x + opponent.size / 2;
+      const oppCenterY = opponent.y + opponent.size / 2;
+      const dx = Math.abs(playerCenterX - oppCenterX);
+      const dy = Math.abs(playerCenterY - oppCenterY);
+      const isAligned = dx < 3 || dy < 3;
+
+      if (isAligned && hasLineOfSight(oppCenterX, oppCenterY, playerCenterX, playerCenterY)) {
+        // Enemy can hit us - probabilistic preemptive shield
+        const shieldChance = currentConfig.SHIELD_CHANCE || 0.5;
+        return Math.random() < shieldChance * 0.7;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Track opponent behavior patterns over time
  * Used to predict and counter opponent strategies
  * @param {Object} player - AI player (stores tracking data)
@@ -153,7 +206,7 @@ export function getCpuInput(player, opponent) {
   if (isPlayerStuck(player)) {
     player.stuckCounter = (player.stuckCounter || 0) + 1;
     if (player.stuckCounter > 15) {
-      player.unstuckDir = getUnstuckDirection();
+      player.unstuckDir = getUnstuckDirection(player);
       player.forceUnstuckTimer = 30;
       player.stuckCounter = 0;
     }
@@ -203,18 +256,16 @@ export function getCpuInput(player, opponent) {
       player.aiMentalModel.moveDir = getSmartMovementDirection(player, player.aiMentalModel.strategy, currentConfig);
 
       // D. Beam Dodge Logic - Detect if opponent is aiming at us (HARD+ only)
+      let threatAssessment = null;
       if (currentConfig.NAME === 'HARD' || currentConfig.NAME === 'INSANE') {
-        const threatAssessment = isOpponentAimingAtMe(player, opponent);
+        threatAssessment = isOpponentAimingAtMe(player, opponent);
         if (threatAssessment.danger && threatAssessment.urgency > 0.3) {
           player.aiMentalModel.incomingThreat = threatAssessment;
 
-          // Decide: dodge or shield?
-          if (threatAssessment.urgency > 0.7 && player.boostEnergy > 15) {
-            // Very close threat - shield is safer
-            player.aiMentalModel.energyStrat.shield = true;
-          } else if (threatAssessment.urgency > 0.4) {
-            // Medium threat - try to dodge
-            const dodgeDir = getDodgeDirection(threatAssessment.direction);
+          // Medium threat - try to dodge (wall-aware for HARD+)
+          if (threatAssessment.urgency > 0.4 && threatAssessment.urgency <= 0.7) {
+            const useWallAware = currentConfig.DODGE_WALL_AWARE || false;
+            const dodgeDir = getDodgeDirection(threatAssessment.direction, player, useWallAware);
             player.aiMentalModel.moveDir.dx += dodgeDir.dx * CONFIG.BASE_SPEED * 1.5;
             player.aiMentalModel.moveDir.dy += dodgeDir.dy * CONFIG.BASE_SPEED * 1.5;
 
@@ -228,32 +279,7 @@ export function getCpuInput(player, opponent) {
         }
       }
 
-      // E. Predictive Shielding - Shield when enemy is likely to fire (HARD+ only)
-      if ((currentConfig.NAME === 'HARD' || currentConfig.NAME === 'INSANE') && !player.aiMentalModel.energyStrat.shield) {
-        const dist = Math.hypot(opponent.x - player.x, opponent.y - player.y);
-        const enemyHasEnergy = opponent.boostEnergy >= 30;
-
-        // Only do expensive LoS check if basic conditions are met
-        if (enemyHasEnergy && dist < 20) {
-          const playerCenterX = player.x + player.size / 2;
-          const playerCenterY = player.y + player.size / 2;
-          const oppCenterX = opponent.x + opponent.size / 2;
-          const oppCenterY = opponent.y + opponent.size / 2;
-          const dx = Math.abs(playerCenterX - oppCenterX);
-          const dy = Math.abs(playerCenterY - oppCenterY);
-          const isAligned = dx < 3 || dy < 3;
-
-          if (isAligned && hasLineOfSight(oppCenterX, oppCenterY, playerCenterX, playerCenterY)) {
-            // Enemy can hit us - preemptive shield
-            const shieldChance = currentConfig.SHIELD_CHANCE || 0.5;
-            if (Math.random() < shieldChance * 0.7 && player.boostEnergy > 20) {
-              player.aiMentalModel.energyStrat.shield = true;
-            }
-          }
-        }
-      }
-
-      // F. Tactical Adjustments (Mine avoidance and escape)
+      // E. Tactical Adjustments (Mine avoidance and escape)
       let nearbyMines = [];
       let dangerLevel = 0;
 
@@ -294,13 +320,17 @@ export function getCpuInput(player, opponent) {
           if (player.boostEnergy > 30) {
             player.aiMentalModel.energyStrat.boost = true;
           }
-          // Shield if boost won't help (very close mines)
-          if (dangerLevel > 2.5 && player.boostEnergy > 20) {
-            player.aiMentalModel.energyStrat.shield = true;
-          }
         } else {
           player.aiMentalModel.mineTrapDanger = false;
         }
+      }
+
+      // F. Unified Shield Decision - Single consolidated shield check
+      if (!player.aiMentalModel.energyStrat.shield) {
+        player.aiMentalModel.energyStrat.shield = shouldActivateShield(
+          player, opponent, currentConfig,
+          { threatAssessment, dangerLevel }
+        );
       }
 
       // G. Sudden Death Urgency - Move faster when time is critical
@@ -361,7 +391,9 @@ export function getCpuInput(player, opponent) {
     if (currentConfig.TACTICAL_CHARGING_ENABLED && strategy?.canCharge) {
       shouldFire = shouldChargeBeam(player, opponent, currentConfig);
     } else {
-      shouldFire = shouldFireBeamBasic(player, opponent);
+      // Use distance-based firing probability if enabled
+      const useDistanceCheck = currentConfig.DISTANCE_BEAM_FIRING || false;
+      shouldFire = shouldFireBeamBasic(player, opponent, useDistanceCheck);
     }
     if (shouldFire && Math.random() < 0.95) cmd.beam = true;
   }

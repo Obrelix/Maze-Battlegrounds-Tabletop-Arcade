@@ -1,6 +1,6 @@
 import { CONFIG } from '../config.js';
 import { STATE } from '../state.js';
-import { gridIndex } from '../grid.js';
+import { gridIndex, isWall } from '../grid.js';
 
 // Pre-defined directions: [dc, dr, wallIndex]
 const DIRECTIONS = [[0, -1, 0], [1, 0, 1], [0, 1, 2], [-1, 0, 3]];
@@ -95,14 +95,66 @@ export function isPlayerStuck(player) {
   return (dx < 0.3 && dy < 0.3);
 }
 
-export function getUnstuckDirection() {
-  let directions = [
+/**
+ * Get a direction to escape when stuck
+ * Improved version checks walls and prefers directions opposite to last movement
+ * @param {Object} player - Player object with position and lastDir (optional)
+ * @returns {{x: number, y: number}} Direction vector to move
+ */
+export function getUnstuckDirection(player = null) {
+  const directions = [
     { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
     { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 }
   ];
-  for (let i = directions.length - 1; i > 0; i--) {
-    let j = Math.floor(Math.random() * (i + 1));
-    [directions[i], directions[j]] = [directions[j], directions[i]];
+
+  // If no player position, fall back to random shuffle
+  if (!player) {
+    for (let i = directions.length - 1; i > 0; i--) {
+      let j = Math.floor(Math.random() * (i + 1));
+      [directions[i], directions[j]] = [directions[j], directions[i]];
+    }
+    return directions[0];
   }
-  return directions[0];
+
+  const checkDist = 3; // pixels to check ahead
+  const playerCenterX = player.x + (player.size || 3) / 2;
+  const playerCenterY = player.y + (player.size || 3) / 2;
+
+  // Filter directions to only wall-free options
+  const validDirections = directions.filter(dir => {
+    const checkX = playerCenterX + dir.x * checkDist;
+    const checkY = playerCenterY + dir.y * checkDist;
+    return !isWall(checkX, checkY);
+  });
+
+  // If no valid directions, fall back to random (we're trapped)
+  if (validDirections.length === 0) {
+    return directions[Math.floor(Math.random() * directions.length)];
+  }
+
+  // If player has last direction, prefer opposite direction
+  if (player.lastDir && (player.lastDir.x !== 0 || player.lastDir.y !== 0)) {
+    const lastDirX = player.lastDir.x > 0 ? 1 : (player.lastDir.x < 0 ? -1 : 0);
+    const lastDirY = player.lastDir.y > 0 ? 1 : (player.lastDir.y < 0 ? -1 : 0);
+
+    // Score directions: prefer opposite to last movement
+    const scored = validDirections.map(dir => {
+      let score = 0;
+      // Opposite direction bonus
+      if (dir.x === -lastDirX && lastDirX !== 0) score += 2;
+      if (dir.y === -lastDirY && lastDirY !== 0) score += 2;
+      // Perpendicular is also good
+      if (dir.x !== 0 && lastDirX === 0) score += 1;
+      if (dir.y !== 0 && lastDirY === 0) score += 1;
+      // Small random factor to avoid predictability
+      score += Math.random() * 0.5;
+      return { dir, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0].dir;
+  }
+
+  // No last direction, pick random from valid
+  return validDirections[Math.floor(Math.random() * validDirections.length)];
 }

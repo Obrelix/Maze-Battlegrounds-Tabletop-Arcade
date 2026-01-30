@@ -1,6 +1,6 @@
 import { CONFIG, TIMING } from '../config.js';
 import { STATE } from '../state.js';
-import { hasLineOfSight } from '../grid.js';
+import { hasLineOfSight, isWall } from '../grid.js';
 import { predictPlayerMovement } from './strategy.js';
 
 // Re-export hasLineOfSight for backward compatibility
@@ -59,23 +59,56 @@ export function isOpponentAimingAtMe(player, opponent) {
 
 /**
  * Get dodge direction to evade incoming fire
+ * Wall-aware version checks both perpendicular directions and prefers wall-free path
  * @param {string} threatDirection - Direction the threat is coming from
+ * @param {Object} player - Player object with x, y position (optional for wall-aware dodge)
+ * @param {boolean} wallAware - Whether to check walls before choosing direction
  * @returns {{dx: number, dy: number}} Dodge movement vector
  */
-export function getDodgeDirection(threatDirection) {
-  // Dodge perpendicular to threat direction
+export function getDodgeDirection(threatDirection, player = null, wallAware = false) {
+  let option1, option2;
+
+  // Determine perpendicular dodge directions based on threat
   switch (threatDirection) {
     case 'left':
     case 'right':
       // Threat is horizontal, dodge vertically
-      return Math.random() < 0.5 ? { dx: 0, dy: -1 } : { dx: 0, dy: 1 };
+      option1 = { dx: 0, dy: -1 }; // up
+      option2 = { dx: 0, dy: 1 };  // down
+      break;
     case 'up':
     case 'down':
       // Threat is vertical, dodge horizontally
-      return Math.random() < 0.5 ? { dx: -1, dy: 0 } : { dx: 1, dy: 0 };
+      option1 = { dx: -1, dy: 0 }; // left
+      option2 = { dx: 1, dy: 0 };  // right
+      break;
     default:
       return { dx: 0, dy: 0 };
   }
+
+  // If not wall-aware or no player position, use random 50/50
+  if (!wallAware || !player) {
+    return Math.random() < 0.5 ? option1 : option2;
+  }
+
+  // Wall-aware dodge: check both directions for walls
+  const checkDist = 4; // pixels to check ahead
+  const playerCenterX = player.x + player.size / 2;
+  const playerCenterY = player.y + player.size / 2;
+
+  const wall1 = isWall(playerCenterX + option1.dx * checkDist, playerCenterY + option1.dy * checkDist);
+  const wall2 = isWall(playerCenterX + option2.dx * checkDist, playerCenterY + option2.dy * checkDist);
+
+  // Prefer wall-free direction
+  if (wall1 && !wall2) {
+    return option2;
+  }
+  if (!wall1 && wall2) {
+    return option1;
+  }
+
+  // Both clear or both blocked - random choice
+  return Math.random() < 0.5 ? option1 : option2;
 }
 
 export function shouldChargeBeam(player, opponent, currentConfig) {
@@ -115,7 +148,14 @@ export function shouldChargeBeam(player, opponent, currentConfig) {
   return (predictedAlignedX || predictedAlignedY);
 }
 
-export function shouldFireBeamBasic(player, opponent) {
+/**
+ * Check if AI should fire beam at opponent
+ * @param {Object} player - AI player
+ * @param {Object} opponent - Opponent player
+ * @param {boolean} useDistanceCheck - Whether to apply distance-based firing probability
+ * @returns {boolean} True if should fire
+ */
+export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false) {
   // Don't waste energy firing at shielded opponents
   if (opponent.shieldActive) {
     return false;
@@ -135,7 +175,25 @@ export function shouldFireBeamBasic(player, opponent) {
 
   // Quick check: currently aligned?
   if (currentlyAlignedX || currentlyAlignedY) {
-    return hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY);
+    if (!hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY)) {
+      return false;
+    }
+
+    // Apply distance-based firing probability
+    if (useDistanceCheck) {
+      const dist = Math.hypot(dx, dy);
+      let fireChance;
+      if (dist < 12) {
+        fireChance = 1.0;  // Close range: always fire
+      } else if (dist < 24) {
+        fireChance = 0.6;  // Medium range: 60% chance
+      } else {
+        fireChance = 0.3;  // Long range: 30% chance
+      }
+      return Math.random() < fireChance;
+    }
+
+    return true;
   }
 
   // Check future alignment (prediction)
@@ -146,7 +204,25 @@ export function shouldFireBeamBasic(player, opponent) {
     const willBeAlignedY = Math.abs(playerCenterX - futureX) < TOLERANCE;
 
     if (willBeAlignedX || willBeAlignedY) {
-      return hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY);
+      if (!hasLineOfSight(playerCenterX, playerCenterY, oppCenterX, oppCenterY)) {
+        return false;
+      }
+
+      // Apply distance-based check for predicted shots too (slightly lower chances)
+      if (useDistanceCheck) {
+        const dist = Math.hypot(dx, dy);
+        let fireChance;
+        if (dist < 12) {
+          fireChance = 0.9;  // Close range: high chance
+        } else if (dist < 24) {
+          fireChance = 0.45; // Medium range: moderate chance
+        } else {
+          fireChance = 0.2;  // Long range: low chance
+        }
+        return Math.random() < fireChance;
+      }
+
+      return true;
     }
   }
 
@@ -220,6 +296,31 @@ function findChokepoints(nearPlayer, radius) {
   return chokepoints.sort((a, b) => b.value - a.value);
 }
 
+/**
+ * Check if placing a mine at position would cause clustering
+ * @param {number} x - X position
+ * @param {number} y - Y position
+ * @param {number} minDistance - Minimum distance between mines (in cells)
+ * @param {number} maxNearby - Maximum mines allowed within minDistance
+ * @returns {boolean} True if position is too crowded
+ */
+function isMineAreaCrowded(x, y, minDistance = 2, maxNearby = 1) {
+  const minDistPixels = minDistance * CONFIG.CELL_SIZE;
+  let nearbyCount = 0;
+
+  for (const mine of STATE.mines) {
+    const dist = Math.hypot(mine.x - x, mine.y - y);
+    if (dist < minDistPixels) {
+      nearbyCount++;
+      if (nearbyCount > maxNearby) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export function calculateAdvancedMinePositions(player, opponent, currentConfig) {
   if (!currentConfig.ADVANCED_MINING_ENABLED) {
     let randomCell = STATE.maze[Math.floor(Math.random() * STATE.maze.length)];
@@ -230,6 +331,7 @@ export function calculateAdvancedMinePositions(player, opponent, currentConfig) 
   }
 
   const mineStrategy = currentConfig.MINE_STRATEGY || 'BALANCED';
+  const checkDensity = currentConfig.MINE_DENSITY_CHECK || false;
 
   // CHOKEPOINT: Place mines in narrow corridors along opponent's path
   if (mineStrategy === 'AGGRESSIVE' || mineStrategy === 'BALANCED') {
@@ -246,9 +348,17 @@ export function calculateAdvancedMinePositions(player, opponent, currentConfig) 
     const chokepoints = findChokepoints(midpoint, 5);
 
     if (chokepoints.length > 0 && Math.random() < 0.6) {
-      // Pick one of the top 3 chokepoints randomly
-      const pick = chokepoints[Math.floor(Math.random() * Math.min(3, chokepoints.length))];
-      return { x: pick.x, y: pick.y };
+      // Filter chokepoints by mine density if enabled
+      let validChokepoints = chokepoints;
+      if (checkDensity) {
+        validChokepoints = chokepoints.filter(cp => !isMineAreaCrowded(cp.x, cp.y));
+      }
+
+      if (validChokepoints.length > 0) {
+        // Pick one of the top 3 valid chokepoints randomly
+        const pick = validChokepoints[Math.floor(Math.random() * Math.min(3, validChokepoints.length))];
+        return { x: pick.x, y: pick.y };
+      }
     }
   }
 
