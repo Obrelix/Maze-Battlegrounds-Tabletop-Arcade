@@ -5,7 +5,7 @@ import { getOpponent, getRoom } from './lobby.js';
 
 export function handleSignal(ws, data) {
     const opponent = getOpponent(ws);
-    if (!opponent) {
+    if (!opponent || opponent.readyState !== 1) {
         ws.send(JSON.stringify({
             type: MessageType.ERROR,
             message: 'No opponent to signal'
@@ -30,10 +30,12 @@ export function handleFallbackRequest(ws) {
 
     // Notify both players
     room.players.forEach(player => {
-        player.send(JSON.stringify({
-            type: MessageType.FALLBACK_CONFIRMED,
-            useFallback: true
-        }));
+        if (player.readyState === 1) {
+            player.send(JSON.stringify({
+                type: MessageType.FALLBACK_CONFIRMED,
+                useFallback: true
+            }));
+        }
     });
 }
 
@@ -42,7 +44,7 @@ export function relayInput(ws, data) {
     if (!room || !room.useFallback) return;
 
     const opponent = getOpponent(ws);
-    if (!opponent) return;
+    if (!opponent || opponent.readyState !== 1) return;
 
     // Relay input through server (fallback mode)
     opponent.send(JSON.stringify({
@@ -55,7 +57,7 @@ export function relayInput(ws, data) {
 
 export function relayNextRound(ws) {
     const opponent = getOpponent(ws);
-    if (!opponent) return;
+    if (!opponent || opponent.readyState !== 1) return;
 
     // Relay next round signal to opponent
     opponent.send(JSON.stringify({
@@ -66,7 +68,7 @@ export function relayNextRound(ws) {
 
 export function relayRestartGame(ws) {
     const opponent = getOpponent(ws);
-    if (!opponent) return;
+    if (!opponent || opponent.readyState !== 1) return;
 
     // Relay restart game signal to opponent
     opponent.send(JSON.stringify({
@@ -77,7 +79,7 @@ export function relayRestartGame(ws) {
 
 export function relayPause(ws, data) {
     const opponent = getOpponent(ws);
-    if (!opponent) return;
+    if (!opponent || opponent.readyState !== 1) return;
 
     // Relay pause signal to opponent
     opponent.send(JSON.stringify({

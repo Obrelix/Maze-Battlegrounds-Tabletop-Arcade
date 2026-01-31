@@ -1,5 +1,5 @@
-import { CONFIG, TIMING, GAME } from './config.js';
-import { STATE } from './state.js';
+import { CONFIG, TIMING } from './config.js';
+import { getState, updateState } from './state.js';
 import { initMaze } from './grid.js';
 import { getNextRoundSeed, sendNextRound, getRestartGameSeed, sendRestartGame, sendPause } from './network.js';
 
@@ -7,12 +7,14 @@ export let lastInputTime = Date.now();
 
 export function resetIdleTimer() {
     lastInputTime = Date.now();
-    if (GAME.isAttractMode) {
-        GAME.isAttractMode = false;
-        GAME.screen = 'MENU';
-        GAME.menuSelection = 0;
-        GAME.inputDelay = CONFIG.INPUT_DELAY;
-        GAME.gameMode = 'SINGLE';
+    if (getState().isAttractMode) {
+        updateState({
+            isAttractMode: false,
+            screen: 'MENU',
+            menuSelection: 0,
+            inputDelay: CONFIG.INPUT_DELAY,
+            gameMode: 'SINGLE'
+        });
     }
 }
 
@@ -24,93 +26,95 @@ export function setupInputs(startGame, startMatchSetup) {
 
     window.addEventListener('keydown', (e) => {
         resetIdleTimer();
-        if (STATE.sfx) STATE.sfx.init();
+        const state = getState();
+        if (state.sfx) state.sfx.init();
         let k = e.code;
         if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter"].includes(k)) e.preventDefault();
-        STATE.keys[k] = true;
+        
+        updateState(prevState => ({ keys: { ...prevState.keys, [k]: true } }));
 
         if (k === 'Escape') {
-            if (GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
-                STATE.isPaused = !STATE.isPaused;
-                STATE.pauseMenuSelection = 0; // Reset menu selection when pausing
-                if (GAME.gameMode === 'ONLINE') {
-                    sendPause(STATE.isPaused);
+            if (getState().screen === 'PLAYING' && !getState().isGameOver && !getState().isRoundOver && !getState().isAttractMode) {
+                updateState(prevState => ({ isPaused: !prevState.isPaused, pauseMenuSelection: 0 }));
+                if (getState().gameMode === 'ONLINE') {
+                    sendPause(getState().isPaused);
                 }
             } else {
-                STATE.isPaused = false;
-                GAME.screen = 'MENU';
-                GAME.menuSelection = 0;
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
+                updateState({ isPaused: false });
+                updateState({ screen: 'MENU' });
+                updateState({ menuSelection: 0 });
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
                 document.getElementById('statusText').innerText = "SELECT MODE";
             }
         }
 
         // Pause menu navigation
-        if (GAME.screen === 'PLAYING' && STATE.isPaused && GAME.inputDelay <= 0) {
-            const maxOptions = GAME.gameMode === 'ONLINE' ? 2 : 3; // Online: Resume/Quit, Others: Resume/Restart/Quit
+        if (getState().screen === 'PLAYING' && getState().isPaused && getState().inputDelay <= 0) {
+            const maxOptions = getState().gameMode === 'ONLINE' ? 2 : 3;
 
             if (k === 'KeyW' || k === 'ArrowUp') {
-                STATE.pauseMenuSelection = (STATE.pauseMenuSelection - 1 + maxOptions) % maxOptions;
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
+                updateState(prevState => ({ pauseMenuSelection: (prevState.pauseMenuSelection - 1 + maxOptions) % maxOptions }));
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
             }
             if (k === 'KeyS' || k === 'ArrowDown') {
-                STATE.pauseMenuSelection = (STATE.pauseMenuSelection + 1) % maxOptions;
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
+                updateState(prevState => ({ pauseMenuSelection: (prevState.pauseMenuSelection + 1) % maxOptions }));
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
             }
             if (k === 'Space' || k === 'Enter' || k === 'KeyF') {
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
-                if (GAME.gameMode === 'ONLINE') {
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
+                const currentSelection = getState().pauseMenuSelection;
+                if (getState().gameMode === 'ONLINE') {
                     // Online mode: 0=Resume, 1=Quit
-                    if (STATE.pauseMenuSelection === 0) {
+                    if (currentSelection === 0) {
                         // Resume
-                        STATE.isPaused = false;
+                        updateState({ isPaused: false });
                         sendPause(false);
-                    } else if (STATE.pauseMenuSelection === 1) {
+                    } else if (currentSelection === 1) {
                         // Quit
-                        STATE.isPaused = false;
-                        GAME.screen = 'MENU';
-                        GAME.menuSelection = 0;
+                        updateState({ isPaused: false });
+                        updateState({ screen: 'MENU' });
+                        updateState({ menuSelection: 0 });
                         document.getElementById('statusText').innerText = "SELECT MODE";
                     }
                 } else {
                     // Local mode: 0=Resume, 1=Restart, 2=Quit
-                    if (STATE.pauseMenuSelection === 0) {
+                    if (currentSelection === 0) {
                         // Resume
-                        STATE.isPaused = false;
-                    } else if (STATE.pauseMenuSelection === 1) {
+                        updateState({ isPaused: false });
+                    } else if (currentSelection === 1) {
                         // Restart
-                        STATE.isPaused = false;
+                        updateState({ isPaused: false });
                         startGame();
-                    } else if (STATE.pauseMenuSelection === 2) {
+                    } else if (currentSelection === 2) {
                         // Quit
-                        STATE.isPaused = false;
-                        GAME.screen = 'MENU';
-                        GAME.menuSelection = 0;
+                        updateState({ isPaused: false });
+                        updateState({ screen: 'MENU' });
+                        updateState({ menuSelection: 0 });
                         document.getElementById('statusText').innerText = "SELECT MODE";
                     }
                 }
             }
         }
 
-        if (GAME.screen === 'PLAYING' && !STATE.isPaused) {
-            if (STATE.isGameOver) {
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
+        if (getState().screen === 'PLAYING' && !getState().isPaused) {
+            if (getState().isGameOver) {
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
                 // In online mode, use synchronized seed and notify other player
-                if (GAME.gameMode === 'ONLINE') {
-                    if (!STATE.onlineTransitionPending) {
-                        STATE.onlineTransitionPending = true;
+                if (getState().gameMode === 'ONLINE') {
+                    if (!getState().onlineTransitionPending) {
+                        updateState({ onlineTransitionPending: true });
                         sendRestartGame();
                         startGame(getRestartGameSeed());
                     }
                 } else {
                     startGame(); // Full Reset
                 }
-            } else if (STATE.isRoundOver) {
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
+            } else if (getState().isRoundOver) {
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
                 // In online mode, use synchronized seed and notify other player
-                if (GAME.gameMode === 'ONLINE') {
-                    if (!STATE.onlineTransitionPending) {
-                        STATE.onlineTransitionPending = true;
+                if (getState().gameMode === 'ONLINE') {
+                    if (!getState().onlineTransitionPending) {
+                        updateState({ onlineTransitionPending: true });
                         sendNextRound();
                         initMaze(getNextRoundSeed());
                     }
@@ -122,7 +126,7 @@ export function setupInputs(startGame, startMatchSetup) {
         }
     });
 
-    window.addEventListener('keyup', (e) => STATE.keys[e.code] = false);
+    window.addEventListener('keyup', (e) => updateState(prevState => ({ keys: { ...prevState.keys, [e.code]: false } })));
 
     initTouchControls(startGame, startMatchSetup);
 
@@ -130,6 +134,7 @@ export function setupInputs(startGame, startMatchSetup) {
 
 export function pollGamepads(startGame, startMatchSetup, startNextRound = null) {
     const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+    const state = getState();
 
     // We will populate this "Input Snapshot" to merge with Keyboard later
     const gpState = {
@@ -181,51 +186,50 @@ export function pollGamepads(startGame, startMatchSetup, startNextRound = null) 
         const isAnyButton = gp.buttons.some(b => b.pressed);
 
         // PAUSE TOGGLE (Start button, edge-detected)
-        if (GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
+        if (getState().screen === 'PLAYING' && !getState().isGameOver && !getState().isRoundOver && !getState().isAttractMode) {
             if (isStart && !gp._prevStart) {
-                STATE.isPaused = !STATE.isPaused;
-                STATE.pauseMenuSelection = 0; // Reset menu selection
-                if (GAME.gameMode === 'ONLINE') {
-                    sendPause(STATE.isPaused);
+                updateState(prevState => ({ isPaused: !prevState.isPaused, pauseMenuSelection: 0 }));
+                if (getState().gameMode === 'ONLINE') {
+                    sendPause(getState().isPaused);
                 }
             }
         }
         gp._prevStart = isStart;
 
         // PAUSE MENU NAVIGATION (when paused)
-        if (GAME.screen === 'PLAYING' && STATE.isPaused && GAME.inputDelay <= 0) {
-            const maxOptions = GAME.gameMode === 'ONLINE' ? 2 : 3;
+        if (getState().screen === 'PLAYING' &&getState().isPaused && getState().inputDelay <= 0) {
+            const maxOptions = getState().gameMode === 'ONLINE' ? 2 : 3;
 
             if (targetState.up && !gp._prevPauseNav) {
-                STATE.pauseMenuSelection = (STATE.pauseMenuSelection - 1 + maxOptions) % maxOptions;
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
+                updateState(prevState => ({ pauseMenuSelection: (prevState.pauseMenuSelection - 1 + maxOptions) % maxOptions }));
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
                 gp._prevPauseNav = true;
             } else if (targetState.down && !gp._prevPauseNav) {
-                STATE.pauseMenuSelection = (STATE.pauseMenuSelection + 1) % maxOptions;
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
+                updateState(prevState => ({ pauseMenuSelection: (prevState.pauseMenuSelection + 1) % maxOptions }));
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
                 gp._prevPauseNav = true;
             } else if ((targetState.beam || isStart) && !gp._prevPauseNav) {
                 // Select current option
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
-                if (GAME.gameMode === 'ONLINE') {
-                    if (STATE.pauseMenuSelection === 0) {
-                        STATE.isPaused = false;
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
+                if (getState().gameMode === 'ONLINE') {
+                    if (getState().pauseMenuSelection === 0) {
+                        updateState({ isPaused: false });
                         sendPause(false);
-                    } else if (STATE.pauseMenuSelection === 1) {
-                        STATE.isPaused = false;
-                        GAME.screen = 'MENU';
-                        GAME.menuSelection = 0;
+                    } else if (getState().pauseMenuSelection === 1) {
+                        updateState({ isPaused: false });
+                        updateState({ screen: 'MENU' });
+                        updateState({ menuSelection: 0 });
                     }
                 } else {
-                    if (STATE.pauseMenuSelection === 0) {
-                        STATE.isPaused = false;
-                    } else if (STATE.pauseMenuSelection === 1) {
-                        STATE.isPaused = false;
+                    if (getState().pauseMenuSelection === 0) {
+                        updateState({ isPaused: false });
+                    } else if (getState().pauseMenuSelection === 1) {
+                        updateState({ isPaused: false });
                         startGame();
-                    } else if (STATE.pauseMenuSelection === 2) {
-                        STATE.isPaused = false;
-                        GAME.screen = 'MENU';
-                        GAME.menuSelection = 0;
+                    } else if (getState().pauseMenuSelection === 2) {
+                        updateState({ isPaused: false });
+                        updateState({ screen: 'MENU' });
+                        updateState({ menuSelection: 0 });
                     }
                 }
                 gp._prevPauseNav = true;
@@ -233,43 +237,43 @@ export function pollGamepads(startGame, startMatchSetup, startNextRound = null) 
                 gp._prevPauseNav = false;
             }
         }
-        if (!STATE.isPaused) gp._prevPauseNav = false;
+        if (!state.isPaused) gp._prevPauseNav = false;
 
         // MENU -> START GAME
-        if (GAME.screen === 'MENU') {
+        if (getState().screen === 'MENU') {
             if (isAnyButton || targetState.up || targetState.down) {
                 // If P2 presses a button, start MULTI, otherwise SINGLE
-                GAME.gameMode = (i === 1) ? 'MULTI' : 'SINGLE';
+                updateState({ gameMode: (i === 1) ? 'MULTI' : 'SINGLE' });
                 startMatchSetup();
                 return gpState; // Exit early to prevent "holding" button issues
             }
         }
 
         // GAME OVER / ROUND OVER -> RESET
-        if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
+        if (!state.isPaused && (getState().isGameOver || state.isRoundOver)) {
             if (isStart || isSelect || targetState.shield) { // 'Shield' is often top button (Restart)
-                // GAME.inputDelay = CONFIG.INPUT_DELAY;
-                if (STATE.isGameOver) {
-                    GAME.inputDelay = CONFIG.INPUT_DELAY;
-                    if (GAME.gameMode === 'ONLINE') {
-                        if (!STATE.onlineTransitionPending) {
-                            STATE.onlineTransitionPending = true;
+                // updateState({ inputDelay: CONFIG.INPUT_DELAY });
+                if (getState().isGameOver) {
+                    updateState({ inputDelay: CONFIG.INPUT_DELAY });
+                    if (getState().gameMode === 'ONLINE') {
+                        if (!getState().onlineTransitionPending) {
+                            updateState({ onlineTransitionPending: true });
                             sendRestartGame();
                             startGame(getRestartGameSeed());
                         }
                     } else {
                         startGame();
                     }
-                } else if (GAME.gameMode === 'ONLINE') {
-                    GAME.inputDelay = CONFIG.INPUT_DELAY;
-                    if (!STATE.onlineTransitionPending) {
-                        STATE.onlineTransitionPending = true;
+                } else if (getState().gameMode === 'ONLINE') {
+                    updateState({ inputDelay: CONFIG.INPUT_DELAY });
+                    if (!getState().onlineTransitionPending) {
+                        updateState({ onlineTransitionPending: true });
                         sendNextRound();
                         if (startNextRound) startNextRound(getNextRoundSeed());
                         else initMaze(getNextRoundSeed());
                     }
                 } else {
-                    GAME.inputDelay = CONFIG.INPUT_DELAY;
+                    updateState({ inputDelay: CONFIG.INPUT_DELAY });
                     if (startNextRound) startNextRound();
                     else initMaze();
                 }
@@ -284,7 +288,8 @@ export function pollGamepads(startGame, startMatchSetup, startNextRound = null) 
 }
 
 export function getHumanInput(playerIdx, controls) {
-    const gp = (playerIdx === 0) ? STATE?.gpData?.p1 : STATE?.gpData?.p2;
+    const state = getState();
+    const gp = (playerIdx === 0) ? getState()?.gpData?.p1 : getState()?.gpData?.p2;
     if (gp === undefined)
         return {
             up: false, down: false, left: false, right: false, shield: false, beam: false,
@@ -292,16 +297,16 @@ export function getHumanInput(playerIdx, controls) {
         };
     else
         return {
-            up: STATE.keys[controls.up] || gp.up,
-            down: STATE.keys[controls.down] || gp.down,
-            left: STATE.keys[controls.left] || gp.left,
-            right: STATE.keys[controls.right] || gp.right,
-            shield: STATE.keys[controls.shield] || gp.shield,
-            beam: STATE.keys[controls.beam] || gp.beam,
-            mine: STATE.keys[controls.mine] || gp.mine,
-            boost: STATE.keys[controls.boost] || gp.boost,
-            boom: STATE.keys[controls.boom] || gp.boom,
-            start: STATE.keys[controls.start] || gp.start
+            up: state.keys[controls.up] || gp.up,
+            down: state.keys[controls.down] || gp.down,
+            left: state.keys[controls.left] || gp.left,
+            right: state.keys[controls.right] || gp.right,
+            shield: state.keys[controls.shield] || gp.shield,
+            beam: state.keys[controls.beam] || gp.beam,
+            mine: state.keys[controls.mine] || gp.mine,
+            boost: state.keys[controls.boost] || gp.boost,
+            boom: state.keys[controls.boom] || gp.boom,
+            start: state.keys[controls.start] || gp.start
         };
 }
 
@@ -313,41 +318,43 @@ function initTouchControls(startGame, startMatchSetup) {
         btn.addEventListener('touchstart', (e) => {
             resetIdleTimer();
             e.preventDefault();
-            if (STATE.sfx) STATE.sfx.init();
-            STATE.keys[code] = true;
+            const state = getState();
+            if (state.sfx) state.sfx.init();
+            updateState(prevState => ({ keys: { ...prevState.keys, [code]: true } }));
 
             // Pause menu navigation (touch)
-            if (GAME.screen === 'PLAYING' && STATE.isPaused && GAME.inputDelay <= 0) {
-                const maxOptions = GAME.gameMode === 'ONLINE' ? 2 : 3;
+            if (getState().screen === 'PLAYING' &&getState().isPaused && getState().inputDelay <= 0) {
+                const maxOptions = getState().gameMode === 'ONLINE' ? 2 : 3;
 
                 if (code === 'KeyW') {
-                    STATE.pauseMenuSelection = (STATE.pauseMenuSelection - 1 + maxOptions) % maxOptions;
-                    GAME.inputDelay = CONFIG.INPUT_DELAY;
+                    updateState(prevState => ({ pauseMenuSelection: (prevState.pauseMenuSelection - 1 + maxOptions) % maxOptions }));
+                    updateState({ inputDelay: CONFIG.INPUT_DELAY });
                 } else if (code === 'KeyS') {
-                    STATE.pauseMenuSelection = (STATE.pauseMenuSelection + 1) % maxOptions;
-                    GAME.inputDelay = CONFIG.INPUT_DELAY;
+                    updateState(prevState => ({ pauseMenuSelection: (prevState.pauseMenuSelection + 1) % maxOptions }));
+                    updateState({ inputDelay: CONFIG.INPUT_DELAY });
                 } else if (code === 'KeyF' || code === 'Space' || code === 'KeyStart') {
-                    GAME.inputDelay = CONFIG.INPUT_DELAY;
-                    if (GAME.gameMode === 'ONLINE') {
-                        if (STATE.pauseMenuSelection === 0) {
-                            STATE.isPaused = false;
+                    updateState({ inputDelay: CONFIG.INPUT_DELAY });
+                    const currentSelection = getState().pauseMenuSelection;
+                    if (getState().gameMode === 'ONLINE') {
+                        if (currentSelection === 0) {
+                            updateState({ isPaused: false });
                             sendPause(false);
-                        } else if (STATE.pauseMenuSelection === 1) {
-                            STATE.isPaused = false;
-                            GAME.screen = 'MENU';
-                            GAME.menuSelection = 0;
+                        } else if (currentSelection === 1) {
+                            updateState({ isPaused: false });
+                            updateState({ screen: 'MENU' });
+                            updateState({ menuSelection: 0 });
                             document.getElementById('statusText').innerText = "SELECT MODE";
                         }
                     } else {
-                        if (STATE.pauseMenuSelection === 0) {
-                            STATE.isPaused = false;
-                        } else if (STATE.pauseMenuSelection === 1) {
-                            STATE.isPaused = false;
+                        if (currentSelection === 0) {
+                            updateState({ isPaused: false });
+                        } else if (currentSelection === 1) {
+                            updateState({ isPaused: false });
                             startGame();
-                        } else if (STATE.pauseMenuSelection === 2) {
-                            STATE.isPaused = false;
-                            GAME.screen = 'MENU';
-                            GAME.menuSelection = 0;
+                        } else if (currentSelection === 2) {
+                            updateState({ isPaused: false });
+                            updateState({ screen: 'MENU' });
+                            updateState({ menuSelection: 0 });
                             document.getElementById('statusText').innerText = "SELECT MODE";
                         }
                     }
@@ -355,34 +362,33 @@ function initTouchControls(startGame, startMatchSetup) {
                 return; // Don't process other actions while in pause menu
             }
 
-            if ((code === "KeyStart" || code === "KeySelect") && GAME.screen === 'PLAYING' && !STATE.isGameOver && !STATE.isRoundOver && !GAME.isAttractMode) {
-                STATE.isPaused = !STATE.isPaused;
-                STATE.pauseMenuSelection = 0; // Reset menu selection when pausing
-                if (GAME.gameMode === 'ONLINE') {
-                    sendPause(STATE.isPaused);
+            if ((code === "KeyStart" || code === "KeySelect") && getState().screen === 'PLAYING' && !getState().isGameOver && !getState().isRoundOver && !getState().isAttractMode) {
+                updateState(prevState => ({ isPaused: !prevState.isPaused, pauseMenuSelection: 0 }));
+                if (getState().gameMode === 'ONLINE') {
+                    sendPause(getState().isPaused);
                 }
             } else if (code === "KeySelect") {
-                STATE.isPaused = false;
-                GAME.screen = 'MENU';
-                GAME.menuSelection = 0;
-                GAME.inputDelay = CONFIG.INPUT_DELAY;
+                updateState({ isPaused: false });
+                updateState({ screen: 'MENU' });
+                updateState({ menuSelection: 0 });
+                updateState({ inputDelay: CONFIG.INPUT_DELAY });
                 document.getElementById('statusText').innerText = "SELECT MODE";
             }
 
-            if (!STATE.isPaused && (STATE.isGameOver || STATE.isRoundOver)) {
-                if (STATE.isGameOver) {
-                    if (GAME.gameMode === 'ONLINE') {
-                        if (!STATE.onlineTransitionPending) {
-                            STATE.onlineTransitionPending = true;
+            if (!state.isPaused && (getState().isGameOver || state.isRoundOver)) {
+                if (getState().isGameOver) {
+                    if (getState().gameMode === 'ONLINE') {
+                        if (!getState().onlineTransitionPending) {
+                            updateState({ onlineTransitionPending: true });
                             sendRestartGame();
                             startGame(getRestartGameSeed());
                         }
                     } else {
                         startGame();
                     }
-                } else if (GAME.gameMode === 'ONLINE') {
-                    if (!STATE.onlineTransitionPending) {
-                        STATE.onlineTransitionPending = true;
+                } else if (getState().gameMode === 'ONLINE') {
+                    if (!getState().onlineTransitionPending) {
+                        updateState({ onlineTransitionPending: true });
                         sendNextRound();
                         initMaze(getNextRoundSeed());
                     }
@@ -390,7 +396,7 @@ function initTouchControls(startGame, startMatchSetup) {
                     initMaze();
                 }
             }
-            // if (GAME.screen === 'MENU' && code !== "KeySelect") {
+            // if (getState().screen === 'MENU' && code !== "KeySelect") {
             //     GAME.gameMode = 'SINGLE';
             //     startMatchSetup();
             // }
@@ -403,7 +409,7 @@ function initTouchControls(startGame, startMatchSetup) {
             for (let i = 0; i < touches.length; i++) {
                 if (document.elementFromPoint(touches[i].clientX, touches[i].clientY) === btn) return;
             }
-            STATE.keys[code] = false;
+            updateState(prevState => ({ keys: { ...prevState.keys, [code]: false } }));
         };
 
         btn.addEventListener('touchend', release, { passive: false });
@@ -432,15 +438,21 @@ function initJoystick(startMatchSetup) {
         let joystickTouchId = null;
 
         function resetMoveKeys() {
-            STATE.keys['KeyW'] = false;
-            STATE.keys['KeyS'] = false;
-            STATE.keys['KeyA'] = false;
-            STATE.keys['KeyD'] = false;
+            updateState(prevState => ({
+                keys: {
+                    ...prevState.keys,
+                    'KeyW': false,
+                    'KeyS': false,
+                    'KeyA': false,
+                    'KeyD': false,
+                }
+            }));
             joystickTouchId = null;
         }
 
         manager.on('start', (evt, data) => {
-            if (STATE.sfx) STATE.sfx.init();
+            const state = getState();
+            if (state.sfx) state.sfx.init();
             // Track the touch identifier for this joystick interaction
             if (data.identifier !== undefined) {
                 joystickTouchId = data.identifier;
@@ -450,21 +462,22 @@ function initJoystick(startMatchSetup) {
         manager.on('move', (evt, data) => {
             resetIdleTimer();
 
-            // Reset all movement keys first
-            STATE.keys['KeyW'] = false;
-            STATE.keys['KeyS'] = false;
-            STATE.keys['KeyA'] = false;
-            STATE.keys['KeyD'] = false;
+            const newKeys = { ...getState().keys };
+            newKeys['KeyW'] = false;
+            newKeys['KeyS'] = false;
+            newKeys['KeyA'] = false;
+            newKeys['KeyD'] = false;
 
             if (data.direction) {
                 const dir = data.direction;
-                if (dir.angle === 'up' || dir.y === 'up') STATE.keys['KeyW'] = true;
-                if (dir.angle === 'down' || dir.y === 'down') STATE.keys['KeyS'] = true;
-                if (dir.angle === 'left' || dir.x === 'left') STATE.keys['KeyA'] = true;
-                if (dir.angle === 'right' || dir.x === 'right') STATE.keys['KeyD'] = true;
+                if (dir.angle === 'up' || dir.y === 'up') newKeys['KeyW'] = true;
+                if (dir.angle === 'down' || dir.y === 'down') newKeys['KeyS'] = true;
+                if (dir.angle === 'left' || dir.x === 'left') newKeys['KeyA'] = true;
+                if (dir.angle === 'right' || dir.x === 'right') newKeys['KeyD'] = true;
 
-                if (GAME.screen === 'MENU') { GAME.gameMode = 'SINGLE'; startMatchSetup(); }
+                if (getState().screen === 'MENU') { updateState({ gameMode: 'SINGLE' }); startMatchSetup(); }
             }
+            updateState({ keys: newKeys });
         });
 
         manager.on('end', () => {

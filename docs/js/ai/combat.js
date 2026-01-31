@@ -1,5 +1,5 @@
 import { CONFIG, TIMING } from '../config.js';
-import { STATE } from '../state.js';
+import { getState } from '../state.js';
 import { hasLineOfSight, isWall, gridIndex } from '../grid.js';
 import { predictPlayerMovement } from './strategy.js';
 
@@ -16,7 +16,8 @@ export { hasLineOfSight };
  * @returns {{hasPath: boolean, pathLength: number}} Path info
  */
 function checkBeamPath(player, opponent) {
-  if (!STATE.maze || STATE.maze.length === 0) {
+  const state = getState();
+  if (!state.maze || state.maze.length === 0) {
     return { hasPath: false, pathLength: Infinity };
   }
 
@@ -176,7 +177,7 @@ export function shouldChargeBeam(player, opponent, currentConfig) {
   }
 
   // Charge beam is worth it if opponent is glitched (can't dodge well)
-  if (opponent.glitchRemaining(STATE.frameCount) > 60) {
+  if (opponent.glitchRemaining(getState().frameCount) > 60) {
     return pathLength <= 6; // Only if reasonably close
   }
 
@@ -254,8 +255,9 @@ export function shouldFireBeamBasic(player, opponent, useDistanceCheck = false, 
 }
 
 export function shouldDetonateNearbyMines(player, opponent) {
-  if (STATE.mines.length === 0) return false;
-  let closeMines = STATE.mines.filter(mine => {
+  const state = getState();
+  if (state.mines.length === 0) return false;
+  let closeMines = state.mines.filter(mine => {
     let distPlayer = Math.hypot(mine.x - player.x, mine.y - player.y);
     let distOpp = Math.hypot(mine.x - opponent.x, mine.y - opponent.y);
     return (mine.owner === player.id || mine.owner === -1) &&
@@ -275,6 +277,7 @@ function findChokepoints(nearPlayer, radius) {
   // Cap radius to prevent expensive searches
   radius = Math.min(radius, 5);
 
+  const state = getState();
   const chokepoints = [];
   const centerC = Math.floor((nearPlayer.x - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
   const centerR = Math.floor(nearPlayer.y / CONFIG.CELL_SIZE);
@@ -286,7 +289,7 @@ function findChokepoints(nearPlayer, radius) {
 
       if (c < 0 || c >= CONFIG.COLS || r < 0 || r >= CONFIG.ROWS) continue;
 
-      const cell = STATE.maze[c + r * CONFIG.COLS];
+      const cell = state.maze[c + r * CONFIG.COLS];
       if (!cell) continue;
 
       // Count open passages (walls that are false) - unrolled for performance
@@ -351,9 +354,10 @@ export function recordMinePlacement(player, x, y, frameCount) {
 function isMineAreaCrowded(x, y, player = null, minDistance = 2, maxNearby = 1) {
   const minDistPixels = minDistance * CONFIG.CELL_SIZE;
   let nearbyCount = 0;
+  const state = getState();
 
   // Check against existing mines
-  for (const mine of STATE.mines) {
+  for (const mine of state.mines) {
     const dist = Math.hypot(mine.x - x, mine.y - y);
     if (dist < minDistPixels) {
       nearbyCount++;
@@ -379,8 +383,9 @@ function isMineAreaCrowded(x, y, player = null, minDistance = 2, maxNearby = 1) 
 }
 
 export function calculateAdvancedMinePositions(player, opponent, currentConfig) {
+  const state = getState();
   if (!currentConfig.ADVANCED_MINING_ENABLED) {
-    let randomCell = STATE.maze[Math.floor(Math.random() * STATE.maze.length)];
+    let randomCell = state.maze[Math.floor(Math.random() * state.maze.length)];
     return {
       x: CONFIG.MAZE_OFFSET_X + (randomCell.c * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2),
       y: (randomCell.r * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2)

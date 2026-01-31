@@ -1,29 +1,30 @@
 import { CONFIG } from './config.js';
-import { STATE } from './state.js';
+import { getState, updateState } from './state.js';
 
 // --- SFX Wrappers ---
 
-export function playShieldSfx() { STATE.sfx.shield(); }
-export function playChargeSfx() { STATE.sfx.charge(); }
-export function playMineDropSfx() { STATE.sfx.mineDrop(); }
-export function playShootSfx() { STATE.sfx.shoot(); }
-export function playChargedShootSfx() { STATE.sfx.chargedShoot(); }
-export function playExplosionSfx() { STATE.sfx.explosion(); }
-export function playDeathSfx() { STATE.sfx.death(); }
-export function playWinSfx() { STATE.sfx.win(); }
-export function playRoundOverSfx() { STATE.sfx.roundOver(); }
-export function playPowerupSfx() { STATE.sfx.powerup(); }
-export function playBoostSfx() { STATE.sfx.boost(); }
+export function playShieldSfx() { getState().sfx.shield(); }
+export function playChargeSfx() { getState().sfx.charge(); }
+export function playMineDropSfx() { getState().sfx.mineDrop(); }
+export function playShootSfx() { getState().sfx.shoot(); }
+export function playChargedShootSfx() { getState().sfx.chargedShoot(); }
+export function playExplosionSfx() { getState().sfx.explosion(); }
+export function playDeathSfx() { getState().sfx.death(); }
+export function playWinSfx() { getState().sfx.win(); }
+export function playRoundOverSfx() { getState().sfx.roundOver(); }
+export function playPowerupSfx() { getState().sfx.powerup(); }
+export function playBoostSfx() { getState().sfx.boost(); }
 
 // --- Camera ---
 
-export function shakeCamera(amount) { STATE.camera.shake(amount); }
+export function shakeCamera(amount) { getState().camera.shake(amount); }
 
 // --- Particles ---
 
 export function spawnDeathParticles(p) {
+    const newParticles = [];
     for (let i = 0; i < 30; i++) {
-        STATE.particles.push({
+        newParticles.push({
             x: p.x + 1,
             y: p.y + 1,
             vx: (Math.random() - 0.5) * 4,
@@ -32,14 +33,16 @@ export function spawnDeathParticles(p) {
             color: p.color
         });
     }
+    updateState(prevState => ({ particles: [...prevState.particles, ...newParticles] }));
 }
 
 export function spawnExplosionParticles(x, y) {
     const PARTICLE_COUNT = 30;
+    const newParticles = [];
     for (let i = 0; i < PARTICLE_COUNT; i++) {
         let angle = Math.random() * Math.PI * 2;
         let speed = Math.random() * 3.5;
-        STATE.particles.push({
+        newParticles.push({
             x: x + 1,
             y: y + 1,
             vx: Math.cos(angle) * speed,
@@ -49,10 +52,11 @@ export function spawnExplosionParticles(x, y) {
             color: '#ffffff'
         });
     }
+    updateState(prevState => ({ particles: [...prevState.particles, ...newParticles] }));
 }
 
 export function spawnWallHitParticle(x, y, vx, vy) {
-    STATE.particles.push({
+    const newParticle = {
         x: x,
         y: y,
         vx: vx,
@@ -60,12 +64,14 @@ export function spawnWallHitParticle(x, y, vx, vy) {
         decay: 0.02 + Math.random() * 0.04,
         life: 0.8,
         color: '#555'
-    });
+    };
+    updateState(prevState => ({ particles: [...prevState.particles, newParticle] }));
 }
 
 export function spawnMuzzleFlashParticles(x, y) {
+    const newParticles = [];
     for (let i = 0; i < 10; i++) {
-        STATE.particles.push({
+        newParticles.push({
             x: x,
             y: y,
             vx: (Math.random() - 0.5) * 3,
@@ -75,33 +81,34 @@ export function spawnMuzzleFlashParticles(x, y) {
             color: '#fff'
         });
     }
+    updateState(prevState => ({ particles: [...prevState.particles, ...newParticles] }));
 }
 
 export function updateParticles() {
-    for (let i = STATE.particles.length - 1; i >= 0; i--) {
-        let p = STATE.particles[i];
-
+    const state = getState();
+    const updatedParticles = state.particles.map(p => {
+        const newP = { ...p };
         // Move
-        p.x += p.vx;
-        p.y += p.vy;
+        newP.x += newP.vx;
+        newP.y += newP.vy;
 
         // 1. ADD FRICTION (Air Resistance)
-        // This makes particles burst fast then slow down nicely
-        p.vx *= 0.85;
-        p.vy *= 0.85;
+        newP.vx *= 0.85;
+        newP.vy *= 0.85;
 
         // Decay life
-        p.life -= p.decay;
+        newP.life -= newP.decay;
 
         // 2. DYNAMIC COLOR RAMP (Heat Cooling)
-        // White -> Yellow -> Orange -> Red -> Fade
-        if (p.life > 0.8) p.color = '#ffffff';       // White Hot
-        else if (p.life > 0.5) p.color = '#ffff00';  // Yellow
-        else if (p.life > 0.25) p.color = '#ff9900'; // Orange
-        else p.color = '#660000';                    // Dark Red (Smoke)
+        if (newP.life > 0.8) newP.color = '#ffffff';
+        else if (newP.life > 0.5) newP.color = '#ffff00';
+        else if (newP.life > 0.25) newP.color = '#ff9900';
+        else newP.color = '#660000';
+        
+        return newP;
+    }).filter(p => p.life > 0);
 
-        if (p.life <= 0) STATE.particles.splice(i, 1);
-    }
+    updateState({ particles: updatedParticles });
 }
 
 // --- Boost Trail ---
@@ -118,5 +125,10 @@ export function checkBoostTrail(p) {
 // --- Messages ---
 
 export function setDeathMessages(reason) {
-    STATE.messages.deathReason = reason || "ELIMINATED";
+    updateState(prevState => ({
+        messages: {
+            ...prevState.messages,
+            deathReason: reason || "ELIMINATED"
+        }
+    }));
 }

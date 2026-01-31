@@ -1,12 +1,10 @@
-// Room management for matchmaking lobby
-
 import { v4 as uuidv4 } from 'uuid';
 import { MessageType, ErrorCode } from './protocol.js';
 
 const rooms = new Map();
 const playerRooms = new Map(); // Map player ID to room ID
 
-export function createRoom(ws, name) {
+export function createRoom(ws, name, clients) {
     const roomId = uuidv4().slice(0, 8);
     const room = {
         id: roomId,
@@ -28,11 +26,11 @@ export function createRoom(ws, name) {
         playerIndex: 0
     }));
 
-    broadcastRoomList();
+    broadcastRoomList(clients);
     return room;
 }
 
-export function joinRoom(ws, roomId) {
+export function joinRoom(ws, roomId, clients) {
     const room = rooms.get(roomId);
 
     if (!room) {
@@ -84,11 +82,11 @@ export function joinRoom(ws, roomId) {
         playerCount: room.players.length
     }));
 
-    broadcastRoomList();
+    broadcastRoomList(clients);
     return room;
 }
 
-export function leaveRoom(ws) {
+export function leaveRoom(ws, clients) {
     const roomId = playerRooms.get(ws.id);
     if (!roomId) return;
 
@@ -139,7 +137,7 @@ export function leaveRoom(ws) {
         }
     }
 
-    broadcastRoomList();
+    broadcastRoomList(clients);
 }
 
 export function listRooms(ws) {
@@ -158,7 +156,7 @@ export function listRooms(ws) {
     }));
 }
 
-export function startGame(ws) {
+export function startGame(ws, clients) {
     const roomId = playerRooms.get(ws.id);
     if (!roomId) {
         ws.send(JSON.stringify({
@@ -206,7 +204,7 @@ export function startGame(ws) {
         }));
     });
 
-    broadcastRoomList();
+    broadcastRoomList(clients);
 }
 
 export function getRoom(ws) {
@@ -220,8 +218,7 @@ export function getOpponent(ws) {
     return room.players.find(p => p.id !== ws.id);
 }
 
-function broadcastRoomList() {
-    // Get all connected clients and send room list
+function broadcastRoomList(clients) {
     const roomList = Array.from(rooms.values())
         .filter(r => !r.inGame && r.players.length < 2)
         .map(r => ({
@@ -236,16 +233,16 @@ function broadcastRoomList() {
         rooms: roomList
     });
 
-    // Broadcast to all players not currently in a room
-    for (const [playerId, roomId] of playerRooms) {
-        // Only broadcast to players in lobby (not in game)
-        const room = rooms.get(roomId);
-        if (!room || !room.inGame) {
-            // This will be handled by the server maintaining client list
+    clients.forEach(client => {
+        if (client.readyState === 1) { // WebSocket.OPEN
+            const room = getRoom(client);
+            if (!room || !room.inGame) {
+                client.send(message);
+            }
         }
-    }
+    });
 }
 
-export function handleDisconnect(ws) {
-    leaveRoom(ws);
+export function handleDisconnect(ws, clients) {
+    leaveRoom(ws, clients);
 }

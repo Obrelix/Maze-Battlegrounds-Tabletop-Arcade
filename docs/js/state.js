@@ -1,8 +1,8 @@
 import { SoundFX, Camera, Player } from './classes.js';
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES } from './config.js';
 import { DIFFICULTY_PRESETS } from './ai/difficulty.js';
 
-export const STATE = {
+let _state = {
     frameCount: 0,
     maze: [],
     players: [],
@@ -95,24 +95,43 @@ export const STATE = {
         moveDir: { dx: 0, dy: 0 },
         energyStrat: { shield: false, boost: false },
         lastThinkTime: 0
-    }
+    },
+    gameMode: 'SINGLE', // 'SINGLE', 'MULTI', 'ONLINE', 'HIGHSCORES'
+    screen: 'MENU',
+    isAttractMode: false,
+    demoResetTimer: 0,
+    inputDelay: CONFIG.INPUT_DELAY,
+    menuSelection: 0, // 0: SINGLE, 1: LOCAL MULTI, 2: ONLINE MULTI, 3: HIGH SCORES
+    lastUpdateTime: 0,
+    accumulator: 0,
 };
 
+export function getState() {
+    return _state;
+}
+
+export function updateState(updater) {
+    const updates = typeof updater === 'function' ? updater(_state) : updater;
+    _state = { ..._state, ...updates };
+}
+
 export function saveHighScore() {
-    let victimIdx = STATE.victimIdx;
+    const state = getState();
+    let victimIdx = state.victimIdx;
     let winnerIdx = (victimIdx === 0) ? 1 : 0;
-    let winner = STATE.players[winnerIdx];
-    let opponent = STATE.players[victimIdx];
-    const ps = STATE.playerSetup;
+    let winner = state.players[winnerIdx];
+    let opponent = state.players[victimIdx];
+    const ps = state.playerSetup;
     const diff = DIFFICULTY_PRESETS[DIFFICULTIES[ps.difficultyIdx].name];
     let victimName = opponent.name === "CPU" ? `CPU-${diff.NAME.substring(0, 7)}` : `${opponent.name}`;
-    let entry = STATE.highScores.find(e => e.name === winner.name && e.opponent === victimName && e.multiplier == diff.HIGHSCORE_MULTIPLIER);
+    let highScores = JSON.parse(JSON.stringify(state.highScores)); // Deep copy
+    let entry = highScores.find(e => e.name === winner.name && e.opponent === victimName && e.multiplier === diff.HIGHSCORE_MULTIPLIER);
     let oppColor = opponent.name === "CPU" ? diff.COLOR : opponent.color;
     if (entry) {
         entry.score += winner.score;
         entry.oppScore += opponent.score;
     } else {
-        STATE.highScores.push({
+        highScores.push({
             name: winner.name,
             winColor: winner.color,
             oppColor: oppColor,
@@ -123,10 +142,11 @@ export function saveHighScore() {
         });
     }
     // Sort by wins (descending) and keep top 5
-    STATE.highScores.sort((a, b) => ((b.score - b.oppScore) * b.multiplier) - ((a.score - a.oppScore) * a.multiplier));
-    STATE.highScores = STATE.highScores.slice(0, 10);
+    highScores.sort((a, b) => ((b.score - b.oppScore) * b.multiplier) - ((a.score - a.oppScore) * a.multiplier));
+    highScores = highScores.slice(0, 10);
 
-    localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(STATE.highScores));
+    updateState({ highScores });
+    localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(highScores));
 }
 
 /**
@@ -134,7 +154,7 @@ export function saveHighScore() {
  */
 export function saveStats() {
     try {
-        localStorage.setItem(CONFIG.STORAGE_KEY + '_stats', JSON.stringify(STATE.stats));
+        localStorage.setItem(CONFIG.STORAGE_KEY + '_stats', JSON.stringify(getState().stats));
     } catch (e) {
         console.warn('Failed to save stats:', e);
     }
@@ -143,18 +163,19 @@ export function saveStats() {
 /**
  * Record match result in statistics
  * @param {number} winnerIdx - Index of winner (0 or 1), or -1 for draw
- * @param {boolean} isPlayer1Human - Whether player 1 is human
  */
 export function recordMatchStats(winnerIdx) {
-    const stats = STATE.stats;
-    const p1 = STATE.players[0];
-    const p2 = STATE.players[1];
+    const state = getState();
+    const stats = JSON.parse(JSON.stringify(state.stats));
+
+    const p1 = state.players[0];
+    const p2 = state.players[1];
     const isP1Human = p1.name !== "CPU";
     const isP2Human = p2.name !== "CPU";
-    const ps = STATE.playerSetup;
+    const ps = state.playerSetup;
     const diffName = DIFFICULTIES[ps.difficultyIdx]?.name || 'UNKNOWN';
-    const mode = GAME.gameMode;
-    const matchDuration = STATE.frameCount - STATE.matchStartFrame;
+    const mode = getState().gameMode;
+    const matchDuration = state.frameCount - state.matchStartFrame;
 
     // Update totals
     stats.totalMatches++;
@@ -204,6 +225,7 @@ export function recordMatchStats(winnerIdx) {
     });
     stats.recentMatches = stats.recentMatches.slice(0, 10);
 
+    updateState({ stats });
     saveStats();
 }
 
@@ -211,7 +233,7 @@ export function recordMatchStats(winnerIdx) {
  * Get formatted stats for display
  */
 export function getFormattedStats() {
-    const stats = STATE.stats;
+    const stats = getState().stats;
     const winRate = stats.totalMatches > 0
         ? Math.round((stats.wins / stats.totalMatches) * 100)
         : 0;
@@ -234,66 +256,70 @@ export function getFormattedStats() {
 }
 
 export function suddenDeathIsActive() {
-    if (STATE.gameTime)
-        return STATE.gameTime <= TIMING.SUDDEN_DEATH_TIME;
+    const state = getState();
+    if (state.gameTime)
+        return state.gameTime <= TIMING.SUDDEN_DEATH_TIME;
     else return false;
 }
 
 export function shouldSpawnAmmoCrate() {
-    if (STATE.gameTime && !STATE.ammoCrate)
-        return STATE.frameCount - STATE.ammoLastTakeTime > TIMING.AMMO_RESPAWN_DELAY;
+    const state = getState();
+    if (state.gameTime && !state.ammoCrate)
+        return state.frameCount - state.ammoLastTakeTime > TIMING.AMMO_RESPAWN_DELAY;
     else return false;
 }
 
 export function resetStateForMatch() {
+    const state = getState();
     // Store current names if they exist
     let CPUColors = COLORS.filter(x => x.name !== 'BLACK' && x.name !== 'ORANGE' && x.name !== 'BLUE' && x.name !== 'RED' && x.name !== 'PURPLE')
-    let p1Name = STATE.players[0]?.name || "CPU";
-    let p1Color = STATE.players[0]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
-    let p2Name = GAME.gameMode === 'MULTI' ? STATE.players[1]?.name || "CPU" : "CPU";
+    let p1Name = state.players[0]?.name || "CPU";
+    let p1Color = state.players[0]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
+    let p2Name = state.gameMode === 'MULTI' ? state.players[1]?.name || "CPU" : "CPU";
     CPUColors = CPUColors.filter(x => x.hex !== p1Color);
     let randomColor2 = CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex
-    let p2Color = GAME.gameMode === 'MULTI' ? (STATE.players[1]?.color ?? randomColor2) : randomColor2;
+    let p2Color = state.gameMode === 'MULTI' ? (state.players[1]?.color ?? randomColor2) : randomColor2;
 
-    // Create fresh players
-    STATE.players = [
+    const newPlayers = [
         new Player(0, p1Color, CONTROLS_P1),
         new Player(1, p2Color, CONTROLS_P2)
     ];
 
-    STATE.players[0].name = p1Name;
-    STATE.players[1].name = p2Name;
+    newPlayers[0].name = p1Name;
+    newPlayers[1].name = p2Name;
 
-    // Reset other match-level variables
-    STATE.frameCount = 0;
-    STATE.isGameOver = false;
-    STATE.isRoundOver = false;
-    STATE.maze = [];
-    STATE.mines = [];
-    STATE.particles = [];
-    STATE.portals = [];
-    STATE.projectiles = [];
-    STATE.ammoCrate = null;
-    STATE.gameTime = CONFIG.GAME_TIME;
-    STATE.maxGameTime = CONFIG.GAME_TIME;
-    STATE.deathTimer = 0;
-    STATE.victimIdx = -1;
-    STATE.isPaused = false;
-    STATE.isDraw = false;
-    STATE.onlineTransitionPending = false;
-    STATE.matchStartFrame = 0;
-    STATE.pauseMenuSelection = 0;
-    STATE.messages = {
-        deathReason: "",
-        win: "",
-        taunt: "",
-        round: "",
-        winColor: "#fff",
-        roundColor: "#fff"
-    };
-    STATE.scrollX = 70;
-    STATE.scrollY = 0;
-    STATE.scrollXVal = -1;
-    STATE.scrollYVal = +2;
-    STATE.portalReverseColors = false;
+    updateState({
+        players: newPlayers,
+        frameCount: 0,
+        isGameOver: false,
+        isRoundOver: false,
+        maze: [],
+        mines: [],
+        particles: [],
+        portals: [],
+        projectiles: [],
+        ammoCrate: null,
+        gameTime: CONFIG.GAME_TIME,
+        maxGameTime: CONFIG.GAME_TIME,
+        deathTimer: 0,
+        victimIdx: -1,
+        isPaused: false,
+        isDraw: false,
+        onlineTransitionPending: false,
+        matchStartFrame: 0,
+        pauseMenuSelection: 0,
+        messages: {
+            deathReason: "",
+            win: "",
+            taunt: "",
+            round: "",
+            winColor: "#fff",
+            roundColor: "#fff"
+        },
+        scrollX: 70,
+        scrollY: 0,
+        scrollXVal: -1,
+        scrollYVal: +2,
+        portalReverseColors: false
+    });
 }

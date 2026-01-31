@@ -1,6 +1,4 @@
-// Network module for WebRTC P2P multiplayer with WebSocket fallback
-
-import { STATE } from './state.js';
+import { getState } from './state.js';
 
 // Message types (must match server protocol)
 const MessageType = {
@@ -733,7 +731,7 @@ function cleanup() {
 
 // Clean up old input buffer entries (keep last 120 frames = 2 seconds)
 export function cleanupInputBuffer() {
-    const currentFrame = STATE.frameCount;
+    const currentFrame = getState().frameCount;
     const keepFrom = currentFrame - 120;
 
     for (const frame of inputBuffer.keys()) {

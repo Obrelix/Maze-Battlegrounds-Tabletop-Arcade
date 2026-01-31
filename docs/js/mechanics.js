@@ -1,5 +1,5 @@
-import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES, GAME, COLLISION } from './config.js';
-import { STATE, saveHighScore, recordMatchStats } from './state.js';
+import { CONFIG, TAUNTS, TIMING, ENERGY_COSTS, ENERGY_RATES, COLLISION } from './config.js';
+import { getState, updateState, saveHighScore, recordMatchStats } from './state.js';
 import { isWall, destroyWallAt, gridIndex } from './grid.js';
 import { seededRandom } from './seededRandom.js';
 import {
@@ -16,23 +16,23 @@ import {
 function handleDetonate(p, input, now) {
     // Detonate - collect mines first to avoid race condition during explosion chain
     if (input.boom && !p.prevDetonateKey) {
+        const state = getState();
         if (p.boostEnergy >= ENERGY_COSTS.DETONATION) {
-            // Collect mines to detonate (avoid modifying array during iteration)
-            let minesToDetonate = [];
-            for (let i = STATE.mines.length - 1; i >= 0; i--) {
-                if (STATE.mines[i].owner === p.id || STATE.mines[i].owner === -1) {
-                    minesToDetonate.push({ x: STATE.mines[i].x, y: STATE.mines[i].y, idx: i });
+            // Collect mines to detonate and filter remaining
+            const minesToDetonate = [];
+            const remainingMines = state.mines.filter(mine => {
+                if (mine.owner === p.id || mine.owner === -1) {
+                    minesToDetonate.push({ x: mine.x, y: mine.y });
+                    return false; // Remove from remaining
                 }
-            }
+                return true; // Keep in remaining
+            });
 
             if (minesToDetonate.length > 0) {
                 p.boostEnergy -= ENERGY_COSTS.DETONATION;
-                // Remove mines first (in reverse order to preserve indices)
-                minesToDetonate.sort((a, b) => b.idx - a.idx);
-                for (let m of minesToDetonate) {
-                    STATE.mines.splice(m.idx, 1);
-                }
-                // Then trigger explosions (safe - no more array modification)
+                // Update state with filtered mines
+                updateState({ mines: remainingMines });
+                // Then trigger explosions (safe - state already updated)
                 for (let m of minesToDetonate) {
                     triggerExplosion(m.x, m.y, "WAS FRAGGED");
                 }
@@ -179,7 +179,7 @@ function handleMineDrop(p, input, now) {
         playMineDropSfx();
         p.lastMineTime = now;
         p.minesLeft--;
-        STATE.mines.push({
+        const newMine = {
             x: Math.floor(p.x),
             y: Math.floor(p.y),
             droppedAt: now,
@@ -187,7 +187,8 @@ function handleMineDrop(p, input, now) {
             visX: Math.floor(seededRandom() * 2),
             visY: Math.floor(seededRandom() * 2),
             owner: p.id
-        });
+        };
+        updateState(prevState => ({ mines: [...prevState.mines, newMine] }));
     }
 
 }
@@ -214,51 +215,68 @@ function checkPlayerCollision(p, dx, dy) {
 }
 
 function handleMultiDeath(indices, reason) {
-    if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
+    const state = getState();
+    if (state.isGameOver || state.isRoundOver || state.deathTimer > 0) return;
 
-    // Set global death state
-    STATE.deathTimer = COLLISION.DEATH_TIMER_FRAMES;
+    // Mark players as dead (immutable update)
+    const newPlayers = state.players.map((p, idx) => {
+        if (indices.includes(idx)) {
+            const updated = Object.assign(Object.create(Object.getPrototypeOf(p)), p);
+            updated.isDead = true;
+            return updated;
+        }
+        return p;
+    });
+
+    // Update state atomically
+    updateState({
+        deathTimer: COLLISION.DEATH_TIMER_FRAMES,
+        isDraw: indices.length > 1,
+        victimIdx: indices.length > 1 ? -1 : indices[0],
+        players: newPlayers
+    });
+
     setDeathMessages(reason);
     playDeathSfx();
 
-    // Check for Draw
-    if (indices.length > 1) {
-        STATE.isDraw = true; // Mark as draw
-    } else {
-        STATE.victimIdx = indices[0]; // Mark single victim
-        STATE.isDraw = false;
-    }
-
-    // Apply death effects to ALL victims
+    // Spawn death particles for all victims
     indices.forEach(idx => {
-        let p = STATE.players[idx];
-        p.isDead = true;
-        spawnDeathParticles(p);
+        spawnDeathParticles(newPlayers[idx]);
     });
 }
 
 function handlePlayerDeath(victimIdx, reason) {
-    if (STATE.isGameOver || STATE.isRoundOver || STATE.deathTimer > 0) return;
+    const state = getState();
+    if (state.isGameOver || state.isRoundOver || state.deathTimer > 0) return;
 
-    // 1. Mark player as dead
-    STATE.players[victimIdx].isDead = true;
-    STATE.victimIdx = victimIdx;
-    // 2. Store the reason in the global state (add this property implicitly)
+    // Mark player as dead (immutable update)
+    const newPlayers = state.players.map((p, idx) => {
+        if (idx === victimIdx) {
+            const updated = Object.assign(Object.create(Object.getPrototypeOf(p)), p);
+            updated.isDead = true;
+            return updated;
+        }
+        return p;
+    });
+
+    // Update state atomically
+    updateState({
+        players: newPlayers,
+        victimIdx: victimIdx,
+        deathTimer: COLLISION.DEATH_TIMER_FRAMES
+    });
+
     setDeathMessages(reason || "ELIMINATED BY A SNEAKY BUG");
-    // 3. Start the Death Timer
-    STATE.deathTimer = COLLISION.DEATH_TIMER_FRAMES;
-
-    // 4. Extra visual effects
-    let p = STATE.players[victimIdx];
     playDeathSfx();
-    spawnDeathParticles(p);
+    spawnDeathParticles(newPlayers[victimIdx]);
 }
 
 function applyPlayerExplosionDamage(x, y, reason) {
+    const state = getState();
     // 1. Collect all victims first
     let hitIndices = [];
-    if (!STATE.isRoundOver && !STATE.isGameOver) {
-        STATE.players.forEach((p, idx) => {
+    if (!state.isRoundOver && !state.isGameOver) {
+        state.players.forEach((p, idx) => {
             if (Math.abs(p.x + 1 - (x + 1)) < CONFIG.BLAST_RADIUS && Math.abs(p.y + 1 - (y + 1)) < CONFIG.BLAST_RADIUS) {
                 if (!p.shieldActive && !p.isDead) {
                     hitIndices.push(idx);
@@ -299,98 +317,142 @@ function handleWallDestruction(x, y) {
  * @param {string} reason - 'GOAL', 'DRAW', 'TIMEOUT', or 'COMBAT'
  */
 export function resolveRound(winnerIdx, reason) {
-    // Reset online transition flag for the next transition
-    STATE.onlineTransitionPending = false;
+    const state = getState();
+    const baseUpdate = {
+        onlineTransitionPending: false,
+        deathTimer: 0,
+        scrollX: CONFIG.LOGICAL_W + 5
+    };
 
     // --- DRAW ---
     if (reason === 'DRAW') {
-        STATE.messages.round = "DOUBLE KO! DRAW!";
-        STATE.messages.roundColor = "#ffffff";
+        updateState({
+            ...baseUpdate,
+            isRoundOver: true,
+            isDraw: false,
+            messages: {
+                ...state.messages,
+                round: "DOUBLE KO! DRAW!",
+                roundColor: "#ffffff"
+            }
+        });
         playRoundOverSfx();
-        STATE.isRoundOver = true;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        STATE.deathTimer = 0;
-        STATE.isDraw = false;
-        if (GAME.isAttractMode) GAME.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        if (getState().isAttractMode) updateState({ demoResetTimer: TIMING.DEMO_RESET_TIMER });
         return;
     }
 
     // --- TIMEOUT ---
     if (reason === 'TIMEOUT') {
-        let p0 = STATE.players[0];
-        let p1 = STATE.players[1];
+        const p0 = state.players[0];
+        const p1 = state.players[1];
 
         if (p0.score === p1.score) {
             // Equal scores - it's a draw
-            STATE.isDraw = true;
-            STATE.messages.round = "TIME OUT! DRAW!";
-            STATE.messages.roundColor = "#ffff00";
+            updateState({
+                ...baseUpdate,
+                isDraw: true,
+                isGameOver: true,
+                messages: {
+                    ...state.messages,
+                    round: "TIME OUT! DRAW!",
+                    roundColor: "#ffff00",
+                    win: "DRAW GAME!",
+                    winColor: "#ffffff"
+                }
+            });
             playRoundOverSfx();
-            STATE.isGameOver = true;
-            STATE.messages.win = "DRAW GAME!";
-            STATE.messages.winColor = "#ffffff";
-            // Record as draw in stats
-            if (!GAME.isAttractMode) {
+            if (!getState().isAttractMode) {
                 recordMatchStats(-1);
             }
         } else {
             // One player has higher score - they win
-            let timeoutWinner = p0.score > p1.score ? 0 : 1;
-            let winner = STATE.players[timeoutWinner];
-            STATE.victimIdx = timeoutWinner === 0 ? 1 : 0;
-            STATE.messages.round = `TIME OUT! ${winner.name} WINS!`;
-            STATE.messages.roundColor = winner.color;
+            const timeoutWinner = p0.score > p1.score ? 0 : 1;
+            const winner = state.players[timeoutWinner];
+            updateState({
+                ...baseUpdate,
+                victimIdx: timeoutWinner === 0 ? 1 : 0,
+                isGameOver: true,
+                messages: {
+                    ...state.messages,
+                    round: `TIME OUT! ${winner.name} WINS!`,
+                    roundColor: winner.color,
+                    win: `${winner.name} WINS!`,
+                    winColor: winner.color
+                }
+            });
             playWinSfx();
-            STATE.isGameOver = true;
-            STATE.messages.win = `${winner.name} WINS!`;
-            STATE.messages.winColor = winner.color;
             if (winner.name !== "CPU") saveHighScore();
-            if (!GAME.isAttractMode) {
+            if (!getState().isAttractMode) {
                 recordMatchStats(timeoutWinner);
             }
         }
 
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
-        if (GAME.isAttractMode) GAME.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+        if (getState().isAttractMode) updateState({ demoResetTimer: TIMING.DEMO_RESET_TIMER });
         return;
     }
 
     // --- STANDARD WIN (goal or combat) ---
-    let winner = STATE.players[winnerIdx];
-    let victimIdx = (winnerIdx === 0) ? 1 : 0;
-    STATE.victimIdx = victimIdx;
-    winner.score++;
+    const victimIdx = (winnerIdx === 0) ? 1 : 0;
 
-    // Set round message based on reason
+    // Update winner's score (immutable)
+    const newPlayers = state.players.map((p, idx) => {
+        if (idx === winnerIdx) {
+            const updated = Object.assign(Object.create(Object.getPrototypeOf(p)), p);
+            updated.score = p.score + 1;
+            return updated;
+        }
+        return p;
+    });
+    const winner = newPlayers[winnerIdx];
+
+    // Determine round message based on reason
+    let roundMsg, roundColor;
     if (reason === 'GOAL') {
-        STATE.messages.round = `${winner.name} SCORES!`;
-        STATE.messages.roundColor = winner.color;
+        roundMsg = `${winner.name} SCORES!`;
+        roundColor = winner.color;
     } else {
-        STATE.messages.round = `${STATE.players[victimIdx]?.name} '${STATE.messages.deathReason}!'`;
-        STATE.messages.roundColor = STATE.players[victimIdx].color;
+        roundMsg = `${state.players[victimIdx]?.name} '${state.messages.deathReason}!'`;
+        roundColor = state.players[victimIdx].color;
     }
 
     if (winner.score >= CONFIG.MAX_SCORE) {
+        // Game over - winner reached max score
+        updateState({
+            ...baseUpdate,
+            players: newPlayers,
+            victimIdx: victimIdx,
+            isGameOver: true,
+            messages: {
+                ...state.messages,
+                round: roundMsg,
+                roundColor: roundColor,
+                win: `${winner.name} WINS!`,
+                taunt: TAUNTS[Math.floor(seededRandom() * TAUNTS.length)],
+                winColor: winner.color
+            }
+        });
         playWinSfx();
         if (winner.name !== "CPU") saveHighScore();
-        // Record match statistics (skip in attract mode)
-        if (!GAME.isAttractMode) {
+        if (!getState().isAttractMode) {
             recordMatchStats(winnerIdx);
         }
-        STATE.isGameOver = true;
-        STATE.messages.win = `${winner.name} WINS!`;
-        STATE.messages.taunt = TAUNTS[Math.floor(seededRandom() * TAUNTS.length)];
-        STATE.messages.winColor = winner.color;
-        STATE.messages.roundColor = winner.color;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
     } else {
+        // Round over, game continues
+        updateState({
+            ...baseUpdate,
+            players: newPlayers,
+            victimIdx: victimIdx,
+            isRoundOver: true,
+            messages: {
+                ...state.messages,
+                round: roundMsg,
+                roundColor: roundColor
+            }
+        });
         playRoundOverSfx();
-        STATE.isRoundOver = true;
-        STATE.scrollX = CONFIG.LOGICAL_W + 5;
     }
 
-    STATE.deathTimer = 0;
-    if (GAME.isAttractMode) GAME.demoResetTimer = TIMING.DEMO_RESET_TIMER;
+    if (getState().isAttractMode) updateState({ demoResetTimer: TIMING.DEMO_RESET_TIMER });
 }
 
 export function triggerExplosion(x, y, reason = "EXPLODED") {
@@ -407,6 +469,7 @@ export function triggerExplosion(x, y, reason = "EXPLODED") {
  * @returns {boolean} True if beam was fired, false otherwise
  */
 export function fireBeam(p) {
+    const state = getState();
     // Validate player state
     if (!p || typeof p.boostEnergy !== 'number') {
         console.warn('fireBeam: Invalid player state');
@@ -415,7 +478,7 @@ export function fireBeam(p) {
     if (p.boostEnergy < ENERGY_COSTS.BEAM) return false;
     if (p.beamIdx < p.beamPixels.length) return false;
 
-    let opponent = STATE.players[(p.id + 1) % 2];
+    let opponent = state.players[(p.id + 1) % 2];
     if (!opponent) {
         console.warn('fireBeam: No opponent found');
         return false;
@@ -437,7 +500,7 @@ export function fireBeam(p) {
 
     // --- PATHFINDING (Existing Logic) ---
     // Reset pathfinding flags
-    STATE.maze.forEach(c => {
+    state.maze.forEach(c => {
         c.parent = null;
         c.bfsVisited = false;
     });
@@ -519,7 +582,7 @@ export function fireBeam(p) {
  * @param {Object} input - Input state object
  */
 export function applyPlayerActions(p, input) {
-    let now = STATE.frameCount;
+    const now = getState().frameCount;
     handleDetonate(p, input, now);
     handleShield(p, input, now);
     handleBeamInput(p, input, now);
@@ -529,62 +592,93 @@ export function applyPlayerActions(p, input) {
 }
 
 export function updateProjectiles() {
+    const state = getState();
+    const minesToExplode = [];
+    const projectilesToRemove = new Set();
+    let playerHit = null;
 
-    // Projectiles Update
-    for (let i = STATE.projectiles.length - 1; i >= 0; i--) {
-        let proj = STATE.projectiles[i];
-        proj.x += proj.vx;
-        proj.y += proj.vy;
-        proj.distTraveled += CONFIG.C_BEAM_SPEED;
+    // Process each projectile
+    const updatedProjectiles = state.projectiles.map((proj, i) => {
+        // Update position
+        const updated = {
+            ...proj,
+            x: proj.x + proj.vx,
+            y: proj.y + proj.vy,
+            distTraveled: proj.distTraveled + CONFIG.C_BEAM_SPEED
+        };
 
-        if (proj.distTraveled >= CONFIG.C_BEAM_RANGE) {
-            STATE.projectiles.splice(i, 1);
-            continue;
+        // Check if out of range
+        if (updated.distTraveled >= CONFIG.C_BEAM_RANGE) {
+            projectilesToRemove.add(i);
+            return updated;
         }
 
-        let hw = (Math.abs(proj.vx) > 0) ? CONFIG.C_BEAM_LENGTH / 2 : CONFIG.C_BEAM_WIDTH / 2;
-        let hh = (Math.abs(proj.vx) > 0) ? CONFIG.C_BEAM_WIDTH / 2 : CONFIG.C_BEAM_LENGTH / 2;
-        let tipX = proj.x + (proj.vx * 2);
-        let tipY = proj.y + (proj.vy * 2);
+        const hw = (Math.abs(updated.vx) > 0) ? CONFIG.C_BEAM_LENGTH / 2 : CONFIG.C_BEAM_WIDTH / 2;
+        const hh = (Math.abs(updated.vx) > 0) ? CONFIG.C_BEAM_WIDTH / 2 : CONFIG.C_BEAM_LENGTH / 2;
+        const tipX = updated.x + (updated.vx * 2);
+        const tipY = updated.y + (updated.vy * 2);
 
+        // Wall collision
         if (isWall(tipX, tipY)) {
-            let gc = Math.floor((tipX - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
-            let gr = Math.floor(tipY / CONFIG.CELL_SIZE);
+            const gc = Math.floor((tipX - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
+            const gr = Math.floor(tipY / CONFIG.CELL_SIZE);
             destroyWallAt(gc, gr);
-            spawnWallHitParticle(tipX, tipY, proj.vx * 0.5, proj.vy * 0.5);
+            spawnWallHitParticle(tipX, tipY, updated.vx * 0.5, updated.vy * 0.5);
         }
 
-        for (let mIdx = STATE.mines.length - 1; mIdx >= 0; mIdx--) {
-            let m = STATE.mines[mIdx];
-            if (Math.abs(proj.x - m.x) < hw + 1 && Math.abs(proj.y - m.y) < hh + 1) {
-                triggerExplosion(m.x, m.y, "SHOCKWAVE");
-                STATE.mines.splice(mIdx, 1);
+        // Mine collision - collect mines to explode
+        state.mines.forEach((m, mIdx) => {
+            if (Math.abs(updated.x - m.x) < hw + 1 && Math.abs(updated.y - m.y) < hh + 1) {
+                minesToExplode.push({ x: m.x, y: m.y, idx: mIdx });
+            }
+        });
+
+        // Player collision
+        if (!playerHit) {
+            const oppId = (updated.owner + 1) % 2;
+            const opp = state.players[oppId];
+            const pLeft = opp.x;
+            const pRight = opp.x + opp.size;
+            const pTop = opp.y;
+            const pBot = opp.y + opp.size;
+            const bLeft = updated.x - hw;
+            const bRight = updated.x + hw;
+            const bTop = updated.y - hh;
+            const bBot = updated.y + hh;
+
+            if (bLeft < pRight && bRight > pLeft && bTop < pBot && bBot > pTop) {
+                projectilesToRemove.add(i);
+                if (!opp.shieldActive) {
+                    playerHit = { oppId, reason: "WAS VAPORIZED" };
+                }
             }
         }
 
-        let oppId = (proj.owner + 1) % 2;
-        let opp = STATE.players[oppId];
-        let pLeft = opp.x;
-        let pRight = opp.x + opp.size;
-        let pTop = opp.y;
-        let pBot = opp.y + opp.size;
-        let bLeft = proj.x - hw;
-        let bRight = proj.x + hw;
-        let bTop = proj.y - hh;
-        let bBot = proj.y + hh;
+        return updated;
+    });
 
-        if (bLeft < pRight && bRight > pLeft && bTop < pBot && bBot > pTop) {
-            if (!opp.shieldActive) {
-                handlePlayerDeath(oppId, "WAS VAPORIZED");
-                STATE.projectiles.splice(i, 1);
-                return;
-            } else {
-                STATE.projectiles.splice(i, 1);
-                return;
-            }
-        }
+    // Filter projectiles
+    const newProjectiles = updatedProjectiles.filter((_, i) => !projectilesToRemove.has(i));
+
+    // Filter mines (remove those that were hit)
+    const hitMineIndices = new Set(minesToExplode.map(m => m.idx));
+    const newMines = state.mines.filter((_, i) => !hitMineIndices.has(i));
+
+    // Update state atomically
+    updateState({
+        projectiles: newProjectiles,
+        mines: newMines
+    });
+
+    // Trigger explosions after state update
+    minesToExplode.forEach(m => {
+        triggerExplosion(m.x, m.y, "SHOCKWAVE");
+    });
+
+    // Handle player death after state update
+    if (playerHit) {
+        handlePlayerDeath(playerHit.oppId, playerHit.reason);
     }
-
 }
 
 /**
@@ -593,13 +687,14 @@ export function updateProjectiles() {
  * @returns {boolean} True if beam was fired, false otherwise
  */
 export function fireChargedBeam(p) {
+    const state = getState();
     if (!p || typeof p.boostEnergy !== 'number') {
         console.warn('fireChargedBeam: Invalid player state');
         return false;
     }
     if (p.boostEnergy < ENERGY_COSTS.CHARGED_BEAM) return false;
 
-    let opponent = STATE.players[(p.id + 1) % 2];
+    let opponent = state.players[(p.id + 1) % 2];
     if (!opponent) {
         console.warn('fireChargedBeam: No opponent found');
         return false;
@@ -627,7 +722,7 @@ export function fireChargedBeam(p) {
     p.boostEnergy -= ENERGY_COSTS.CHARGED_BEAM;
     playChargedShootSfx();
 
-    STATE.projectiles.push({
+    const newProjectile = {
         x: startX,
         y: startY,
         vx: vx,  // Now moving towards enemy
@@ -635,7 +730,8 @@ export function fireChargedBeam(p) {
         distTraveled: 0,
         owner: p.id,
         color: p.color
-    });
+    };
+    updateState(prevState => ({ projectiles: [...prevState.projectiles, newProjectile] }));
 
     // Recoil / Kickback (Optional: pushes player back slightly)
     // p.x -= vx * 2;
@@ -651,8 +747,9 @@ export function fireChargedBeam(p) {
  * Samples multiple points along each beam to prevent high-speed beams passing through each other
  */
 export function checkBeamCollisions() {
-    let p1 = STATE.players[0];
-    let p2 = STATE.players[1];
+    const state = getState();
+    let p1 = state.players[0];
+    let p2 = state.players[1];
     if (p1.beamPixels.length === 0 || p2.beamPixels.length === 0) return;
 
     // Get the range of beam positions to check (current tip and recent trail)
@@ -679,16 +776,17 @@ export function checkBeamCollisions() {
 }
 
 export function checkBeamActions(p, idx) {
+    const state = getState();
     if (p.beamIdx < p.beamPixels.length + CONFIG.BEAM_LENGTH)
         p.beamIdx += CONFIG.BEAM_SPEED;
-    let opponent = STATE.players[(idx + 1) % 2];
+    let opponent = state.players[(idx + 1) % 2];
     let tipIdx = Math.floor(opponent.beamIdx);
     if (tipIdx >= 0 && tipIdx < opponent.beamPixels.length) {
         let tip = opponent.beamPixels[tipIdx];
         if (Math.abs(p.x - tip.x) < COLLISION.BEAM_HIT_RADIUS && Math.abs(p.y - tip.y) < COLLISION.BEAM_HIT_RADIUS) {
             if (!p.shieldActive) {
-                p.stunStartTime = STATE.frameCount;
-                p.glitchStartTime = STATE.frameCount;
+                p.stunStartTime = state.frameCount;
+                p.glitchStartTime = state.frameCount;
                 playChargeSfx();
             }
             opponent.beamPixels = [];
@@ -700,39 +798,62 @@ export function checkBeamActions(p, idx) {
 }
 
 export function checkMinesActions(p) {
-    for (let i = STATE.mines.length - 1; i >= 0; i--) {
-        let m = STATE.mines[i];
-        let bIdx = Math.floor(p.beamIdx);
-        if (bIdx >= 0 && bIdx < p.beamPixels.length) {
-            let bp = p.beamPixels[bIdx];
-            if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
-                triggerExplosion(m.x, m.y, "MINESWEEPER");
-                STATE.mines.splice(i, 1);
+    const state = getState();
+    const minesToExplode = [];
+    const mineIndicesToRemove = new Set();
+    let beamHitMine = false;
 
-                p.beamPixels = [];
-                p.beamIdx = 9999;
-                continue;
+    const bIdx = Math.floor(p.beamIdx);
+    const bp = (bIdx >= 0 && bIdx < p.beamPixels.length) ? p.beamPixels[bIdx] : null;
+
+    state.mines.forEach((m, i) => {
+        // Check beam hitting mine
+        if (bp && !beamHitMine) {
+            if (bp.x >= m.x - 1 && bp.x <= m.x + 3 && bp.y >= m.y - 1 && bp.y <= m.y + 3) {
+                minesToExplode.push({ x: m.x, y: m.y, reason: "MINESWEEPER" });
+                mineIndicesToRemove.add(i);
+                beamHitMine = true;
+                return;
             }
         }
         // Check player stepping on mine (skip if player has portal invulnerability)
         if (m.active && p.portalInvulnFrames <= 0 &&
             p.x + p.size > m.x && p.x < m.x + 2 && p.y + p.size > m.y && p.y < m.y + 2) {
-            triggerExplosion(m.x, m.y, "TRIPPED MINE");
-            STATE.mines.splice(i, 1);
+            minesToExplode.push({ x: m.x, y: m.y, reason: "TRIPPED MINE" });
+            mineIndicesToRemove.add(i);
         }
+    });
+
+    // Clear beam if it hit a mine
+    if (beamHitMine) {
+        p.beamPixels = [];
+        p.beamIdx = 9999;
     }
+
+    // Update state if any mines were removed
+    if (mineIndicesToRemove.size > 0) {
+        const newMines = state.mines.filter((_, i) => !mineIndicesToRemove.has(i));
+        updateState({ mines: newMines });
+
+        // Trigger explosions after state update
+        minesToExplode.forEach(m => {
+            triggerExplosion(m.x, m.y, m.reason);
+        });
+    }
+
     // Decrement portal invulnerability
     if (p.portalInvulnFrames > 0) p.portalInvulnFrames--;
 }
 
 export function checkPortalActions(p) {
+    const state = getState();
     if (p.portalCooldown > 0) p.portalCooldown--;
     else {
         let pc = Math.floor((p.x + p.size / 2 - CONFIG.MAZE_OFFSET_X) / CONFIG.CELL_SIZE);
         let pr = Math.floor((p.y + p.size / 2) / CONFIG.CELL_SIZE);
-        let portal = STATE.portals.find(pt => pt.c === pc && pt.r === pr);
+        let portal = state.portals.find(pt => pt.c === pc && pt.r === pr);
         if (portal) {
-            let dest = STATE.portals.find(pt => pt !== portal);
+            let dest = state.portals.find(pt => pt !== portal);
             if (dest) {
                 p.x = CONFIG.MAZE_OFFSET_X + dest.c * CONFIG.CELL_SIZE + 0.5;
                 p.y = dest.r * CONFIG.CELL_SIZE + 0.5;
@@ -740,7 +861,7 @@ export function checkPortalActions(p) {
                 p.portalInvulnFrames = COLLISION.PORTAL_INVULN_FRAMES;
                 p.speed = CONFIG.BASE_SPEED;
                 if (seededRandom() < CONFIG.PORTAL_GLITCH_CHANCE) {
-                    p.glitchStartTime = STATE.frameCount;
+                    p.glitchStartTime = state.frameCount;
                 }
             }
         }
@@ -748,11 +869,11 @@ export function checkPortalActions(p) {
 }
 
 export function checkCrate(p) {
-    if (STATE.ammoCrate && Math.abs((p.x + 1) - (STATE.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (STATE.ammoCrate.y + 1)) < 2) {
+    const state = getState();
+    if (state.ammoCrate && Math.abs((p.x + 1) - (state.ammoCrate.x + 1)) < 2 && Math.abs((p.y + 1) - (state.ammoCrate.y + 1)) < 2) {
         p.minesLeft = CONFIG.MAX_MINES;
         p.boostEnergy = CONFIG.MAX_ENERGY;
         playPowerupSfx();
-        STATE.ammoCrate = null;
-        STATE.ammoLastTakeTime = STATE.frameCount;
+        updateState({ ammoCrate: null, ammoLastTakeTime: state.frameCount });
     }
 }

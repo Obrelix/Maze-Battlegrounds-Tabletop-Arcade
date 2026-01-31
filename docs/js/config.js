@@ -33,21 +33,7 @@ export const CONFIG = {
     INPUT_DELAY: 20,
 };
 
-export const GAME = {
-    gameMode: 'SINGLE', // 'SINGLE', 'MULTI', 'ONLINE', 'HIGHSCORES'
-    screen: 'MENU',
-    isAttractMode: false,
-    demoResetTimer: 0,
-    inputDelay: CONFIG.INPUT_DELAY,
-    menuSelection: 0, // 0: SINGLE, 1: LOCAL MULTI, 2: ONLINE MULTI, 3: HIGH SCORES
-    lastUpdateTime: 0,
-    accumulator: 0
-};
 
-/** Reset input delay to prevent rapid key repeat */
-export function setInputDelay() {
-    GAME.inputDelay = CONFIG.INPUT_DELAY;
-}
 
 export const TIMING = {
     SUDDEN_DEATH_TIME: 1800,                                // Frames

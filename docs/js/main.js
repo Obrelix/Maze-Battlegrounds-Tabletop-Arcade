@@ -1,6 +1,9 @@
-import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES, GAME, setInputDelay } from './config.js';
-import { STATE, resetStateForMatch, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
-import { initMaze, spawnAmmoCrate, clearLoSCache } from './grid.js';
+let lastUpdateTime = performance.now();
+let accumulator = 0;
+
+import { CONFIG, CONTROLS_P1, CONTROLS_P2, TIMING, COLORS, DIFFICULTIES } from './config.js';
+import { getState, updateState, resetStateForMatch, suddenDeathIsActive, shouldSpawnAmmoCrate } from './state.js';
+import { initMaze, createAmmoCrate, clearLoSCache } from './grid.js';
 import { setupInputs, pollGamepads, checkIdle, getHumanInput } from './input.js';
 import { getCpuInput } from './ai/controller.js';
 import { setDifficulty, getDynamicDifficulty, setActiveConfig } from './ai/difficulty.js';
@@ -14,30 +17,33 @@ import { initOnlineMultiplayer, openLobby } from './online.js';
 
 function startMatchSetup() {
     resetStateForMatch();
-    GAME.screen = 'PLAYER_SETUP';
-    STATE.playerSetup = {
-        activePlayer: 0,
-        difficultyIdx: 3,
-        colorIdx: 0,
-        nameCharIdx: 0,
-        nameChars: [65, 65, 65],
-        phase: GAME.gameMode === 'MULTI' ? 'COLOR' : 'DIFFICULTY',
-        isDone: false
-    };
+    updateState(prevState => ({
+        screen: 'PLAYER_SETUP',
+        playerSetup: {
+            activePlayer: 0,
+            difficultyIdx: 3,
+            colorIdx: 0,
+            nameCharIdx: 0,
+            nameChars: [65, 65, 65],
+            phase: prevState.gameMode === 'MULTI' ? 'COLOR' : 'DIFFICULTY',
+            isDone: false
+        }
+    }));
 }
 
 function startGame(mazeSeed = null) {
-    if (STATE.sfx) STATE.sfx.init();
-    GAME.screen = 'PLAYING';
+    const state = getState();
+    if (state.sfx) state.sfx.init();
     resetStateForMatch();
+    updateState({ screen: 'PLAYING' });
     document.getElementById('statusText').innerText = `GOAL: ${CONFIG.MAX_SCORE} POINTS`;
-    const ps = STATE.playerSetup;
+    const ps = getState().playerSetup;
     const chosen = DIFFICULTIES[ps.difficultyIdx].name;
     if (chosen === "DYNAMIC") {
         setDifficulty("INTERMEDIATE");
-        STATE.difficulty = "DYNAMIC";
+        updateState({ difficulty: "DYNAMIC" });
     } else {
-        STATE.difficulty = chosen;
+        updateState({ difficulty: chosen });
         setDifficulty(chosen);
     }
     updateHtmlUI();
@@ -49,10 +55,11 @@ function startGame(mazeSeed = null) {
  * Called after round over to begin a new round
  */
 export function startNextRound(mazeSeed = null) {
+    const state = getState();
     // Apply dynamic difficulty adjustment if in DYNAMIC mode
-    if (STATE.difficulty === "DYNAMIC") {
-        const p0 = STATE.players[0];
-        const p1 = STATE.players[1];
+    if (state.difficulty === "DYNAMIC") {
+        const p0 = state.players[0];
+        const p1 = state.players[1];
         const humanScore = p0.name !== "CPU" ? p0.score : p1.score;
         const cpuScore = p0.name === "CPU" ? p0.score : p1.score;
         const totalRounds = p0.score + p1.score;
@@ -64,16 +71,17 @@ export function startNextRound(mazeSeed = null) {
 }
 
 function finalizeRound() {
-    if (STATE.isDraw) {
+    const state = getState();
+    if (state.isDraw) {
         resolveRound(null, 'DRAW');
         return;
     }
-    let winnerIdx = (STATE.victimIdx === 0) ? 1 : 0;
+    let winnerIdx = (state.victimIdx === 0) ? 1 : 0;
     resolveRound(winnerIdx, 'COMBAT');
 }
 
 function handleTimeOut() {
-    if (STATE.gameTime <= 0) {
+    if (getState().gameTime <= 0) {
         resolveRound(null, 'TIMEOUT');
         return true;
     }
@@ -82,11 +90,12 @@ function handleTimeOut() {
 
 function handleSuddenDeath() {
     if (suddenDeathIsActive()) {
+        const state = getState();
         // Limit total mines on field to prevent screen flooding
         const MAX_SUDDEN_DEATH_MINES = 12;
-        if (STATE.mines.length >= MAX_SUDDEN_DEATH_MINES) return;
+        if (state.mines.length >= MAX_SUDDEN_DEATH_MINES) return;
 
-        if (STATE.gameTime % 50 === 0) {
+        if (state.gameTime % 50 === 0) {
             // Keep off edges (1 cell margin)
             let rx = Math.floor(seededRandom() * (CONFIG.COLS - 2)) + 1;
             let ry = Math.floor(seededRandom() * (CONFIG.ROWS - 2)) + 1;
@@ -94,14 +103,14 @@ function handleSuddenDeath() {
             let mineY = ry * CONFIG.CELL_SIZE;
 
             // Check if position overlaps with any player (with safe margin)
-            let tooCloseToPlayer = STATE.players.some(p => {
+            let tooCloseToPlayer = state.players.some(p => {
                 let dx = Math.abs(p.x - mineX);
                 let dy = Math.abs(p.y - mineY);
                 return dx < CONFIG.CELL_SIZE * 2 && dy < CONFIG.CELL_SIZE * 2;
             });
 
             // Check if too close to existing mines
-            let tooCloseToMine = STATE.mines.some(m => {
+            let tooCloseToMine = state.mines.some(m => {
                 let dx = Math.abs(m.x - mineX);
                 let dy = Math.abs(m.y - mineY);
                 return dx < CONFIG.CELL_SIZE * 1.5 && dy < CONFIG.CELL_SIZE * 1.5;
@@ -109,44 +118,60 @@ function handleSuddenDeath() {
 
             // Only spawn if not too close to players or other mines
             if (!tooCloseToPlayer && !tooCloseToMine) {
-                STATE.mines.push({
+                const newMine = {
                     x: mineX,
                     y: mineY,
                     active: true,
-                    droppedAt: STATE.frameCount,
+                    droppedAt: state.frameCount,
                     visX: 0, visY: 0,
                     owner: -1
-                });
+                };
+                updateState(prevState => ({ mines: [...prevState.mines, newMine] }));
             }
         }
     }
 }
 
 function updateMinesAndCrates() {
-    STATE.mines.forEach(m => {
-        if (!m.active && STATE.frameCount - m.droppedAt > TIMING.MINE_ARM_TIME) m.active = true;
+    const state = getState();
+    const newMines = state.mines.map(m => {
+        if (!m.active && state.frameCount - m.droppedAt > TIMING.MINE_ARM_TIME) {
+            return { ...m, active: true };
+        }
+        return m;
     });
+    
+    let changes = { mines: newMines };
+
     if (shouldSpawnAmmoCrate()) {
-        spawnAmmoCrate();
+        changes.ammoCrate = createAmmoCrate();
     }
+    
+    updateState(changes);
 }
 
 function update() {
-    if (navigator.getGamepads)
-        STATE.gpData = pollGamepads(startGame, startMatchSetup, startNextRound);
 
     // Decrement inputDelay even while paused (for pause menu navigation)
-    if (GAME.inputDelay > 0) GAME.inputDelay--;
+    if (getState().inputDelay > 0) updateState(p => ({ inputDelay: p.inputDelay - 1 }));
 
-    if (GAME.screen !== 'PLAYING' || STATE.isPaused) {
+    if (navigator.getGamepads) {
+        const gpData = pollGamepads(startGame, startMatchSetup, startNextRound);
+        updateState({ gpData });
+    }
+    
+    const state = getState();
+
+    if (getState().screen !== 'PLAYING' || state.isPaused) {
         document.getElementById('joystick-zone').style.display = "none";
         document.getElementById('cross-zone').style.display = "grid";
     }
-    if (STATE.isPaused) return;
-    STATE.frameCount++;
-    clearLoSCache(STATE.frameCount);
-    if (GAME.inputDelay > 0) return;
-    switch (GAME.screen) {
+    if (state.isPaused) return;
+
+    updateState(prevState => ({ frameCount: prevState.frameCount + 1 }));
+    clearLoSCache(getState().frameCount);
+    if (getState().inputDelay > 0) return;
+    switch (getState().screen) {
         case 'HIGHSCORES': handlePlayerHSInput(); return;
         case 'PLAYER_SETUP': handlePlayerSetupInput(); return;
         case 'MENU': handlePlayerMenuInput(); return;
@@ -154,41 +179,54 @@ function update() {
     document.getElementById('joystick-zone').style.display = "flex";
     document.getElementById('cross-zone').style.display = "none";
 
-    if (suddenDeathIsActive() && !(STATE.isGameOver || STATE.isRoundOver)) {
-        STATE.scrollX += STATE.scrollXVal;
-        if (STATE.scrollX < 5) {
-            STATE.scrollY += STATE.scrollYVal;
-            STATE.scrollXVal *= -1;
-        }
-        if (STATE.scrollX > 75) {
-            STATE.scrollY += STATE.scrollYVal;
-            STATE.scrollXVal *= -1;
-        }
-        if (STATE.scrollY >= 60 || STATE.scrollY < 0) {
-            STATE.scrollYVal *= -1;
-            STATE.scrollY += STATE.scrollYVal;
-        }
+    const freshState = getState();
+    if (suddenDeathIsActive() && !(freshState.isGameOver || freshState.isRoundOver)) {
+        updateState(prevState => {
+            const newScrollX = prevState.scrollX + prevState.scrollXVal;
+            let newScrollY = prevState.scrollY;
+            let newScrollXVal = prevState.scrollXVal;
+            let newScrollYVal = prevState.scrollYVal;
+
+            if (newScrollX < 5 || newScrollX > 75) {
+                newScrollY += newScrollYVal;
+                newScrollXVal *= -1;
+            }
+            if (newScrollY >= 60 || newScrollY < 0) {
+                newScrollYVal *= -1;
+                newScrollY += newScrollYVal;
+            }
+            return {
+                scrollX: newScrollX,
+                scrollY: newScrollY,
+                scrollXVal: newScrollXVal,
+                scrollYVal: newScrollYVal
+            };
+        });
     }
 
-    if (STATE.deathTimer > 0) {
-        STATE.deathTimer--;
+    if (freshState.deathTimer > 0) {
+        updateState(prevState => ({ deathTimer: prevState.deathTimer - 1 }));
         updateProjectiles();
         updateParticles();
-        if (STATE.deathTimer <= 0) {
+        if (getState().deathTimer <= 0) {
             finalizeRound();
         }
         return;
     }
 
-    if (STATE.isGameOver || STATE.isRoundOver) {
+    if (freshState.isGameOver || freshState.isRoundOver) {
         updateParticles();
-        STATE.scrollX -= 0.5;
-        let msgLen = (STATE.isGameOver ? STATE.messages.taunt.length : STATE.messages.round.length);
-        if (STATE.scrollX < -(msgLen * 4.5)) STATE.scrollX = CONFIG.LOGICAL_W;
-        if (GAME.isAttractMode && GAME.demoResetTimer > 0) {
-            GAME.demoResetTimer--;
-            if (GAME.demoResetTimer <= 0) {
-                if (STATE.isGameOver) {
+        updateState(prevState => {
+            let newScrollX = prevState.scrollX - 0.5;
+            const msgLen = (prevState.isGameOver ? prevState.messages.taunt.length : prevState.messages.round.length);
+            if (newScrollX < -(msgLen * 4.5)) newScrollX = CONFIG.LOGICAL_W;
+            return { scrollX: newScrollX };
+        });
+
+        if (getState().isAttractMode && getState().demoResetTimer > 0) {
+            updateState(prevState => ({ demoResetTimer: prevState.demoResetTimer - 1 }));
+            if (getState().demoResetTimer <= 0) {
+                if (freshState.isGameOver) {
                     startGame();
                 } else {
                     startNextRound();
@@ -200,12 +238,13 @@ function update() {
 
     updateProjectiles();
     if (handleTimeOut()) return;
-    STATE.gameTime -= 1;
+    updateState(prevState => ({ gameTime: prevState.gameTime - 1 }));
     handleSuddenDeath();
     updateMinesAndCrates();
     checkBeamCollisions();
 
-    STATE.players.forEach((p, idx) => {
+    const players = getState().players;
+    players.forEach((p, idx) => {
         checkCrate(p);
         checkPortalActions(p);
         checkBoostTrail(p);
@@ -213,75 +252,76 @@ function update() {
         checkMinesActions(p);
 
         let cmd = {};
-
-        if (GAME.isAttractMode) {
-            cmd = getCpuInput(p, STATE.players[(idx + 1) % 2]);
-        } else if (GAME.gameMode === 'ONLINE') {
+        const latestState = getState();
+        if (getState().isAttractMode) {
+            cmd = getCpuInput(p, latestState.players[(idx + 1) % 2]);
+        } else if (getState().gameMode === 'ONLINE') {
             const localIdx = getLocalPlayerIndex();
             if (idx === localIdx) {
                 cmd = getHumanInput(0, CONTROLS_P1);
-                sendInput(STATE.frameCount + 2, cmd);
+                sendInput(latestState.frameCount + 2, cmd);
             } else {
-                cmd = getRemoteInput(STATE.frameCount);
+                cmd = getRemoteInput(latestState.frameCount);
             }
         } else {
             if (idx === 0) {
                 cmd = getHumanInput(idx, CONTROLS_P1);
             } else {
-                if (GAME.gameMode === 'SINGLE') cmd = getCpuInput(p, STATE.players[0]);
+                if (getState().gameMode === 'SINGLE') cmd = getCpuInput(p, latestState.players[0]);
                 else cmd = getHumanInput(idx, CONTROLS_P2);
             }
         }
         applyPlayerActions(p, cmd);
     });
 
-    if (GAME.gameMode === 'ONLINE') {
+    if (getState().gameMode === 'ONLINE') {
         cleanupInputBuffer();
     }
     updateParticles();
     validateState();
 }
 
-GAME.lastUpdateTime = performance.now();
+lastUpdateTime = performance.now();
 
 function loop(now) {
     if (now === undefined) now = performance.now();
-    GAME.accumulator += now - GAME.lastUpdateTime;
+    accumulator += now - lastUpdateTime;
 
-    GAME.lastUpdateTime = now;
-    while (GAME.accumulator >= CONFIG.FIXED_STEP_MS) {
+    lastUpdateTime = now;
+    while (accumulator >= CONFIG.FIXED_STEP_MS) {
         update();
-        GAME.accumulator -= CONFIG.FIXED_STEP_MS;
+        accumulator -= CONFIG.FIXED_STEP_MS;
     }
 
-    if (GAME.screen === 'MENU') renderMenu();
-    else if (GAME.screen === 'PLAYER_SETUP') renderPlayerSetup();
-    else if (GAME.screen === 'HIGHSCORES') renderHighScores();
+    if (getState().screen === 'MENU') renderMenu();
+    else if (getState().screen === 'PLAYER_SETUP') renderPlayerSetup();
+    else if (getState().screen === 'HIGHSCORES') renderHighScores();
     else renderGame();
 
     requestAnimationFrame(loop);
 }
 
 function handlePlayerHSInput() {
+    const state = getState();
     // Tab switching with A/D or Left/Right
-    if (STATE.keys['KeyA'] || STATE.keys['ArrowLeft']) {
-        STATE.highScoreTab = 0; // Leaderboard
-        setInputDelay();
+    if (state.keys['KeyA'] || state.keys['ArrowLeft']) {
+        updateState({ highScoreTab: 0 }); // Leaderboard
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
         return;
     }
-    if (STATE.keys['KeyD'] || STATE.keys['ArrowRight']) {
-        STATE.highScoreTab = 1; // Stats
-        setInputDelay();
+    if (state.keys['KeyD'] || state.keys['ArrowRight']) {
+        updateState({ highScoreTab: 1 }); // Stats
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
         return;
     }
 
     // Exit to menu with other keys
-    if (STATE.keys['Escape'] || STATE.keys['Space'] || STATE.keys['Enter'] || STATE.keys['KeyStart'] ||
-        STATE.keys['KeyW'] || STATE.keys['KeyS'] || STATE.keys['ArrowUp'] || STATE.keys['ArrowDown']) {
-        GAME.screen = 'MENU';
-        GAME.menuSelection = 0;
-        setInputDelay();
-        STATE.highScoreTab = 0; // Reset tab
+    if (state.keys['Escape'] || state.keys['Space'] || state.keys['Enter'] || state.keys['KeyStart'] ||
+        state.keys['KeyW'] || state.keys['KeyS'] || state.keys['ArrowUp'] || state.keys['ArrowDown']) {
+        updateState({ screen: 'MENU' });
+        updateState({ menuSelection: 0 });
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
+        updateState({ highScoreTab: 0 }); // Reset tab
     }
 }
 
@@ -289,46 +329,46 @@ function handlePlayerMenuInput() {
     const input = getHumanInput(0, CONTROLS_P1);
 
     if (input.up) {
-        GAME.menuSelection = (GAME.menuSelection - 1 + 4) % 4;
-        setInputDelay();
+        updateState(p => ({ menuSelection: (p.menuSelection - 1 + 4) % 4 }));
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     }
     if (input.down) {
-        GAME.menuSelection = (GAME.menuSelection + 1) % 4;
-        setInputDelay();
+        updateState(p => ({ menuSelection: (p.menuSelection + 1) % 4 }));
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     }
 
     if (input.boom || input.beam || input.start) {
-        setInputDelay();
-        switch (GAME.menuSelection) {
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
+        switch (getState().menuSelection) {
             case 0:
-                GAME.gameMode = 'SINGLE';
+                updateState({ gameMode: 'SINGLE' });
                 startMatchSetup();
                 break;
             case 1:
-                GAME.gameMode = 'MULTI';
+updateState({ gameMode: 'MULTI' });
                 startMatchSetup();
                 break;
             case 2:
-                GAME.gameMode = 'ONLINE';
+updateState({ gameMode: 'ONLINE' });
                 openLobby();
                 break;
             case 3:
-                GAME.screen = 'HIGHSCORES';
-                GAME.gameMode = 'HIGHSCORES';
+                updateState({ screen: 'HIGHSCORES' });
+updateState({ gameMode: 'HIGHSCORES' });
                 break;
         }
     }
 
     // Legacy number key support
-    if (STATE.keys['Digit1']) { GAME.gameMode = 'SINGLE'; startMatchSetup(); }
-    if (STATE.keys['Digit2']) { GAME.gameMode = 'MULTI'; startMatchSetup(); }
-    if (STATE.keys['Digit3']) { GAME.gameMode = 'ONLINE'; openLobby(); }
-    if (STATE.keys['Digit4']) { GAME.screen = 'HIGHSCORES'; GAME.gameMode = 'HIGHSCORES'; }
+    const state = getState();
+        if (state.keys['Digit1']) { updateState({ gameMode: 'SINGLE' }); startMatchSetup(); }
+    if (state.keys['Digit2']) { updateState({ gameMode: 'MULTI' }); startMatchSetup(); }
+    if (state.keys['Digit3']) { updateState({ gameMode: 'ONLINE' }); openLobby(); }
+    if (state.keys['Digit4']) { updateState({ screen: 'HIGHSCORES', gameMode: 'HIGHSCORES' }); }
 
-    if (checkIdle() && GAME.gameMode !== 'ONLINE') {
-        GAME.isAttractMode = true;
-        GAME.gameMode = 'MULTI';
-        STATE.playerSetup.difficultyIdx = 3;
+    if (checkIdle() && getState().gameMode !== 'ONLINE') {
+        updateState({ isAttractMode: true, gameMode: 'MULTI' });
+        updateState(prevState => ({ playerSetup: { ...prevState.playerSetup, difficultyIdx: 3 } }));
         startGame();
     }
     updateParticles();
@@ -339,44 +379,52 @@ function handlePlayerMenuInput() {
 function handleDifficultyPhase(ps, input) {
     if (input.left) {
         ps.difficultyIdx = (ps.difficultyIdx - 1 + DIFFICULTIES.length) % DIFFICULTIES.length;
-        setInputDelay();
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     }
     if (input.right) {
         ps.difficultyIdx = (ps.difficultyIdx + 1) % DIFFICULTIES.length;
-        setInputDelay();
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     }
     if (input.down || input.boom || input.beam || input.start) {
         ps.phase = 'COLOR';
-        STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
-        setInputDelay();
+        updateState(prevState => {
+            const newPlayers = [...prevState.players];
+            newPlayers[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
+            return { players: newPlayers };
+        });
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     }
 }
 
 function handleColorPhase(ps, input, isMulti) {
     if (input.left) {
         ps.colorIdx = (ps.colorIdx - 1 + COLORS.length) % COLORS.length;
-        setInputDelay();
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     }
     if (input.right) {
         ps.colorIdx = (ps.colorIdx + 1) % COLORS.length;
-        setInputDelay();
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     }
     if (input.down || input.boom || input.beam || input.start) {
-        STATE.players[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
+        updateState(prevState => {
+            const newPlayers = [...prevState.players];
+            newPlayers[ps.activePlayer].color = COLORS[ps.colorIdx].hex;
+            return { players: newPlayers };
+        });
         ps.phase = 'NAME';
         ps.nameCharIdx = 0;
         ps.nameChars = ps.nameChars ?? [65, 65, 65];
-        setInputDelay();
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     }
     if (input.up) {
         if (ps.activePlayer === 1) {
             ps.activePlayer = 0;
             ps.colorIdx = 0;
             ps.phase = 'COLOR';
-            setInputDelay();
+            updateState({ inputDelay: CONFIG.INPUT_DELAY });
         } else if (!isMulti) {
             ps.phase = 'DIFFICULTY';
-            setInputDelay();
+            updateState({ inputDelay: CONFIG.INPUT_DELAY });
         }
     }
 }
@@ -386,17 +434,17 @@ function handleNamePhase(ps, input) {
     if (input.up) {
         ps.nameChars[ps.nameCharIdx]++;
         if (ps.nameChars[ps.nameCharIdx] > 90) ps.nameChars[ps.nameCharIdx] = 65;
-        GAME.inputDelay = NAME_INPUT_DELAY;
+        updateState({ inputDelay: NAME_INPUT_DELAY });
     }
     if (input.down) {
         ps.nameChars[ps.nameCharIdx]--;
         if (ps.nameChars[ps.nameCharIdx] < 65) ps.nameChars[ps.nameCharIdx] = 90;
-        GAME.inputDelay = NAME_INPUT_DELAY;
+        updateState({ inputDelay: NAME_INPUT_DELAY });
     }
     if (input.right || input.boom || input.beam || input.start) {
         if (ps.nameCharIdx < 2) {
             ps.nameCharIdx++;
-            setInputDelay();
+            updateState({ inputDelay: CONFIG.INPUT_DELAY });
         } else {
             finishPlayerSetup(ps);
         }
@@ -404,37 +452,41 @@ function handleNamePhase(ps, input) {
     if (input.left) {
         if (ps.nameCharIdx > 0) {
             ps.nameCharIdx--;
-            setInputDelay();
+            updateState({ inputDelay: CONFIG.INPUT_DELAY });
         } else {
             ps.phase = 'COLOR';
             ps.colorIdx = ps.activePlayer === 0 ? 0 : 1;
-            setInputDelay();
+            updateState({ inputDelay: CONFIG.INPUT_DELAY });
         }
     }
 }
 
 function finishPlayerSetup(ps) {
     let finalName = validateAndTrimName(String.fromCharCode(...ps.nameChars));
-    STATE.players[ps.activePlayer].name = finalName;
-    if (ps.activePlayer === 0 && GAME.gameMode === 'MULTI') {
+    updateState(prevState => {
+        const newPlayers = [...prevState.players];
+        newPlayers[ps.activePlayer].name = finalName;
+        return { players: newPlayers };
+    });
+    if (ps.activePlayer === 0 && getState().gameMode === 'MULTI') {
         // Move to player 2 setup
         ps.activePlayer = 1;
         ps.colorIdx = 1;
         ps.nameCharIdx = 0;
         ps.nameChars = [65, 65, 65];
         ps.phase = 'COLOR';
-        setInputDelay();
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
     } else {
-        setInputDelay();
+        updateState({ inputDelay: CONFIG.INPUT_DELAY });
         startGame();
     }
 }
 
 function handlePlayerSetupInput() {
-    const ps = STATE.playerSetup;
+    const ps = getState().playerSetup;
     const controls = ps.activePlayer === 0 ? CONTROLS_P1 : CONTROLS_P2;
     const input = getHumanInput(ps.activePlayer, controls);
-    const isMulti = GAME.gameMode === 'MULTI';
+    const isMulti = getState().gameMode === 'MULTI';
 
     if (ps.phase === 'DIFFICULTY' && ps.activePlayer === 0 && !isMulti) {
         handleDifficultyPhase(ps, input);
@@ -457,14 +509,15 @@ function validateAndTrimName(name) {
 }
 
 function updateHtmlUI() {
-    let p1Name = STATE.players[0]?.name || "CPU";
-    let p1Color = STATE.players[0]?.color ?? COLORS[5]?.hex;
-    let p2Name = STATE.players[1]?.name || "CPU";
-    let p2Color = STATE.players[1]?.color ?? COLORS[1]?.hex;
+    const state = getState();
+    let p1Name = state.players[0]?.name || "CPU";
+    let p1Color = state.players[0]?.color ?? COLORS[5]?.hex;
+    let p2Name = state.players[1]?.name || "CPU";
+    let p2Color = state.players[1]?.color ?? COLORS[1]?.hex;
     document.getElementById('p1-header').style.color = p1Color;
-    document.getElementById('p1-header').innerHTML = p1Name === "CPU" ? `${p1Name} - ${STATE.difficulty}` : p1Name;
+    document.getElementById('p1-header').innerHTML = p1Name === "CPU" ? `${p1Name} - ${state.difficulty}` : p1Name;
     document.getElementById('p2-header').style.color = p2Color;
-    document.getElementById('p2-header').innerHTML = p2Name === "CPU" ? `${p2Name} - ${STATE.difficulty}` : p2Name;
+    document.getElementById('p2-header').innerHTML = p2Name === "CPU" ? `${p2Name} - ${state.difficulty}` : p2Name;
     document.getElementById('p1-panel').style.border = `1px solid ${p1Color.slice(0, 7)}63`;
     document.getElementById('p1-panel').style.boxShadow = `inset 0 0 15px ${p1Color.slice(0, 7)}23`;
     document.getElementById('p2-panel').style.border = `1px solid ${p2Color.slice(0, 7)}63`;
@@ -477,3 +530,4 @@ window.addEventListener('load', () => {
     loop();
     updateHtmlUI();
 });
+

@@ -4,7 +4,7 @@
 import { WebSocketServer } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageType, ErrorCode } from './src/protocol.js';
-import { createRoom, joinRoom, leaveRoom, listRooms, startGame, handleDisconnect, getRoom, getOpponent } from './src/lobby.js';
+import { createRoom, joinRoom, leaveRoom, listRooms, startGame, handleDisconnect } from './src/lobby.js';
 import { handleSignal, handleFallbackRequest, relayInput, relayNextRound, relayRestartGame, relayPause } from './src/signaling.js';
 
 import { networkInterfaces } from 'os';
@@ -67,19 +67,19 @@ wss.on('connection', (ws) => {
                 break;
 
             case MessageType.CREATE_ROOM:
-                createRoom(ws, message.name);
+                createRoom(ws, message.name, clients);
                 break;
 
             case MessageType.JOIN_ROOM:
-                joinRoom(ws, message.roomId);
+                joinRoom(ws, message.roomId, clients);
                 break;
 
             case MessageType.LEAVE_ROOM:
-                leaveRoom(ws);
+                leaveRoom(ws, clients);
                 break;
 
             case MessageType.START_GAME:
-                startGame(ws);
+                startGame(ws, clients);
                 break;
 
             case MessageType.SIGNAL:
@@ -118,13 +118,13 @@ wss.on('connection', (ws) => {
     ws.on('close', () => {
         console.log(`Client disconnected: ${ws.id}`);
         clients.delete(ws);
-        handleDisconnect(ws);
+        handleDisconnect(ws, clients);
     });
 
     ws.on('error', (error) => {
         console.error(`WebSocket error for ${ws.id}:`, error);
         clients.delete(ws);
-        handleDisconnect(ws);
+        handleDisconnect(ws, clients);
     });
 });
 

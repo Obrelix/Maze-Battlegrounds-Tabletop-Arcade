@@ -1,5 +1,5 @@
 import { CONFIG, TIMING } from '../config.js';
-import { STATE } from '../state.js';
+import { getState } from '../state.js';
 import { hasLineOfSight } from '../grid.js';
 
 /**
@@ -12,7 +12,8 @@ import { hasLineOfSight } from '../grid.js';
  * @returns {{usePortal: boolean, portal: Object|null, benefit: number}} Portal recommendation
  */
 function evaluatePortalStrategy(player, goalX, goalY, currentConfig = null) {
-  if (!STATE.portals || STATE.portals.length < 2) {
+  const state = getState();
+  if (!state.portals || state.portals.length < 2) {
     return { usePortal: false, portal: null, benefit: 0 };
   }
 
@@ -34,9 +35,9 @@ function evaluatePortalStrategy(player, goalX, goalY, currentConfig = null) {
   let bestPortal = null;
   let bestBenefit = 0;
 
-  for (let i = 0; i < STATE.portals.length; i++) {
-    const portal = STATE.portals[i];
-    const otherPortal = STATE.portals[(i + 1) % STATE.portals.length];
+  for (let i = 0; i < state.portals.length; i++) {
+    const portal = state.portals[i];
+    const otherPortal = state.portals[(i + 1) % state.portals.length];
 
     // Distance from player to this portal
     const distToPortal = Math.hypot(portal.x - playerCenterX, portal.y - playerCenterY);
@@ -73,14 +74,15 @@ function evaluatePortalStrategy(player, goalX, goalY, currentConfig = null) {
  * @returns {{shouldFlank: boolean, portal: Object|null}} Flank recommendation
  */
 function evaluatePortalFlank(player, opponent) {
-  if (!STATE.portals || STATE.portals.length < 2 || player.portalCooldown > 0) {
+  const state = getState();
+  if (!state.portals || state.portals.length < 2 || player.portalCooldown > 0) {
     return { shouldFlank: false, portal: null };
   }
 
   // Check if using portal would put us closer to opponent's back
-  for (let i = 0; i < STATE.portals.length; i++) {
-    const portal = STATE.portals[i];
-    const exit = STATE.portals[(i + 1) % STATE.portals.length];
+  for (let i = 0; i < state.portals.length; i++) {
+    const portal = state.portals[i];
+    const exit = state.portals[(i + 1) % state.portals.length];
 
     const distToPortal = Math.hypot(portal.x - player.x, portal.y - player.y);
     if (distToPortal > 15) continue; // Too far from portal
@@ -105,7 +107,8 @@ function evaluatePortalFlank(player, opponent) {
  * @returns {{shouldEscape: boolean, portal: Object|null}} Escape recommendation
  */
 function evaluatePortalEscape(player, opponent) {
-  if (!STATE.portals || STATE.portals.length < 2) {
+  const state = getState();
+  if (!state.portals || state.portals.length < 2) {
     return { shouldEscape: false, portal: null };
   }
 
@@ -126,7 +129,7 @@ function evaluatePortalEscape(player, opponent) {
   let nearestPortal = null;
   let nearestDist = Infinity;
 
-  for (const portal of STATE.portals) {
+  for (const portal of state.portals) {
     const dist = Math.hypot(portal.x - playerCenterX, portal.y - playerCenterY);
     if (dist < nearestDist && dist < 10) {
       nearestDist = dist;
@@ -148,12 +151,13 @@ function evaluatePortalEscape(player, opponent) {
  * @returns {boolean} True if strategy is still valid
  */
 function isStrategyStillValid(currentStrategy, player, opponent) {
+  const state = getState();
   if (!currentStrategy || !currentStrategy.type) return false;
 
   switch (currentStrategy.type) {
     case 'EXECUTE':
       // Execute strategy invalid if opponent is no longer stunned/glitched
-      return opponent.stunRemaining(STATE.frameCount) > 0 || opponent.glitchRemaining(STATE.frameCount) > 0;
+      return opponent.stunRemaining(state.frameCount) > 0 || opponent.glitchRemaining(state.frameCount) > 0;
 
     case 'PORTAL_ESCAPE':
       // Escape invalid if no longer in danger or no nearby portal
@@ -162,7 +166,7 @@ function isStrategyStillValid(currentStrategy, player, opponent) {
 
     case 'SCAVENGE':
       // Scavenge invalid if ammo crate is gone
-      return STATE.ammoCrate !== null;
+      return state.ammoCrate !== null;
 
     case 'BLOCK_GOAL':
     case 'GOAL':
@@ -190,6 +194,7 @@ function isStrategyStillValid(currentStrategy, player, opponent) {
  * @returns {{x: number, y: number, type: string, priority: number, canCharge?: boolean}} Strategy target
  */
 export function decideStrategy(player, opponent, currentConfig, opponentPrediction = null) {
+  const state = getState();
   let goalX = CONFIG.MAZE_OFFSET_X + (player.goalC * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
   let goalY = (player.goalR * CONFIG.CELL_SIZE) + (CONFIG.CELL_SIZE / 2);
 
@@ -225,8 +230,8 @@ export function decideStrategy(player, opponent, currentConfig, opponentPredicti
   let bestStrategy = { x: goalX, y: goalY, type: 'GOAL', priority: 1 };
 
   // Check if we have an advantage (opponent disabled or far)
-  const opponentStunned = opponent.stunRemaining(STATE.frameCount) > 30;
-  const opponentGlitched = opponent.glitchRemaining(STATE.frameCount) > 60;
+  const opponentStunned = opponent.stunRemaining(state.frameCount) > 30;
+  const opponentGlitched = opponent.glitchRemaining(state.frameCount) > 60;
   const opponentDisabled = opponentStunned || opponentGlitched;
   const opponentFar = distToEnemy > 35;
   const closerToGoal = myDistToGoal < enemyDistToTheirGoal;
@@ -249,7 +254,7 @@ export function decideStrategy(player, opponent, currentConfig, opponentPredicti
   }
 
   // SUDDEN DEATH MODE - More aggressive when time is low
-  const isSuddenDeath = STATE.gameTime < TIMING.SUDDEN_DEATH_TIME;
+  const isSuddenDeath = state.gameTime < TIMING.SUDDEN_DEATH_TIME;
   if (isSuddenDeath && currentConfig.NAME !== 'BEGINNER') {
     // In sudden death, prioritize scoring over hunting
     if (myDistToGoal < enemyDistToTheirGoal * 1.5) {
@@ -279,7 +284,7 @@ export function decideStrategy(player, opponent, currentConfig, opponentPredicti
     }
 
     // EXECUTE STUNNED
-    if ((opponent.stunRemaining(STATE.frameCount) > 0 || opponent.glitchRemaining(STATE.frameCount) > 0) && currentConfig.NAME !== 'BEGINNER') {
+    if ((opponent.stunRemaining(state.frameCount) > 0 || opponent.glitchRemaining(state.frameCount) > 0) && currentConfig.NAME !== 'BEGINNER') {
       const candidate = { x: opponent.x + opponent.size / 2, y: opponent.y + opponent.size / 2, type: 'EXECUTE', priority: 9, canCharge: true };
       if (candidate.priority > bestStrategy.priority) bestStrategy = candidate;
     }
@@ -303,7 +308,7 @@ export function decideStrategy(player, opponent, currentConfig, opponentPredicti
     }
 
     // RESOURCE DENIAL
-    let ammo = STATE.ammoCrate;
+    let ammo = state.ammoCrate;
     if (ammo && currentConfig.RESOURCE_DENIAL_ENABLED !== false) {
       let distToAmmo = Math.hypot(ammo.x - player.x, ammo.y - player.y);
       let enemyDistToAmmo = Math.hypot(ammo.x - opponent.x, ammo.y - opponent.y);
@@ -549,12 +554,13 @@ export function predictCornerCut(opponent, predictedX, predictedY) {
 }
 
 export function shouldExecuteCombo(player, opponent, currentConfig) {
+  const state = getState();
   if (!currentConfig.COMBO_CHAINS_ENABLED) return null;
 
   const dist = Math.hypot(player.x - opponent.x, player.y - opponent.y);
-  const stunTime = opponent.stunRemaining(STATE.frameCount);
+  const stunTime = opponent.stunRemaining(state.frameCount);
   // Only check glitch time if glitch is actually active (glitchStartTime !== 0)
-  const glitchTime = opponent.glitchStartTime !== 0 ? opponent.glitchRemaining(STATE.frameCount) : 0;
+  const glitchTime = opponent.glitchStartTime !== 0 ? opponent.glitchRemaining(state.frameCount) : 0;
 
   // STUN_EXECUTE COMBO: Multi-phase attack on stunned opponent
   // Phase 1: If far, boost close

@@ -1,5 +1,5 @@
 import { CONFIG } from '../config.js';
-import { STATE } from '../state.js';
+import { getState } from '../state.js';
 import { gridIndex, isWall } from '../grid.js';
 
 // Pre-defined directions: [dc, dr, wallIndex]
@@ -71,7 +71,8 @@ class MinHeap {
  * @returns {Array} Array of cell objects forming the path, or empty if no path
  */
 export function findPathToTarget(fromPlayer, targetX, targetY) {
-  if (!STATE.maze || STATE.maze.length === 0) return [];
+  const state = getState();
+  if (!state.maze || state.maze.length === 0) return [];
 
   let startC = Math.floor((fromPlayer.x - CONFIG.MAZE_OFFSET_X + (fromPlayer.size / 2)) / CONFIG.CELL_SIZE);
   let startR = Math.floor((fromPlayer.y + (fromPlayer.size / 2)) / CONFIG.CELL_SIZE);
@@ -89,9 +90,9 @@ export function findPathToTarget(fromPlayer, targetX, targetY) {
   if (!start || !end) return [];
 
   // Reset A* state
-  for (let i = 0; i < STATE.maze.length; i++) {
-    STATE.maze[i].gCost = Infinity;
-    STATE.maze[i].parent = null;
+  for (let i = 0; i < state.maze.length; i++) {
+    state.maze[i].gCost = Infinity;
+    state.maze[i].parent = null;
   }
 
   // Manhattan distance heuristic

@@ -1,8 +1,8 @@
 // Online Multiplayer Module
 // Handles lobby UI, network callbacks, and online game setup
 
-import { CONFIG, GAME } from './config.js';
-import { STATE } from './state.js';
+import { CONFIG } from './config.js';
+import { getState, updateState } from './state.js';
 import { initMaze } from './grid.js';
 import {
     connectToServer, disconnect, requestRoomList, createRoom, joinRoom, leaveRoom,
@@ -89,19 +89,26 @@ export function resetLobbyUI() {
  * @param {number} playerIndex - Local player index (0 or 1)
  */
 function startOnlineGame(mazeSeed, playerIndex) {
-    console.log('startOnlineGame called:', { mazeSeed, playerIndex, currentScreen: GAME.screen });
-    GAME.gameMode = 'ONLINE';
+    console.log('startOnlineGame called:', { mazeSeed, playerIndex, currentScreen: getState().screen });
+    updateState({ gameMode: 'ONLINE' });
     hideLobbyModal();
 
     if (onStartGame) {
         onStartGame(mazeSeed);
     }
 
-    console.log('After startGame, screen is:', GAME.screen);
+    console.log('After startGame, screen is:', getState().screen);
 
-    // Set player names after players exist
-    STATE.players[playerIndex].name = 'YOU';
-    STATE.players[1 - playerIndex].name = 'OPP';
+    const newPlayers = getState().players.map((p, i) => {
+        const newPlayer = Object.assign(Object.create(Object.getPrototypeOf(p)), p);
+        if (i === playerIndex) {
+            newPlayer.name = 'YOU';
+        } else {
+            newPlayer.name = 'OPP';
+        }
+        return newPlayer;
+    });
+    updateState({ players: newPlayers });
 
     if (onUpdateHtmlUI) {
         onUpdateHtmlUI();
@@ -201,10 +208,10 @@ function setupNetworkCallbacks() {
     setOnNextRound(() => {
         // Remote player signaled to start next round
         console.log('Remote player started next round');
-        if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
+        if (getState().gameMode === 'ONLINE' && getState().screen === 'PLAYING') {
             // Check if we haven't already initiated the transition
-            if (!STATE.onlineTransitionPending) {
-                STATE.onlineTransitionPending = true;
+            if (!getState().onlineTransitionPending) {
+                updateState({ onlineTransitionPending: true });
                 initMaze(getNextRoundSeed());
             }
             // If onlineTransitionPending is true, we already triggered locally, skip
@@ -214,10 +221,10 @@ function setupNetworkCallbacks() {
     setOnRestartGame(() => {
         // Remote player signaled to restart the game
         console.log('Remote player restarted the game');
-        if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
+        if (getState().gameMode === 'ONLINE' && getState().screen === 'PLAYING') {
             // Check if we haven't already initiated the transition
-            if (!STATE.onlineTransitionPending) {
-                STATE.onlineTransitionPending = true;
+            if (!getState().onlineTransitionPending) {
+                updateState({ onlineTransitionPending: true });
                 if (onStartGame) {
                     onStartGame(getRestartGameSeed());
                 }
@@ -229,14 +236,14 @@ function setupNetworkCallbacks() {
     setOnPause((isPaused) => {
         // Remote player toggled pause - synchronize our pause state
         console.log('Remote player toggled pause:', isPaused);
-        if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
-            STATE.isPaused = isPaused;
+        if (getState().gameMode === 'ONLINE' && getState().screen === 'PLAYING') {
+            updateState({ isPaused: isPaused });
         }
     });
 
     setOnDisconnect((reason) => {
-        if (GAME.gameMode === 'ONLINE' && GAME.screen === 'PLAYING') {
-            STATE.isPaused = true;
+        if (getState().gameMode === 'ONLINE' && getState().screen === 'PLAYING') {
+            updateState({ isPaused: true });
             const disconnectOverlay = document.getElementById('disconnect-overlay');
             if (disconnectOverlay) {
                 disconnectOverlay.style.display = 'flex';
@@ -366,13 +373,15 @@ function setupLobbyUI() {
     // Disconnect overlay - click to return to menu
     const disconnectOverlay = document.getElementById('disconnect-overlay');
     if (disconnectOverlay) {
-        disconnectOverlay.addEventListener('click', () => {
+    disconnectOverlay.addEventListener('click', () => {
             disconnectOverlay.style.display = 'none';
-            STATE.isPaused = false;
-            GAME.screen = 'MENU';
-            GAME.menuSelection = 0;
-            GAME.inputDelay = CONFIG.INPUT_DELAY;
-            GAME.gameMode = 'SINGLE';
+            updateState({
+                isPaused: false,
+                screen: 'MENU',
+                menuSelection: 0,
+                inputDelay: CONFIG.INPUT_DELAY,
+                gameMode: 'SINGLE'
+            });
             document.getElementById('statusText').innerText = 'SELECT MODE';
         });
     }

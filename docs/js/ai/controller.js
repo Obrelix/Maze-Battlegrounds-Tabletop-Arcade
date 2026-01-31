@@ -1,5 +1,5 @@
 import { CONFIG, TIMING } from '../config.js';
-import { STATE } from '../state.js';
+import { getState } from '../state.js';
 import { hasLineOfSight } from '../grid.js';
 import { findPathToTarget, isPlayerStuck, getUnstuckDirection } from './pathfinding.js';
 import { decideStrategy, shouldExecuteCombo } from './strategy.js';
@@ -173,9 +173,10 @@ export function getOpponentPrediction(player, opponent) {
  */
 function validateComboConditions(combo, player, opponent) {
   if (!combo || !combo.type) return false;
+  const state = getState();
 
-  const stunTime = opponent.stunRemaining(STATE.frameCount);
-  const glitchTime = opponent.glitchRemaining(STATE.frameCount);
+  const stunTime = opponent.stunRemaining(state.frameCount);
+  const glitchTime = opponent.glitchRemaining(state.frameCount);
   const dist = Math.hypot(player.x - opponent.x, player.y - opponent.y);
 
   switch (combo.type) {
@@ -303,6 +304,7 @@ export function getCpuInput(player, opponent) {
   };
 
   if (!player || !opponent) return cmd;
+  const state = getState();
 
   // --- 0. CONFIG LOADING ---
   let currentConfig = getActiveConfig();
@@ -407,7 +409,7 @@ export function getCpuInput(player, opponent) {
       const ownMineDetectRadius = currentConfig.NAME === 'INSANE' ? 12 : mineDetectRadius;
       let criticalMineNearby = false; // Flag for mines we're about to hit
 
-      STATE.mines.forEach(mine => {
+      state.mines.forEach(mine => {
         let dist = Math.hypot(mine.x - player.x, mine.y - player.y);
         const isOwnMine = mine.owner === player.id;
         const detectRadius = isOwnMine ? ownMineDetectRadius : mineDetectRadius;
@@ -488,7 +490,7 @@ export function getCpuInput(player, opponent) {
       }
 
       // H. Sudden Death Urgency - Move faster when time is critical
-      if (STATE.gameTime < TIMING.SUDDEN_DEATH_TIME && player.aiMentalModel.strategy?.urgent) {
+      if (state.gameTime < TIMING.SUDDEN_DEATH_TIME && player.aiMentalModel.strategy?.urgent) {
         // Boost more aggressively in sudden death
         if (player.boostEnergy > 25) {
           player.aiMentalModel.energyStrat.boost = true;
@@ -622,7 +624,7 @@ export function getCpuInput(player, opponent) {
 
   // Record mine placement for density tracking
   if (cmd.mine) {
-    recordMinePlacement(player, player.x, player.y, STATE.frameCount);
+    recordMinePlacement(player, player.x, player.y, state.frameCount);
   }
 
   // Update State for next frame

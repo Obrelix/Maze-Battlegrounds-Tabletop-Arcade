@@ -1,5 +1,5 @@
-import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS, DIFFICULTIES, GAME } from './config.js';
-import { STATE, suddenDeathIsActive, getFormattedStats } from './state.js';
+import { CONFIG, BITMAP_FONT, DIGIT_MAP, TIMING, COLORS, DIFFICULTIES } from './config.js';
+import { getState, updateState, suddenDeathIsActive, getFormattedStats } from './state.js';
 import { gridIndex } from './grid.js';
 import { generateDecorativeMaze } from './menu-maze.js';
 
@@ -158,10 +158,10 @@ function renderPlayerHUD(player, timerStr, wallColor, isPlayer1) {
 function renderHUD(wallColor) {
     // This ensures the HUD doesn't shake with the world
     ctx.restore();
-    const timerStr = Math.ceil(STATE.gameTime / 60).toString().padStart(3, '0');
+    const timerStr = Math.ceil(getState().gameTime / 60).toString().padStart(3, '0');
 
-    renderPlayerHUD(STATE.players[0], timerStr, wallColor, true);
-    renderPlayerHUD(STATE.players[1], timerStr, wallColor, false);
+    renderPlayerHUD(getState().players[0], timerStr, wallColor, true);
+    renderPlayerHUD(getState().players[1], timerStr, wallColor, false);
 }
 
 export function preRenderBackground() {
@@ -257,7 +257,7 @@ function drawMenuDecoratives(wallColor) {
 }
 
 function drawMazeWalls(wallColor) {
-    STATE.maze.forEach(c => {
+    getState().maze.forEach(c => {
         let x = c.c * CONFIG.CELL_SIZE + CONFIG.MAZE_OFFSET_X;
         let y = c.r * CONFIG.CELL_SIZE;
 
@@ -303,8 +303,8 @@ function drawMazeWalls(wallColor) {
 }
 
 function drawGoals() {
-    let gc = Math.floor(STATE.frameCount / 12) % 2 === 0 ? '#fff' : '#444';
-    STATE.players.forEach(p => {
+    let gc = Math.floor(getState().frameCount / 12) % 2 === 0 ? '#fff' : '#444';
+    getState().players.forEach(p => {
         let gx = CONFIG.MAZE_OFFSET_X + p.goalC * CONFIG.CELL_SIZE + 1;
         let gy = p.goalR * CONFIG.CELL_SIZE + 1;
         drawLED(gx, gy, gc);
@@ -315,13 +315,17 @@ function drawGoals() {
 }
 
 function drawPortals() {
-    if (STATE.gameTime % 30 === 0) STATE.portalReverseColors = !STATE.portalReverseColors;
-    STATE.portals.forEach((p, idx) => {
+    const state = getState();
+    if (state.gameTime % 30 === 0) {
+        updateState(prevState => ({ portalReverseColors: !prevState.portalReverseColors }));
+    }
+    const freshState = getState();
+    freshState.portals.forEach((p, idx) => {
         let tx = Math.floor(p.x - 1.5);
         let ty = Math.floor(p.y - 1.5);
         let effectColor = '#ffffffaa';
         const inOpacityHex = 0x60;
-        let outColor = (idx === 0) ? (STATE.portalReverseColors ? STATE.cyanColor : STATE.blueColor) : (STATE.portalReverseColors ? STATE.blueColor : STATE.cyanColor);
+        let outColor = (idx === 0) ? (freshState.portalReverseColors ? freshState.cyanColor : freshState.blueColor) : (freshState.portalReverseColors ? freshState.blueColor : freshState.cyanColor);
 
         const perimeter = [
             { dx: 1, dy: 0 }, { dx: 2, dy: 0 },
@@ -341,7 +345,7 @@ function drawPortals() {
             { dx: 1, dy: 2 }
         ];
 
-        let tick = Math.floor(STATE.frameCount / 6);
+        let tick = Math.floor(freshState.frameCount / 6);
         let activeIdx = tick % 4;
 
         const dimHex = inOpacityHex.toString(16).padStart(2, '0');
@@ -368,18 +372,18 @@ function drawPortals() {
 }
 
 function drawAmmoCrate() {
-    if (!STATE.ammoCrate) return;
+    if (!getState().ammoCrate) return;
     let moveColor = 'rgba(255, 255, 255, 0.9)';
     let effectColor = 'rgba(0, 255, 21, 0.8)';
-    let tx = STATE.ammoCrate.x;
-    let ty = STATE.ammoCrate.y;
+    let tx = getState().ammoCrate.x;
+    let ty = getState().ammoCrate.y;
     const cellSeq = [
         { dx: 0, dy: 1 },
         { dx: 1, dy: 1 },
         { dx: 1, dy: 0 },
         { dx: 0, dy: 0 },
     ];
-    let tick = Math.floor(STATE.frameCount / 6);
+    let tick = Math.floor(getState().frameCount / 6);
     let activeIdx = tick % 4;
     cellSeq.forEach((pos, idx) => {
         if (idx === activeIdx) {
@@ -391,11 +395,11 @@ function drawAmmoCrate() {
 }
 
 function drawMines() {
-    STATE.mines.forEach(m => drawLED(m.x + m.visX, m.y + m.visY, m.active ? (STATE.frameCount % 12 < 6 ? '#f00' : '#800') : '#444'));
+    getState().mines.forEach(m => drawLED(m.x + m.visX, m.y + m.visY, m.active ? (getState().frameCount % 12 < 6 ? '#f00' : '#800') : '#444'));
 }
 
 function drawProjectiles() {
-    STATE.projectiles.forEach(p => {
+    getState().projectiles.forEach(p => {
         let mag = Math.hypot(p.vx, p.vy);
         if (mag === 0) return;
 
@@ -413,7 +417,7 @@ function drawProjectiles() {
         let minY = Math.floor(p.y - scanRadius);
         let maxY = Math.ceil(p.y + scanRadius);
 
-        let color = (STATE.frameCount % 4 < 2) ? '#ffffff' : p.color;
+        let color = (getState().frameCount % 4 < 2) ? '#ffffff' : p.color;
 
         for (let y = minY; y <= maxY; y++) {
             for (let x = minX; x <= maxX; x++) {
@@ -430,7 +434,7 @@ function drawProjectiles() {
 }
 
 function drawPlayers() {
-    STATE.players.forEach(p => {
+    getState().players.forEach(p => {
         if (p.isDead) return;
 
         // Beam trail
@@ -445,7 +449,7 @@ function drawPlayers() {
 
         // Charging effect
         if (p.isCharging) {
-            let r = (STATE.frameCount - p.chargeStartTime) / TIMING.CHARGE_DURATION;
+            let r = (getState().frameCount - p.chargeStartTime) / TIMING.CHARGE_DURATION;
             if (r > 1) r = 1;
             let cc = `hsl(${Math.floor((1 - r) * 120)},100%,50%)`;
             let sx = Math.floor(p.x) - 1, sy = Math.floor(p.y) - 1;
@@ -472,7 +476,7 @@ function drawPlayers() {
         }
 
         // Glitch & stun visuals
-        if (p.glitchIsActive(STATE.frameCount) || p.stunIsActive(STATE.frameCount)) {
+        if (p.glitchIsActive(getState().frameCount) || p.stunIsActive(getState().frameCount)) {
             const min = -1, max = 1;
             let rX = (Math.floor(Math.random() * (max - min + 1) + min));
             let rY = (Math.floor(Math.random() * (max - min + 1) + min));
@@ -484,13 +488,13 @@ function drawPlayers() {
 
             if (Math.random() > 0.8) drawPlayerBody(p.x, p.y, '#FFFFFF');
 
-            if (p.stunIsActive(STATE.frameCount)) {
-                let flashColor = (Math.floor(STATE.frameCount / 2) % 2 === 0) ? '#444444' : '#FFFFFF';
+            if (p.stunIsActive(getState().frameCount)) {
+                let flashColor = (Math.floor(getState().frameCount / 2) % 2 === 0) ? '#444444' : '#FFFFFF';
                 drawPlayerBody(p.x, p.y, flashColor);
             }
         } else {
             let color = p.color;
-            if (p && p.boostEnergy < 25 && Math.floor(STATE.frameCount / 6) % 2 === 0) {
+            if (p && p.boostEnergy < 25 && Math.floor(getState().frameCount / 6) % 2 === 0) {
                 color = '#555';
             }
             drawPlayerBody(p.x, p.y, color);
@@ -499,31 +503,31 @@ function drawPlayers() {
 }
 
 function drawParticles() {
-    STATE.particles.forEach(p => drawLED(p.x, p.y, p.color));
+    getState().particles.forEach(p => drawLED(p.x, p.y, p.color));
 }
 
 function drawOverlays() {
     renderHUD(getWallColor());
-    if (GAME.isAttractMode) {
+    if (getState().isAttractMode) {
         if (Math.floor(Date.now() / 1200) % 2 === 0) {
             drawText("DEMO MODE", 48, 25, "#ff0000aa");
             drawText("PRESS ANY BUTTON", 34, 35, "#ffff00aa");
         }
     }
     const blink = Math.floor(Date.now() / 500) % 2 === 0;
-    if (STATE.isPaused) {
+    if (getState().isPaused) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawText("PAUSED", 52, 10, "#ffffff");
         let center = 52 + (("PAUSED".length * 4) - 1) / 2;
         // Pause menu options
-        const menuOptions = GAME.gameMode === 'ONLINE' ? ["RESUME", "QUIT"] : ["RESUME", "RESTART", "QUIT"];
+        const menuOptions = getState().gameMode === 'ONLINE' ? ["RESUME", "QUIT"] : ["RESUME", "RESTART", "QUIT"];
         const menuStartY = 24;
         const menuSpacing = 10;
 
         menuOptions.forEach((option, idx) => {
             const optionLength = option.length * 4;
-            const isSelected = STATE.pauseMenuSelection === idx;
+            const isSelected = getState().pauseMenuSelection === idx;
             const color = isSelected ? "#ffff00" : "#888888";
             const x = center - optionLength / 2;
             if (blink && isSelected) drawText("→", x - 6, menuStartY + idx * menuSpacing, "#fff");
@@ -536,45 +540,45 @@ function drawOverlays() {
         drawText("CHANGE ", 5, 56, "#61ca5d");
         drawText("BOOM", 104, 50, "#bb4e4e");
         drawText("SELECT", 100, 56, "#bb4e4e");
-    } else if (STATE.isGameOver || STATE.isRoundOver) {
+    } else if (getState().isGameOver || getState().isRoundOver) {
         ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        if (STATE.isGameOver) {
-            const winColor = STATE.victimIdx === 0 ? STATE.players[1]?.color : STATE.players[0]?.color;
-            const tauntColor = STATE.victimIdx === 1 ? STATE.players[1]?.color : STATE.players[0]?.color;
+        if (getState().isGameOver) {
+            const winColor = getState().victimIdx === 0 ? getState().players[1]?.color : getState().players[0]?.color;
+            const tauntColor = getState().victimIdx === 1 ? getState().players[1]?.color : getState().players[0]?.color;
             let msg = `TIME OUT`;
-            if (STATE.victimIdx === -1) {
+            if (getState().victimIdx === -1) {
                 winColor = COLORS.find(x => x.name === 'MAGENTA');
                 tauntColor = COLORS.find(x => x.name === 'CYAN');;
             } else
-                msg = `${STATE.players[STATE.victimIdx].name}: '${STATE.messages.taunt}'`
+                msg = `${getState().players[getState().victimIdx].name}: '${getState().messages.taunt}'`
             if (blink)
-                drawText(STATE.messages.win, 49, 8, winColor);
-            drawText(msg, STATE.scrollX, 29, tauntColor);
+                drawText(getState().messages.win, 49, 8, winColor);
+            drawText(msg, getState().scrollX, 29, tauntColor);
             if (blink) drawText("PRESS ANY TO RESET", 30, 52, "#6f6deb");
         } else {
             drawText("ROUND OVER", 46, 8, "#fff");
-            drawText(STATE.messages.round, STATE.scrollX, 29, STATE.messages.roundColor);
+            drawText(getState().messages.round, getState().scrollX, 29, getState().messages.roundColor);
             if (blink) drawText("PRESS ANY BUTTON", 34, 52, "#ffff00");
         }
     }
 }
 
 function getWallColor() {
-    let timeRatio = STATE.maxGameTime > 0 ? Math.max(0, Math.min(1, STATE.gameTime / STATE.maxGameTime)) : 0;
+    let timeRatio = getState().maxGameTime > 0 ? Math.max(0, Math.min(1, getState().gameTime / getState().maxGameTime)) : 0;
     let hue = Math.floor(timeRatio * 180);
     return `hsl(${hue}, 100%, 50%)`;
 }
 
 export function renderGame() {
-    STATE.camera.update();
+    getState().camera.update();
 
     if (!isBgRendered) preRenderBackground();
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.save();
-    ctx.translate(STATE.camera.x, STATE.camera.y);
+    ctx.translate(getState().camera.x, getState().camera.y);
     ctx.drawImage(bgCanvas, 0, 0);
 
     let wallColor = getWallColor();
@@ -603,7 +607,7 @@ export function renderHighScores() {
     }
 
     // Tab headers
-    const isLeaderboard = STATE.highScoreTab === 0;
+    const isLeaderboard = getState().highScoreTab === 0;
     drawText("SCORES", 10, 2, isLeaderboard ? "#ffff00" : "#555");
     drawText("STATS", 95, 2, isLeaderboard ? "#555" : "#ffff00");
     drawText("<", 2, 2, "#888");
@@ -624,11 +628,11 @@ export function renderHighScores() {
 
 function renderLeaderboard() {
     // High scores list
-    if (!STATE.highScores || STATE.highScores.length === 0) {
+    if (!getState().highScores || getState().highScores.length === 0) {
         drawText("NO SCORES YET", 35, 20, "#888");
         drawText("PLAY A GAME", 42, 30, "#666");
     } else {
-        STATE.highScores.slice(0, 8).forEach((entry, idx) => {
+        getState().highScores.slice(0, 8).forEach((entry, idx) => {
             let yPos = 10 + (idx * 6);
             let rankColor = idx === 0 ? "#ffff00" : (idx === 1 ? "#ff8800" : "#888");
             let nameColor = entry.winColor;
@@ -700,14 +704,14 @@ export function renderPlayerSetup() {
         }
     }
     drawMenuDecoratives("#8888ff33");
-    const ps = STATE.playerSetup;
+    const ps = getState().playerSetup;
     const pId = ps.activePlayer + 1;
     const playerLabel = `PLAYER ${pId}`;
     const playerColor = COLORS[ps.colorIdx].hex;
     const difficulty = DIFFICULTIES[ps.difficultyIdx];
     let previewX = 65;
     const blink = Math.floor(Date.now() / 200) % 2 === 0;
-    const isMulti = GAME.gameMode === 'MULTI';
+    const isMulti = getState().gameMode === 'MULTI';
     let progressText = isMulti ? "MULTI PLAYER" : "SINGLE PLAYER";
     let previewColorY = 24;                     //"MULTI PLAYER"
     let previewNameY = 34;
@@ -776,7 +780,7 @@ export function renderMenu() {
     let wallColor = ''; 
     menuOptions.forEach((option, idx) => {
         const optionLength = option.length * 4;
-        const isSelected = GAME.menuSelection === idx;
+        const isSelected = getState().menuSelection === idx;
         const color = isSelected ? menuColors[idx] : "#888888";
         const x = center - optionLength / 2;
         if (blink && isSelected) drawText("→", x - 6, menuStartY + idx * menuSpacing, "#fff");
