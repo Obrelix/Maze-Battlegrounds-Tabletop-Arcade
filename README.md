@@ -398,6 +398,15 @@ MIT License – Free for personal, educational, and non‑commercial use.
 
 ## Recent Changes (v0.5.0-beta)
 
+### State Management Refactor & Bug Fixes
+- **Unified State Management:** Replaced direct global state mutations and the `GAME` object with a consistent `getState()` and `updateState()` architecture across the entire codebase. This ensures immutability where appropriate and centralizes state logic.
+- **Enhanced Code Robustness:** Refactored core modules (`grid.js`, `mechanics.js`, `input.js`, `renderer.js`, `online.js`, `main.js`, `debug.js`, `state.js`) to strictly adhere to the new state management pattern, eliminating side effects and improving predictability.
+- **Critical Bug Fixes:**
+  - Resolved a `ReferenceError: menuOptions is not defined` in `renderer.js` by correctly defining local variables.
+  - Corrected loose equality (`==`) to strict equality (`===`) in `state.js` for high score logic.
+  - Fixed syntax errors and scope-related issues in `input.js` to ensure proper state access.
+  - Addressed server-side issues by updating `server/server.js`, `server/src/lobby.js`, and `server/src/signaling.js` to pass the `clients` object for correct client management and adding `readyState` checks for signaling stability.
+
 ### Major AI Overhaul
 Comprehensive AI improvements for smarter combat, better navigation, and higher challenge at HARD/INSANE difficulties.
 
