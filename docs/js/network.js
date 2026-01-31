@@ -1,4 +1,4 @@
-import { getState } from './state.js';
+import { getState, getTwoPlayerColors } from './state.js';
 
 // Message types (must match server protocol)
 const MessageType = {
@@ -166,7 +166,8 @@ export function leaveRoom() {
  */
 export function startGame() {
     if (ws && ws.readyState === WebSocket.OPEN && isHost) {
-        ws.send(JSON.stringify({ type: MessageType.START_GAME }));
+        const [p1Color, p2Color] = getTwoPlayerColors();
+        ws.send(JSON.stringify({ type: MessageType.START_GAME, p1Color, p2Color }));
     }
 }
 
@@ -464,10 +465,9 @@ function handleServerMessage(message) {
             roundNumber = 0;
             localPlayerIndex = message.playerIndex;
             opponentId = message.opponentId;
-            console.log(`Game starting: playerIndex=${localPlayerIndex}, mazeSeed=${mazeSeed}`);
-            if (onGameStart) onGameStart(message);
+            console.log(`Game starting: playerIndex=${localPlayerIndex}, mazeSeed=${mazeSeed}, p1Color=${message.p1Color}, p2Color=${message.p2Color}`);
+            if (onGameStart) onGameStart(message.mazeSeed, message.playerIndex, message.p1Color, message.p2Color);
             break;
-
         case MessageType.SIGNAL:
             handleSignalingMessage(message);
             break;

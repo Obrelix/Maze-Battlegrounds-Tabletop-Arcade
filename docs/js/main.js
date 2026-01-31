@@ -31,10 +31,10 @@ function startMatchSetup() {
     }));
 }
 
-function startGame(mazeSeed = null) {
+function startGame(mazeSeed = null, p1NetworkColor = null, p2NetworkColor = null) {
     const state = getState();
     if (state.sfx) state.sfx.init();
-    resetStateForMatch();
+    resetStateForMatch(p1NetworkColor, p2NetworkColor);
     updateState({ screen: 'PLAYING' });
     document.getElementById('statusText').innerText = `GOAL: ${CONFIG.MAX_SCORE} POINTS`;
     const ps = getState().playerSetup;

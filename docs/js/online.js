@@ -83,37 +83,7 @@ export function resetLobbyUI() {
     if (statusText) statusText.textContent = 'Not connected';
 }
 
-/**
- * Start an online game
- * @param {number} mazeSeed - Seed for maze generation
- * @param {number} playerIndex - Local player index (0 or 1)
- */
-function startOnlineGame(mazeSeed, playerIndex) {
-    console.log('startOnlineGame called:', { mazeSeed, playerIndex, currentScreen: getState().screen });
-    updateState({ gameMode: 'ONLINE' });
-    hideLobbyModal();
 
-    if (onStartGame) {
-        onStartGame(mazeSeed);
-    }
-
-    console.log('After startGame, screen is:', getState().screen);
-
-    const newPlayers = getState().players.map((p, i) => {
-        const newPlayer = Object.assign(Object.create(Object.getPrototypeOf(p)), p);
-        if (i === playerIndex) {
-            newPlayer.name = 'YOU';
-        } else {
-            newPlayer.name = 'OPP';
-        }
-        return newPlayer;
-    });
-    updateState({ players: newPlayers });
-
-    if (onUpdateHtmlUI) {
-        onUpdateHtmlUI();
-    }
-}
 
 /**
  * Update the player list in the room view
@@ -196,16 +166,35 @@ function setupNetworkCallbacks() {
         updatePlayerList([{ index: getLocalPlayerIndex() }]);
     });
 
-    setOnGameStart((data) => {
-        console.log('onGameStart callback fired:', data);
-        try {
-            startOnlineGame(data.mazeSeed, data.playerIndex);
-        } catch (e) {
-            console.error('Error in startOnlineGame:', e);
-        }
-    });
+setOnGameStart((mazeSeed, playerIndex, p1Color, p2Color) => {
+    console.log('onGameStart callback fired:', { mazeSeed, playerIndex, p1Color, p2Color });
+    try {
+        updateState({ gameMode: 'ONLINE' });
+        hideLobbyModal();
 
-    setOnNextRound(() => {
+        // Call the main.js startGame function
+        onStartGame(mazeSeed, p1Color, p2Color);
+
+        // Set player names after players exist and colors are set by resetStateForMatch
+        const newPlayers = getState().players.map((p, i) => {
+            const newPlayer = Object.assign(Object.create(Object.getPrototypeOf(p)), p);
+            if (i === playerIndex) {
+                newPlayer.name = 'YOU';
+            } else {
+                newPlayer.name = 'OPP';
+            }
+            return newPlayer;
+        });
+        updateState({ players: newPlayers });
+
+        if (onUpdateHtmlUI) {
+            onUpdateHtmlUI();
+        }
+        console.log('After startGame, screen is:', getState().screen);
+    } catch (e) {
+        console.error('Error in onGameStart handler:', e);
+    }
+});    setOnNextRound(() => {
         // Remote player signaled to start next round
         console.log('Remote player started next round');
         if (getState().gameMode === 'ONLINE' && getState().screen === 'PLAYING') {

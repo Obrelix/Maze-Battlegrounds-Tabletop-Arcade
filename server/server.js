@@ -79,9 +79,8 @@ wss.on('connection', (ws) => {
                 break;
 
             case MessageType.START_GAME:
-                startGame(ws, clients);
+                startGame(ws, clients, message.p1Color, message.p2Color);
                 break;
-
             case MessageType.SIGNAL:
                 handleSignal(ws, message);
                 break;

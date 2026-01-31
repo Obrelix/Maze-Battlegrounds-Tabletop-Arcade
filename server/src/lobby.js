@@ -156,7 +156,7 @@ export function listRooms(ws) {
     }));
 }
 
-export function startGame(ws, clients) {
+export function startGame(ws, clients, p1Color, p2Color) {
     const roomId = playerRooms.get(ws.id);
     if (!roomId) {
         ws.send(JSON.stringify({
@@ -191,16 +191,20 @@ export function startGame(ws, clients) {
     // Generate maze seed
     room.mazeSeed = Math.floor(Math.random() * 0xFFFFFFFF);
     room.inGame = true;
+    room.p1Color = p1Color; // Store colors in the room
+    room.p2Color = p2Color;
 
     // Notify all players
-    console.log(`Sending GAME_START to ${room.players.length} players, mazeSeed=${room.mazeSeed}`);
+    console.log(`Sending GAME_START to ${room.players.length} players, mazeSeed=${room.mazeSeed}, p1Color=${p1Color}, p2Color=${p2Color}`);
     room.players.forEach((player, index) => {
         console.log(`  Sending to player ${index} (${player.id})`);
         player.send(JSON.stringify({
             type: MessageType.GAME_START,
             mazeSeed: room.mazeSeed,
             playerIndex: index,
-            opponentId: room.players[(index + 1) % 2].id
+            opponentId: room.players[(index + 1) % 2].id,
+            p1Color: room.p1Color, // Include colors in message
+            p2Color: room.p2Color
         }));
     });
 

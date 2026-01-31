@@ -269,16 +269,24 @@ export function shouldSpawnAmmoCrate() {
     else return false;
 }
 
-export function resetStateForMatch() {
+export function resetStateForMatch(p1NetworkColor = null, p2NetworkColor = null) {
     const state = getState();
     // Store current names if they exist
-    let CPUColors = COLORS.filter(x => x.name !== 'BLACK' && x.name !== 'ORANGE' && x.name !== 'BLUE' && x.name !== 'RED' && x.name !== 'PURPLE')
+    let availableColors = COLORS.filter(x => x.name !== 'BLACK' && x.name !== 'ORANGE' && x.name !== 'BLUE' && x.name !== 'RED' && x.name !== 'PURPLE');
+    
     let p1Name = state.players[0]?.name || "CPU";
-    let p1Color = state.players[0]?.color ?? CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
+    let p1Color = p1NetworkColor || (state.players[0]?.color);
+    if (!p1Color) {
+        p1Color = availableColors[Math.floor(Math.random() * availableColors.length)]?.hex;
+    }
+    
+    availableColors = availableColors.filter(x => x.hex !== p1Color);
+
     let p2Name = state.gameMode === 'MULTI' ? state.players[1]?.name || "CPU" : "CPU";
-    CPUColors = CPUColors.filter(x => x.hex !== p1Color);
-    let randomColor2 = CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex
-    let p2Color = state.gameMode === 'MULTI' ? (state.players[1]?.color ?? randomColor2) : randomColor2;
+    let p2Color = p2NetworkColor || (state.players[1]?.color);
+    if (!p2Color) {
+        p2Color = availableColors[Math.floor(Math.random() * availableColors.length)]?.hex;
+    }
 
     const newPlayers = [
         new Player(0, p1Color, CONTROLS_P1),
@@ -322,4 +330,11 @@ export function resetStateForMatch() {
         scrollYVal: +2,
         portalReverseColors: false
     });
+}
+export function getTwoPlayerColors() {
+    let CPUColors = COLORS.filter(x => x.name !== 'BLACK' && x.name !== 'ORANGE' && x.name !== 'BLUE' && x.name !== 'RED' && x.name !== 'PURPLE')
+    let p1Color = CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex;
+    CPUColors = CPUColors.filter(x => x.hex !== p1Color);
+    let p2Color = CPUColors[Math.floor(Math.random() * CPUColors.length)]?.hex
+    return [p1Color, p2Color];
 }
