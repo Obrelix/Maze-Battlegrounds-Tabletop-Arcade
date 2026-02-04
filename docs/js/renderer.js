@@ -545,8 +545,8 @@ function drawOverlays() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (getState().isGameOver) {
-            const winColor = getState().victimIdx === 0 ? getState().players[1]?.color : getState().players[0]?.color;
-            const tauntColor = getState().victimIdx === 1 ? getState().players[1]?.color : getState().players[0]?.color;
+            const winColor = getState()?.victimIdx === 0 ? getState().players[1]?.color : getState().players[0]?.color;
+            const tauntColor = getState()?.victimIdx === 1 ? getState().players[1]?.color : getState().players[0]?.color;
             let msg = `TIME OUT`;
             if (getState().victimIdx === -1) {
                 winColor = COLORS.find(x => x.name === 'MAGENTA');
