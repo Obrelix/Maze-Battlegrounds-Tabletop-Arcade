@@ -312,12 +312,17 @@ CONTROLS_P2 = {
     'boom':   'Enter',
 }
 
+# SNES clone controller mapping (Microntek USB Joystick)
+# Physical layout:        Y(3)
+#                    X(0)      B(2)
+#                         A(1)
+# Shoulders: L(4)  R(5)   Select(8)  Start(9)
 GAMEPAD_BUTTONS = {
-    'beam':   0,   # A / Cross
-    'shield': 1,   # B / Circle
-    'mine':   2,   # X / Square
-    'boost':  3,   # Y / Triangle
-    'boom':   5,   # RB / R1 (detonate)
-    'start':  7,   # Start / Options
-    'select': 6,   # Back / Select
+    'beam':   1,   # A  (bottom face)
+    'shield': 4,   # L  (left shoulder)
+    'mine':   0,   # X  (left face)
+    'boost':  5,   # R  (right shoulder)
+    'boom':   2,   # B  (right face - detonate)
+    'start':  9,   # Start
+    'select': 8,   # Select
 }
