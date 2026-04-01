@@ -318,11 +318,11 @@ CONTROLS_P2 = {
 #                         A(1)
 # Shoulders: L(4)  R(5)   Select(8)  Start(9)
 GAMEPAD_BUTTONS = {
-    'beam':   1,   # A  (bottom face)
+    'beam':   2,   # A  (bottom face)
     'shield': 4,   # L  (left shoulder)
-    'mine':   0,   # X  (left face)
+    'mine':   3,   # X  (left face)
     'boost':  5,   # R  (right shoulder)
-    'boom':   2,   # B  (right face - detonate)
+    'boom':   1,   # B  (right face - detonate)
     'start':  9,   # Start
     'select': 8,   # Select
 }
