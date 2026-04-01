@@ -189,10 +189,8 @@ def render_game_overlay(renderer, state) -> None:
             draw_text(renderer, 'PRESS ANY BUTTON', 34, 35, '#ffff00', use_camera=False)
 
     if state.is_paused:
-        # Semi-transparent overlay — darken every pixel by overwriting with dim black
-        for y in range(LOGICAL_H):
-            for x in range(LOGICAL_W):
-                renderer.set_pixel_no_cam(x, y, (0, 0, 0))
+        # Clear screen for pause menu (fast native clear)
+        renderer.begin_frame()
 
         draw_text(renderer, 'PAUSED', 52, 10, '#ffffff', use_camera=False)
 
@@ -218,10 +216,8 @@ def render_game_overlay(renderer, state) -> None:
         draw_text(renderer, 'SELECT', 100, 56, '#bb4e4e', use_camera=False)
 
     elif state.is_game_over or state.is_round_over:
-        # Dim overlay
-        for y in range(LOGICAL_H):
-            for x in range(LOGICAL_W):
-                renderer.set_pixel_no_cam(x, y, (0, 0, 0))
+        # Clear screen for overlay (fast native clear)
+        renderer.begin_frame()
 
         msgs = state.messages
         if state.is_game_over:
