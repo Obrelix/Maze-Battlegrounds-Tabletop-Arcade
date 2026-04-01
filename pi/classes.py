@@ -8,7 +8,7 @@ from config import MAX_MINES, MAX_ENERGY, BASE_SPEED, TIMING
 
 class Cell:
     """Maze cell — mirrors JS Cell class."""
-    __slots__ = ('c', 'r', 'walls', 'visited', 'parent', 'bfs_visited')
+    __slots__ = ('c', 'r', 'walls', 'visited', 'parent', 'bfs_visited', 'gCost')
 
     def __init__(self, c: int, r: int) -> None:
         self.c = c
@@ -17,6 +17,7 @@ class Cell:
         self.visited = False
         self.parent = None
         self.bfs_visited = False
+        self.gCost = float('inf')  # A* cost — reset before each pathfinding call
 
 
 class Camera:
