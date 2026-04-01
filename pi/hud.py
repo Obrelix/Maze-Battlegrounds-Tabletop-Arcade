@@ -27,7 +27,7 @@ def draw_text(renderer, text: str, x: int, y: int, color, use_camera: bool = Tru
     """
     draw_fn = renderer.set_pixel if use_camera else renderer.set_pixel_no_cam
     r, g, b = renderer.parse_color(color)
-    cx = x
+    cx = int(x)
     for ch in text.upper():
         if ch in BITMAP_FONT_WIDE:
             glyph = BITMAP_FONT_WIDE[ch]
