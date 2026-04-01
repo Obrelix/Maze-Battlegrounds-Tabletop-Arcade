@@ -35,10 +35,20 @@ class Camera:
         self.shake_strength = amount
 
     def update(self) -> None:
-        """Advance shake one frame — matches JS Camera.update()."""
+        """Advance shake one frame.
+
+        On the LED matrix each pixel is a physical LED, so shake is
+        scaled down (divide by PITCH=10) and clamped to ±2px to avoid
+        large gaps at the screen edges.
+        """
         if self.shake_strength > 0.5:
-            self.x = (_random.random() - 0.5) * self.shake_strength
-            self.y = (_random.random() - 0.5) * self.shake_strength
+            # Scale: browser uses 10px per LED, so divide by 10
+            scaled = self.shake_strength / 10.0
+            self.x = (_random.random() - 0.5) * scaled
+            self.y = (_random.random() - 0.5) * scaled
+            # Clamp to ±2 LED pixels
+            self.x = max(-2.0, min(2.0, self.x))
+            self.y = max(-2.0, min(2.0, self.y))
             self.shake_strength *= self.shake_damp
         else:
             self.x = 0.0
