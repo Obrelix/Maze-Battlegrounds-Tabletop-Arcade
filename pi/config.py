@@ -316,8 +316,8 @@ GAMEPAD_BUTTONS = {
     'beam':   0,   # A / Cross
     'shield': 1,   # B / Circle
     'mine':   2,   # X / Square
-    'boom':   3,   # Y / Triangle
-    'boost':  4,   # LB / L1
-    'start':  9,   # Start
-    'select': 8,   # Select / Share
+    'boost':  3,   # Y / Triangle
+    'boom':   5,   # RB / R1 (detonate)
+    'start':  7,   # Start / Options
+    'select': 6,   # Back / Select
 }

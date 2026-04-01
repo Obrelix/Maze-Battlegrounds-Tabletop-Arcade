@@ -27,9 +27,7 @@ def render_menu(renderer, state) -> None:
     Mirrors JS renderMenu().
     """
     # Background
-    for y in range(LOGICAL_H):
-        for x in range(LOGICAL_W):
-            renderer.set_pixel_no_cam(x, y, (17, 17, 17))
+    # Background is already black from begin_frame()
 
     blink = int(time.time() * 2) % 2 == 0
 
@@ -70,9 +68,7 @@ def render_player_setup(renderer, state) -> None:
     Shows difficulty selector (single only), color preview, and name entry.
     Mirrors JS renderPlayerSetup().
     """
-    for y in range(LOGICAL_H):
-        for x in range(LOGICAL_W):
-            renderer.set_pixel_no_cam(x, y, (17, 17, 17))
+    # Background is already black from begin_frame()
 
     ps = state.player_setup
     p_id = ps['active_player'] + 1
@@ -142,9 +138,7 @@ def render_high_scores(renderer, state) -> None:
     Shows top 8 scores with rank colours, or 'NO SCORES YET'.
     Mirrors JS renderHighScores() / renderLeaderboard().
     """
-    for y in range(LOGICAL_H):
-        for x in range(LOGICAL_W):
-            renderer.set_pixel_no_cam(x, y, (17, 17, 17))
+    # Background is already black from begin_frame()
 
     draw_text(renderer, 'HIGH SCORES', 38, 2, '#ffff00', use_camera=False)
 

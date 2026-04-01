@@ -114,6 +114,12 @@ class InputHandler:
 
         if _HAS_PYGAME:
             _pygame.init()
+            # Pygame on Linux requires a display surface to pump joystick events.
+            # Create a tiny hidden surface (works even with SDL_VIDEODRIVER=dummy).
+            try:
+                _pygame.display.set_mode((1, 1))
+            except Exception:
+                pass
             _pygame.joystick.init()
             _build_key_map()
             # Initialise up to two joysticks

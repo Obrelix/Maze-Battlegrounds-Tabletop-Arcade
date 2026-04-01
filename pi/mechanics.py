@@ -90,6 +90,9 @@ def _handle_wall_destruction(state, x: float, y: float) -> None:
             if dc * dc + dr * dr <= 2:
                 destroy_wall_at(state.maze, c, r)
 
+    # Invalidate wall pixel cache (walls changed)
+    state._wall_pixels = None
+
 
 # ---------------------------------------------------------------------------
 # Public: Collision
@@ -335,45 +338,53 @@ def fire_beam(state, p) -> bool:
     # Deduct energy (may be refunded)
     p.boost_energy -= ENERGY_COSTS.BEAM
 
-    # Reset BFS state
-    for cell in state.maze:
-        cell.parent = None
-        cell.bfs_visited = False
+    maze = state.maze
+    si = start.c + start.r * COLS
+    ei = end.c + end.r * COLS
 
-    queue = [start]
-    head = 0
-    start.bfs_visited = True
+    # Fast BFS using flat arrays
+    from collections import deque as _deque
+    total = COLS * ROWS
+    visited = bytearray(total)
+    parent = [-1] * total
+    visited[si] = 1
+    q = _deque()
+    q.append(si)
     found = False
+    directions = ((0, -1, 0), (1, 0, 1), (0, 1, 2), (-1, 0, 3))
 
-    # BFS: [dc, dr, wall_idx]  — directions: N, E, S, W
-    directions = [(0, -1, 0), (1, 0, 1), (0, 1, 2), (-1, 0, 3)]
-
-    while head < len(queue):
-        curr = queue[head]
-        head += 1
-        if curr is end:
+    while q:
+        ci = q.popleft()
+        if ci == ei:
             found = True
             break
-        for dc, dr, wall_idx in directions:
-            n = grid_index(state.maze, curr.c + dc, curr.r + dr)
-            if (n and not n.bfs_visited and
-                    not curr.walls[wall_idx] and
-                    not n.walls[(wall_idx + 2) % 4]):
-                n.bfs_visited = True
-                n.parent = curr
-                queue.append(n)
+        cell = maze[ci]
+        cc, cr = cell.c, cell.r
+        for dc, dr, wi in directions:
+            nc, nr = cc + dc, cr + dr
+            if nc < 0 or nc >= COLS or nr < 0 or nr >= ROWS:
+                continue
+            ni = nc + nr * COLS
+            if visited[ni]:
+                continue
+            if cell.walls[wi]:
+                continue
+            if maze[ni].walls[(wi + 2) & 3]:
+                continue
+            visited[ni] = 1
+            parent[ni] = ci
+            q.append(ni)
 
     if not found:
-        # Refund energy
         p.boost_energy += ENERGY_COSTS.BEAM
         return False
 
-    # Trace path back
+    # Trace path back using flat parent array
     path_cells = []
-    temp = end
-    while temp:
-        path_cells.append(temp)
-        temp = temp.parent
+    idx = ei
+    while idx != -1:
+        path_cells.append(maze[idx])
+        idx = parent[idx]
     path_cells.reverse()
 
     # Build beam_pixels: 3 pixels per segment
@@ -536,6 +547,7 @@ def update_projectiles(state) -> None:
             gc = int((tip_x - MAZE_OFFSET_X) / CELL_SIZE)
             gr = int(tip_y / CELL_SIZE)
             destroy_wall_at(state.maze, gc, gr)
+            state._wall_pixels = None  # Invalidate wall cache
             spawn_wall_hit_particles(state, tip_x, tip_y, proj['vx'] * 0.5, proj['vy'] * 0.5)
             projectiles_to_remove.add(i)
 

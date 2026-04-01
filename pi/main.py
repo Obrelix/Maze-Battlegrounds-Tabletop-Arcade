@@ -7,6 +7,14 @@
 #   python3 main.py          # hardware mode (real LED matrix)
 #   python3 main.py --mock   # mock/dev mode (no hardware required)
 
+# Suppress ALSA/audio/display warnings (headless LED matrix hardware)
+import os
+os.environ['SDL_AUDIODRIVER'] = 'dummy'
+os.environ['SDL_VIDEODRIVER'] = 'dummy'
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+os.environ['XDG_RUNTIME_DIR'] = '/tmp/runtime-root'
+os.makedirs('/tmp/runtime-root', mode=0o700, exist_ok=True)
+
 import argparse
 import math
 import signal
@@ -112,6 +120,10 @@ def start_new_round(state: GameState, maze_seed=None) -> None:
     state.scroll_x = LOGICAL_W
     state.camera.shake_strength = 0.0
     state.portal_reverse_colors = False
+
+    # Pre-compute wall pixel positions for fast rendering.
+    # Stored as list of (x, y) — colour is applied at draw time.
+    state._wall_pixels = _build_wall_pixel_cache(maze)
 
     # Reset per-round player state
     for p in state.players:
@@ -419,6 +431,58 @@ def _get_wall_color(state: GameState) -> tuple:
 # Game render
 # ---------------------------------------------------------------------------
 
+def _build_wall_pixel_cache(maze) -> list:
+    """Pre-compute wall pixel coordinates from the maze.
+
+    Returns a list of (x, y) tuples — one per wall pixel.
+    Called once when the maze is generated and again whenever walls change
+    (explosions call this via _invalidate_wall_cache).
+    """
+    pixels = []
+    for cell in maze:
+        x = cell.c * CELL_SIZE + MAZE_OFFSET_X
+        y = cell.r * CELL_SIZE
+
+        draw_corner = cell.walls[0] or cell.walls[3]
+        if not draw_corner:
+            ci = cell.c - 1
+            ri = cell.r - 1
+            if ci >= 0:
+                left = maze[ci + cell.r * COLS]
+                if left.walls[0]:
+                    draw_corner = True
+            if not draw_corner and ri >= 0:
+                top = maze[cell.c + ri * COLS]
+                if top.walls[3]:
+                    draw_corner = True
+
+        if draw_corner:
+            pixels.append((x, y))
+        if cell.walls[0]:
+            pixels.append((x + 1, y))
+            pixels.append((x + 2, y))
+        if cell.walls[3]:
+            pixels.append((x, y + 1))
+            pixels.append((x, y + 2))
+
+        if cell.c == COLS - 1:
+            if cell.walls[1] or cell.walls[0]:
+                pixels.append((x + 3, y))
+            if cell.walls[1]:
+                pixels.append((x + 3, y + 1))
+                pixels.append((x + 3, y + 2))
+        if cell.r == ROWS - 1:
+            if cell.walls[2] or cell.walls[3]:
+                pixels.append((x, y + 3))
+            if cell.walls[2]:
+                pixels.append((x + 1, y + 3))
+                pixels.append((x + 2, y + 3))
+        if cell.c == COLS - 1 and cell.r == ROWS - 1:
+            pixels.append((x + 3, y + 3))
+
+    return pixels
+
+
 def render_playing(renderer, state: GameState) -> None:
     """
     Render the PLAYING state: maze walls, goals, portals, ammo crate,
@@ -434,45 +498,24 @@ def render_playing(renderer, state: GameState) -> None:
     cam = state.camera
     renderer.set_camera(int(cam.x), int(cam.y))
 
-    # Maze walls
-    for cell in state.maze:
-        x = cell.c * CELL_SIZE + MAZE_OFFSET_X
-        y = cell.r * CELL_SIZE
+    # Maze walls — use pre-computed pixel cache for speed.
+    # _wall_pixels stores (x, y) positions; _wall_pixels_rgb caches the
+    # fully-baked (x, y, r, g, b) list for the current wall colour.
+    wall_xy = getattr(state, '_wall_pixels', None)
+    if wall_xy is None:
+        state._wall_pixels = _build_wall_pixel_cache(state.maze)
+        wall_xy = state._wall_pixels
+        state._wall_pixels_rgb = None  # force colour rebuild
 
-        draw_corner = cell.walls[0] or cell.walls[3]
-        if not draw_corner:
-            left = grid_index(state.maze, cell.c - 1, cell.r)
-            top = grid_index(state.maze, cell.c, cell.r - 1)
-            if left and left.walls[0]:
-                draw_corner = True
-            if top and top.walls[3]:
-                draw_corner = True
+    wr, wg, wb = wall_color
+    prev_wc = getattr(state, '_prev_wall_color', None)
+    wall_rgb = getattr(state, '_wall_pixels_rgb', None)
+    if wall_rgb is None or prev_wc != wall_color:
+        state._wall_pixels_rgb = [(x, y, wr, wg, wb) for x, y in wall_xy]
+        state._prev_wall_color = wall_color
+        wall_rgb = state._wall_pixels_rgb
 
-        if draw_corner:
-            renderer.set_pixel(x, y, wall_color)
-        if cell.walls[0]:
-            renderer.set_pixel(x + 1, y, wall_color)
-            renderer.set_pixel(x + 2, y, wall_color)
-        if cell.walls[3]:
-            renderer.set_pixel(x, y + 1, wall_color)
-            renderer.set_pixel(x, y + 2, wall_color)
-
-        # Right border cells
-        if cell.c == COLS - 1:
-            if cell.walls[1] or cell.walls[0]:
-                renderer.set_pixel(x + 3, y, wall_color)
-            if cell.walls[1]:
-                renderer.set_pixel(x + 3, y + 1, wall_color)
-                renderer.set_pixel(x + 3, y + 2, wall_color)
-        # Bottom border cells
-        if cell.r == ROWS - 1:
-            if cell.walls[2] or cell.walls[3]:
-                renderer.set_pixel(x, y + 3, wall_color)
-            if cell.walls[2]:
-                renderer.set_pixel(x + 1, y + 3, wall_color)
-                renderer.set_pixel(x + 2, y + 3, wall_color)
-        if cell.c == COLS - 1 and cell.r == ROWS - 1:
-            renderer.set_pixel(x + 3, y + 3, wall_color)
+    renderer.draw_pixel_list(wall_rgb, cam=True)
 
     # Goals — blink every 12 frames
     gc = (255, 255, 255) if (fc // 12) % 2 == 0 else (68, 68, 68)
@@ -642,8 +685,13 @@ def run(mock: bool = False) -> None:
     """
     global _running
 
-    renderer = Renderer(use_hardware=not mock)
+    # IMPORTANT: InputHandler must be created BEFORE Renderer.
+    # RGBMatrix drops privileges to 'daemon' user, which cannot read
+    # /dev/input/js* (owned by root:input).  Pygame opens the joystick
+    # file descriptors at init time, and they stay open after the
+    # privilege drop.
     input_handler = InputHandler()
+    renderer = Renderer(use_hardware=not mock)
     state = GameState()
 
     # Ensure players exist (CPU vs CPU for attract mode bootstrap)
@@ -713,12 +761,13 @@ def _update(state: GameState, p1: dict, p2: dict, any_input: bool,
         idle_s = time.monotonic() - input_handler.last_input_time
         if idle_s > IDLE_THRESHOLD_S and not state.is_attract_mode:
             state.is_attract_mode = True
-            state.game_mode = 'MULTI'
+            state.game_mode = 'SINGLE'
+            state.difficulty = 'HARD'
+            set_difficulty('HARD')
             state.players[0] = Player(0, name='CPU', color=COLORS[0])
-            state.players[1] = Player(1, name='CPU', color=COLORS[1])
-            _init_player_setup(state)
-            state.player_setup['difficulty_idx'] = 3  # INSANE
-            _finalize_setup(state)
+            state.players[1] = Player(1, name='CPU', color=COLORS[3])
+            state.screen = 'PLAYING'
+            start_new_match(state)
             return
 
         if state.input_delay == 0:

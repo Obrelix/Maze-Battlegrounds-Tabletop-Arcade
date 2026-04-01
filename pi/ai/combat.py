@@ -3,6 +3,7 @@
 
 import math
 import random
+from collections import deque
 
 from config import COLS, ROWS, CELL_SIZE, MAZE_OFFSET_X
 from grid import grid_index, is_wall
@@ -12,47 +13,70 @@ from grid import grid_index, is_wall
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+_beam_visited = bytearray(COLS * ROWS)
+_beam_dist = [0] * (COLS * ROWS)
+
 def _check_beam_path(maze: list, player, opponent) -> dict:
     """
-    BFS check for a valid beam path between player and opponent cells.
+    Fast BFS check for a valid beam path between player and opponent cells.
     Returns {'has_path': bool, 'path_length': int}.
-    Mirrors JS checkBeamPath().
     """
     if not maze:
         return {'has_path': False, 'path_length': float('inf')}
 
-    start_c = int((player.x - MAZE_OFFSET_X + 1) // CELL_SIZE)
-    start_r = int((player.y + 1) // CELL_SIZE)
+    sc = int((player.x - MAZE_OFFSET_X + 1) // CELL_SIZE)
+    sr = int((player.y + 1) // CELL_SIZE)
     size = getattr(opponent, 'size', 2.0)
-    end_c = int((opponent.x + size / 2 - MAZE_OFFSET_X) // CELL_SIZE)
-    end_r = int((opponent.y + size / 2) // CELL_SIZE)
+    ec = int((opponent.x + size / 2 - MAZE_OFFSET_X) // CELL_SIZE)
+    er = int((opponent.y + size / 2) // CELL_SIZE)
 
-    start = grid_index(maze, start_c, start_r)
-    end = grid_index(maze, end_c, end_r)
+    sc = max(0, min(sc, COLS - 1))
+    sr = max(0, min(sr, ROWS - 1))
+    ec = max(0, min(ec, COLS - 1))
+    er = max(0, min(er, ROWS - 1))
 
-    if start is None or end is None:
-        return {'has_path': False, 'path_length': float('inf')}
+    si = sc + sr * COLS
+    ei = ec + er * COLS
 
-    visited = set()
-    queue = [(start, 0)]
-    head = 0
-    visited.add(id(start))
+    if si == ei:
+        return {'has_path': True, 'path_length': 0}
 
-    directions = [(0, -1, 0), (1, 0, 1), (0, 1, 2), (-1, 0, 3)]
+    visited = _beam_visited
+    dist = _beam_dist
+    total = COLS * ROWS
+    for i in range(total):
+        visited[i] = 0
 
-    while head < len(queue):
-        curr, dist = queue[head]
-        head += 1
+    visited[si] = 1
+    dist[si] = 0
+    queue = deque()
+    queue.append(si)
 
-        if curr is end:
-            return {'has_path': True, 'path_length': dist}
+    directions = ((0, -1, 0), (1, 0, 1), (0, 1, 2), (-1, 0, 3))
 
-        for dc, dr, wall_idx in directions:
-            n = grid_index(maze, curr.c + dc, curr.r + dr)
-            opp_wall = (wall_idx + 2) % 4
-            if n and id(n) not in visited and not curr.walls[wall_idx] and not n.walls[opp_wall]:
-                visited.add(id(n))
-                queue.append((n, dist + 1))
+    while queue:
+        ci = queue.popleft()
+        if ci == ei:
+            return {'has_path': True, 'path_length': dist[ci]}
+
+        cell = maze[ci]
+        cc, cr = cell.c, cell.r
+        d = dist[ci] + 1
+
+        for dc, dr, wi in directions:
+            nc, nr = cc + dc, cr + dr
+            if nc < 0 or nc >= COLS or nr < 0 or nr >= ROWS:
+                continue
+            ni = nc + nr * COLS
+            if visited[ni]:
+                continue
+            if cell.walls[wi]:
+                continue
+            if maze[ni].walls[(wi + 2) & 3]:
+                continue
+            visited[ni] = 1
+            dist[ni] = d
+            queue.append(ni)
 
     return {'has_path': False, 'path_length': float('inf')}
 

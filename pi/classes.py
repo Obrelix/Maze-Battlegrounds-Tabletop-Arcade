@@ -79,6 +79,8 @@ class Player:
         'ai_mental_model', 'ai_frame_counter',
         'confusion_timer', 'confused_dir',
         'direction_history', '_suggested_mine_pos',
+        'opponent_profile', 'ai_strategy_state',
+        'mine_placement_history',
     )
 
     def __init__(
@@ -142,6 +144,9 @@ class Player:
         self.confused_dir = None
         self.direction_history = []
         self._suggested_mine_pos = None
+        self.opponent_profile = None
+        self.ai_strategy_state = None
+        self.mine_placement_history = []
 
     # ------------------------------------------------------------------
     # Timing helpers — all mirror the JS equivalents

@@ -113,21 +113,27 @@ class Renderer:
     # Pixel drawing
     # ------------------------------------------------------------------
 
-    def set_pixel(self, x: int, y: int, color) -> None:
+    def set_pixel(self, x, y, color) -> None:
         """Draw a pixel with the current camera offset applied."""
         px = int(x) + self._cam_x
         py = int(y) + self._cam_y
         if 0 <= px < LOGICAL_W and 0 <= py < LOGICAL_H:
-            r, g, b = self.parse_color(color)
-            self._canvas.SetPixel(px, py, r, g, b)
+            if isinstance(color, tuple):
+                self._canvas.SetPixel(px, py, color[0], color[1], color[2])
+            else:
+                r, g, b = self.parse_color(color)
+                self._canvas.SetPixel(px, py, r, g, b)
 
-    def set_pixel_no_cam(self, x: int, y: int, color) -> None:
+    def set_pixel_no_cam(self, x, y, color) -> None:
         """Draw a pixel without applying the camera offset (for HUD elements)."""
         px = int(x)
         py = int(y)
         if 0 <= px < LOGICAL_W and 0 <= py < LOGICAL_H:
-            r, g, b = self.parse_color(color)
-            self._canvas.SetPixel(px, py, r, g, b)
+            if isinstance(color, tuple):
+                self._canvas.SetPixel(px, py, color[0], color[1], color[2])
+            else:
+                r, g, b = self.parse_color(color)
+                self._canvas.SetPixel(px, py, r, g, b)
 
     # ------------------------------------------------------------------
     # Color parsing
@@ -170,6 +176,26 @@ class Renderer:
                 py = int(y) + dy + self._cam_y
                 if 0 <= px < LOGICAL_W and 0 <= py < LOGICAL_H:
                     self._canvas.SetPixel(px, py, r, g, b)
+
+    def draw_pixel_list(self, pixels, cam=True) -> None:
+        """Draw a pre-computed list of (x, y, r, g, b) tuples.
+
+        This is much faster than calling set_pixel() in a loop because it
+        skips parse_color() and attribute lookups on every iteration.
+        """
+        canvas = self._canvas
+        W, H = LOGICAL_W, LOGICAL_H
+        if cam:
+            cx, cy = self._cam_x, self._cam_y
+            for x, y, r, g, b in pixels:
+                px = x + cx
+                py = y + cy
+                if 0 <= px < W and 0 <= py < H:
+                    canvas.SetPixel(px, py, r, g, b)
+        else:
+            for x, y, r, g, b in pixels:
+                if 0 <= x < W and 0 <= y < H:
+                    canvas.SetPixel(x, y, r, g, b)
 
     def alpha_blend(self, fg, alpha: float, bg=(0, 0, 0)) -> tuple:
         """
