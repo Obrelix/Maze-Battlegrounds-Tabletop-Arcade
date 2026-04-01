@@ -167,9 +167,9 @@ class InputHandler:
         if len(self._joysticks) >= 2:
             self._merge_gamepad(p2, self._joysticks[1])
 
-        # Edge-detect start button
+        # Edge-detect start/select buttons (both work as pause)
         for idx, inp in enumerate((p1, p2)):
-            cur_start = inp['start']
+            cur_start = inp['start'] or inp.get('select', False)
             inp['start_pressed'] = cur_start and not self._prev_start[idx]
             self._prev_start[idx] = cur_start
 
