@@ -117,7 +117,7 @@ def start_new_round(state: GameState, maze_seed=None) -> None:
     state.victim_idx = -1
     state.is_paused = False
     state.is_draw = False
-    state.scroll_x = LOGICAL_W
+    state.scroll_x = LOGICAL_W + 5
     state.camera.shake_strength = 0.0
     state.portal_reverse_colors = False
 
@@ -215,7 +215,7 @@ def handle_menu_input(state: GameState, p1: dict, p2: dict) -> None:
         state.input_delay = 20
         return
 
-    if p1['boom'] or p1['beam'] or p1['start']:
+    if p1['boom'] or p1['beam'] or p1['start'] or p1.get('select'):
         state.input_delay = 20
         sel = state.menu_selection
         if sel == 0:
@@ -368,7 +368,7 @@ def _handle_pause_input(state: GameState, p1: dict, p2: dict) -> None:
     elif p1['down']:
         state.pause_menu_selection = (state.pause_menu_selection + 1) % len(options)
         state.input_delay = 10
-    elif p1['boom'] or p1['beam'] or p1['start']:
+    elif p1['boom'] or p1['beam'] or p1['start'] or p1.get('select'):
         sel = options[state.pause_menu_selection]
         if sel == 'RESUME':
             state.is_paused = False
@@ -805,11 +805,13 @@ def _update(state: GameState, p1: dict, p2: dict, any_input: bool,
     # Scroll for game-over/round-over messages
     if state.is_game_over or state.is_round_over:
         update_particles(state)
-        state.scroll_x -= 0.5
+        # Scroll 1 pixel every 2 frames (integer steps to avoid sub-pixel misalignment)
+        if state.frame_count % 2 == 0:
+            state.scroll_x -= 1
         msg = state.messages
         msg_len = len(msg.get('taunt', '') if state.is_game_over else msg.get('round', ''))
-        if state.scroll_x < -(msg_len * 4.5):
-            state.scroll_x = float(LOGICAL_W)
+        if state.scroll_x < -(msg_len * 5):
+            state.scroll_x = LOGICAL_W + 5
 
         if state.is_attract_mode:
             state.demo_reset_timer = getattr(state, 'demo_reset_timer', 0) - 1
